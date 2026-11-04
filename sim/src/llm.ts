@@ -24,8 +24,14 @@ export async function llmSolve(t: Task): Promise<string | undefined> {
     } as Anthropic.MessageCreateParamsNonStreaming);
     budget.record(res.usage);
     const b = res.content.find((x) => x.type === "text");
-    return b && b.type === "text" ? b.text.trim() : undefined;
+    return b && b.type === "text" ? finalAnswer(b.text) : undefined;
   } catch {
     return undefined;
   }
+}
+
+/** Models sometimes show working despite the instruction; the answer is the last number (unicode minus normalised). */
+export function finalAnswer(text: string): string {
+  const nums = text.replace(/\u2212/g, "-").match(/-?\d+(?:\.\d+)?/g);
+  return nums ? nums[nums.length - 1] : text.trim();
 }
