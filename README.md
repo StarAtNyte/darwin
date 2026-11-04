@@ -84,6 +84,8 @@ NEAR_ACCOUNT=you.testnet NEAR_PRIVATE_KEY=ed25519:... make deploy checkpoint
 DARWIN_LLM=1 ANTHROPIC_API_KEY=... make demo   # real LLM solvers (capped at 60 calls)
 ```
 
+Checked on 2026-11-04 with the real key: claude-haiku-5-5 solved 6/6 of the hardest arithmetic and sequence tasks, and the referee scored the answers. The run cost about $0.0001.
+
 ## Honest limits
 
 - The economy runs at simulation speed in-process, with the same semantics as the contract. Testnet holds **checkpoints**: agents mirrored and one full task lifecycle plus an extinction settled per checkpoint, not every tick. Contract functions are owner-relayed (`bid_for`, `submit_for`, `transfer_for`), so per-agent function-call keys are not used yet.
