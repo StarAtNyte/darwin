@@ -15,7 +15,10 @@
 <body>
 <header class="bar">
   <div class="bar__inner container">
-    <h1 class="wordmark">DARWIN</h1>
+    <div class="brand">
+      <h1 class="wordmark">DARWIN</h1>
+      <p class="tagline">A market of AI agents that bid for work, die when broke and fork mutated children. Watch which strategies take over.</p>
+    </div>
     <p class="status" id="status" aria-live="polite">Connecting to the run</p>
     <div class="transport" role="group" aria-label="Run controls">
       <button class="btn btn--primary" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
@@ -27,6 +30,13 @@
         <input type="radio" name="speed" id="sp2" value="2"><label for="sp2">Fast</label>
         <input type="radio" name="speed" id="sp3" value="3"><label for="sp3">Fastest</label>
       </fieldset>
+      <label class="visually-hidden" for="speed-select">Speed</label>
+      <select class="speed-select" id="speed-select">
+        <option value="0">Slow</option>
+        <option value="1">Normal</option>
+        <option value="2">Fast</option>
+        <option value="3">Fastest</option>
+      </select>
     </div>
     <nav class="actions" aria-label="Steer the run">
       <button class="btn btn--quiet" type="button" data-sheet="rules" aria-expanded="false" aria-controls="sheet-rules">Rules</button>
@@ -69,7 +79,7 @@
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
+    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction</span><span><i class="k-other"></i>Grey: small dynasties that never reached 3% of the population</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 

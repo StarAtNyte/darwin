@@ -18,6 +18,7 @@ function readTokens() {
   T.mono = v("--font-mono");
   T.pigments = [];
   for (let i = 1; v(`--pigment-${i}`); i++) T.pigments.push(v(`--pigment-${i}`));
+  T.other = v("--pigment-other") || T.muted;
 }
 
 // ---------- state ----------
@@ -51,7 +52,12 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const idHtml = (id) => `<span class="id">${esc(short(id))}</span>`;
 const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
 
+// Dynasties whose share never passes this are pooled into one muted band on the plot.
+const OTHER = "__other";
+const MINOR_PEAK = 0.03;
+
 function colourOf(f) {
+  if (f === OTHER) return T.other;
   const rec = S.founders.get(f);
   if (!rec || !T.pigments.length) return T.muted;
   return T.pigments[rec.idx % T.pigments.length];
@@ -284,6 +290,7 @@ function renderChrome() {
     noticeText.innerHTML = "The DARWIN server stopped. Run <code>make demo</code> to start it again; this page reconnects on its own.";
     noticeAction.hidden = true;
     $$("#speed input").forEach((i) => (i.disabled = true));
+    $("#speed-select").disabled = true;
     return;
   }
   if (!st) return;
@@ -291,11 +298,15 @@ function renderChrome() {
     i.disabled = false;
     i.checked = Number(i.value) === st.speed;
   });
+  const sel = $("#speed-select");
+  sel.disabled = false;
+  if (st.speed in SPEED_WORDS) sel.value = String(st.speed);
 
   const parts = [];
-  if (st.finished) parts.push(`Finished, tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}, seed ${st.seed}`);
-  else if (st.paused) parts.push(`Paused at tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}, seed ${st.seed}`);
-  else parts.push(`Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed, tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}, seed ${st.seed}`);
+  if (st.finished) parts.push(`Finished, tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}`);
+  else if (st.paused) parts.push(`Paused at tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}`);
+  else parts.push(`Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed, tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}`);
+  status.title = `Seed ${st.seed}`;
   const shocks = Object.entries(st.shocks || {}).filter(([, end]) => end > st.tick);
   for (const [k, end] of shocks) parts.push(`<span class="shock">${k === "drought" ? "Drought" : "Plague"}, ${end - st.tick} ${plural(end - st.tick, "tick")} left</span>`);
   let html = parts.join(". ") + ".";
@@ -355,30 +366,47 @@ function layout(w) {
   const samples = [];
   for (let i = 0; i < n; i += step) samples.push(i);
   if (samples[samples.length - 1] !== n - 1) samples.push(n - 1);
-  const order = [...S.founders.entries()].sort((a, b) => a[1].idx - b[1].idx).map(([f]) => f);
+  // Peak share per dynasty over the whole run; the ones that never matter share the "other" band.
+  const peak = new Map();
+  for (const m of M) {
+    const lin = m.lineages || {};
+    let total = 0;
+    for (const f in lin) total += valueOf(lin[f], S.mode);
+    if (total) for (const f in lin) peak.set(f, Math.max(peak.get(f) || 0, valueOf(lin[f], S.mode) / total));
+  }
+  const minor = new Set([...S.founders.keys()].filter((f) => (peak.get(f) || 0) < MINOR_PEAK));
+  const order = [...S.founders.entries()].filter(([f]) => !minor.has(f)).sort((a, b) => a[1].idx - b[1].idx).map(([f]) => f);
+  if (minor.size) order.push(OTHER);
   const bands = new Map(order.map((f) => [f, { y0: new Float32Array(samples.length), y1: new Float32Array(samples.length), first: -1, last: -1 }]));
+  const others = new Float64Array(samples.length);
+  const otherCount = new Uint16Array(samples.length);
   samples.forEach((mi, si) => {
     const lin = M[mi].lineages || {};
     let total = 0;
-    for (const f in lin) total += valueOf(lin[f], S.mode);
+    for (const f in lin) {
+      total += valueOf(lin[f], S.mode);
+      if (minor.has(f)) { others[si] += valueOf(lin[f], S.mode); otherCount[si]++; }
+    }
     let cum = 0;
     for (const f of order) {
       const b = bands.get(f);
-      const v = lin[f] ? valueOf(lin[f], S.mode) : 0;
+      const here = f === OTHER ? otherCount[si] > 0 : !!lin[f];
+      const v = f === OTHER ? others[si] : here ? valueOf(lin[f], S.mode) : 0;
       b.y0[si] = total ? cum / total : 0;
       cum += v;
       b.y1[si] = total ? cum / total : 0;
-      if (lin[f]) {
+      if (here) {
         if (b.first < 0) b.first = si;
         b.last = si;
       }
     }
   });
+  // The x-axis spans the ticks seen so far, never the run's planned length.
   const t0 = M[0]?.tick ?? 0;
-  const t1 = Math.max(M[n - 1]?.tick ?? 1, t0 + 60);
+  const t1 = Math.max(M[n - 1]?.tick ?? 1, t0 + 1);
   const x = (si) => ((M[samples[si]].tick - t0) / (t1 - t0)) * w;
   const xt = (tick) => ((tick - t0) / (t1 - t0)) * w;
-  return { samples, bands, order, w, x, xt, t0, t1 };
+  return { samples, bands, order, minor, w, x, xt, t0, t1 };
 }
 
 function tracePath(c, b, from, to, x, h) {
@@ -614,12 +642,19 @@ canvas.addEventListener("mousemove", (e) => {
   S.hover = hit?.f ?? null;
   if (!hit) { tip.hidden = true; if (prev) schedule("plot"); return; }
   const m = S.metrics[hit.mi];
+  if (hit.f === OTHER) {
+    const small = Object.keys(m.lineages).filter((f) => geo.minor.has(f));
+    const n = small.reduce((a, f) => a + m.lineages[f].n, 0);
+    tip.innerHTML = `<b>Small dynasties</b><span>At tick ${m.tick}: ${word(small.length)} ${plural(small.length, "dynasty", "dynasties")}, ${n} living in all.</span><br>` +
+      `<span>None ever held ${Math.round(MINOR_PEAK * 100)}% of the ${S.mode === "wealth" ? "wealth" : "population"}, so they share one grey band.</span>`;
+  } else {
   const lin = m.lineages[hit.f];
   const { living, founder, gens } = dynastyFacts(hit.f);
   const nowAlive = living.length > 0;
   tip.innerHTML = `<b>${esc(short(hit.f))}’s line</b>` +
     `<span>At tick ${m.tick}: ${lin.n} living, ${credits(lin.wealth)} credits.</span><br>` +
     `<span>${nowAlive ? `Now ${living.length} living, ${gens + 1} ${plural(gens + 1, "generation")} deep` : "Extinct now"}. Founded at tick ${founder?.born ?? S.founders.get(hit.f)?.first ?? 0}.</span>`;
+  }
   tip.hidden = false;
   const tw = tip.offsetWidth, th = tip.offsetHeight;
   let tx = px + 14, ty = py + 14;
@@ -636,7 +671,7 @@ canvas.addEventListener("mouseleave", () => {
 canvas.addEventListener("click", (e) => {
   const r = canvas.getBoundingClientRect();
   const hit = hitTest(e.clientX - r.left, e.clientY - r.top);
-  select(hit ? (hit.f === S.selected ? null : hit.f) : null);
+  select(hit && hit.f !== OTHER ? (hit.f === S.selected ? null : hit.f) : null);
 });
 canvas.addEventListener("keydown", (e) => {
   if (e.key !== "ArrowUp" && e.key !== "ArrowDown" && e.key !== "Escape") return;
@@ -644,7 +679,7 @@ canvas.addEventListener("keydown", (e) => {
   if (e.key === "Escape") return select(null);
   const last = S.metrics[S.metrics.length - 1];
   if (!last) return;
-  const alive = Object.keys(last.lineages).sort((a, b) => S.founders.get(a).idx - S.founders.get(b).idx);
+  const alive = Object.keys(last.lineages).filter((f) => !geo?.minor.has(f)).sort((a, b) => S.founders.get(a).idx - S.founders.get(b).idx);
   if (!alive.length) return;
   const i = alive.indexOf(S.selected);
   const next = e.key === "ArrowDown" ? (i + 1) % alive.length : (i <= 0 ? alive.length - 1 : i - 1);
@@ -764,56 +799,57 @@ function founderOf(id) {
   return S.agents.get(id)?.founder || S.genomes.get(id)?.founder || null;
 }
 
+// Plain-language notes. Only extinctions, shocks and guard blocks are marked; everything else reads as context.
+const lineName = (f) => `${esc(short(f))}’s line`;
+const mark = (kind, html) => ({ mark: kind, html });
+
 function groupSentences(g) {
   const out = [];
   for (const e of g.shocks) {
-    if (e.shock === "drought") out.push(`A drought began; tasks fall to a third until tick ${e.until}.`);
-    else if (e.shock === "plague") out.push(`A plague began; upkeep triples until tick ${e.until}.`);
-    else if (e.shock === "rogue") out.push("A rogue was released.");
-    else if (e.shock === "immigration") out.push(`${word(g.arrivals.length || 0)} ${plural(g.arrivals.length, "newcomer")} arrived, each founding a dynasty.`);
+    if (e.shock === "drought") out.push(mark("shock", `A drought began. Only a third as many tasks are posted until tick ${e.until}.`));
+    else if (e.shock === "plague") out.push(mark("shock", `A plague began. Every agent pays triple rent until tick ${e.until}.`));
+    else if (e.shock === "rogue") out.push(mark("shock", "A rogue agent was released."));
+    else if (e.shock === "immigration") out.push(mark("shock", `${word(g.arrivals.length || 0)} ${plural(g.arrivals.length, "newcomer")} arrived, each starting a new dynasty.`));
   }
   for (const e of g.rules) {
     const ch = Object.entries(e.changes || {}).map(([k, v]) => `${k} is now ${typeof v === "number" ? fmt(v, Number.isInteger(v) ? 0 : 2) : v}`);
-    if (ch.length) out.push(`Rules changed: ${list(ch)}.`);
+    if (ch.length) out.push(`The rules changed: ${list(ch)}.`);
   }
-  for (const id of g.rogues) out.push(`${idHtml(id)} entered and started paying its accomplice.`);
+  if (g.rogues.length && !g.shocks.some((e) => e.shock === "rogue")) out.push(mark("shock", "The rogue agent entered and started paying its accomplice."));
   if (!g.shocks.some((e) => e.shock === "immigration") && g.arrivals.length) out.push(`${word(g.arrivals.length)} ${plural(g.arrivals.length, "newcomer")} arrived.`);
   for (const e of g.guard) {
     const why = (e.reasons || []).slice(0, 2).map(reason);
-    out.push({ guard: true, html: `The guard stopped ${idHtml(e.agent)} paying ${idHtml(e.to)} ${credits(e.amount)} credits: ${ATTACKS[e.attack] || e.attack}${why.length ? `, flagged as ${list(why)}` : ""}.` });
+    out.push(mark("guard", `The guard stopped the rogue agent sending ${credits(e.amount)} credits to its accomplice. It tried ${ATTACKS[e.attack] || e.attack}${why.length ? ` and was flagged for ${list(why)}` : ""}.`));
   }
-  for (const e of g.allow) out.push({ guard: true, html: `The guard let ${idHtml(e.agent)} pay ${idHtml(e.to)} ${credits(e.amount)} credits, within the mandate.` });
+  for (const e of g.allow) out.push(`The guard let the rogue agent pay ${credits(e.amount)} credits, because the payment was inside its mandate.`);
   if (g.kills.length) {
     const k = g.kills.length;
     const idx = S.metrics.findIndex((m) => m.tick === g.tick);
     const ended = idx >= 0 ? S.derived[idx].ended : [];
-    let s;
-    if (k >= 4) s = `${word(k)} agents went extinct`;
-    else s = `${list(g.kills.map((e) => idHtml(e.agent)))} went extinct`;
-    if (ended.length === 1) s += `, ending ${idHtml(ended[0])}’s line`;
-    else if (ended.length > 1) s += `, ending ${lower(word(ended.length))} lines`;
+    let s = k === 1 ? "An agent went broke and died" : `${word(k)} agents went broke and died`;
+    if (ended.length === 1) s += `. ${lineName(ended[0])} died out with ${k === 1 ? "it" : "them"}`;
+    else if (ended.length > 1) s += `. ${word(ended.length)} dynasties died out`;
     const lin = idx >= 0 ? S.metrics[idx].lineages : null;
-    if (k >= 4 && lin) {
+    if (ended.length && lin) {
       let best = null, bn = -1;
       for (const f in lin) if (lin[f].n > bn) { bn = lin[f].n; best = f; }
-      if (best) s += `; ${idHtml(best)}’s line survives`;
+      if (best) s += `; ${lineName(best)} is now the largest`;
     }
-    out.push(s + ".");
+    out.push(ended.length || k >= 4 ? mark("extinct", s + ".") : s + ".");
   }
   if (g.forks.length) {
     const lines = [...new Set(g.forks.map((e) => founderOf(e.child) || founderOf(e.parent)).filter(Boolean))];
-    if (g.forks.length === 1) {
-      const e = g.forks[0];
-      out.push(`${idHtml(e.parent)} forked ${idHtml(e.child)}${lines[0] ? ` in ${idHtml(lines[0])}’s line` : ""}.`);
-    } else out.push(`${word(g.forks.length)} forks${lines.length ? `, in ${list(lines.map((l) => idHtml(l) + "’s"))} ${plural(lines.length, "line")}` : ""}.`);
+    const where = lines.length === 1 ? ` in ${lineName(lines[0])}` : lines.length > 1 ? ` across ${lower(word(lines.length))} dynasties` : "";
+    out.push(g.forks.length === 1 ? `An agent earned enough to fork a mutated child${where}.` : `${word(g.forks.length)} agents earned enough to fork mutated children${where}.`);
   }
   return out;
 }
 
 function subsSentence(subs) {
-  const mids = [...new Set(subs.map((e) => e.middleman))];
-  const solvers = [...new Set(subs.map((e) => e.solver))];
-  return `${mids.length === 1 ? "Middleman" : "Middlemen"} ${list(mids.slice(0, 3).map(idHtml))}${mids.length > 3 ? ` and ${mids.length - 3} more` : ""} resold work to ${list(solvers.map(idHtml))}.`;
+  const mids = new Set(subs.map((e) => e.middleman)).size;
+  const solvers = new Set(subs.map((e) => e.solver)).size;
+  const deals = subs.length;
+  return `${mids === 1 ? "One middleman now resells" : `${word(mids)} middlemen now resell`} work to ${mids === 1 && solvers === 1 ? "a solver" : `${lower(word(solvers))} ${plural(solvers, "solver")}`}, ${lower(word(deals))} ${plural(deals, "deal")} in all.`;
 }
 
 function renderNotes() {
@@ -836,12 +872,12 @@ function renderNotes() {
   const items = entries.slice(0, 90).map((en) => {
     const paras = en.ss.map((s, i) => {
       const html = typeof s === "string" ? s : s.html;
-      const cls = typeof s === "string" ? "" : ` class="guardline"`;
+      const cls = typeof s === "string" ? "" : ` class="mark mark--${s.mark}"`;
       return `<p${cls}>${i === 0 ? `<span class="t">${en.label}</span> ` : ""}${html}</p>`;
     });
     return `<li${en.quiet ? ' class="quiet"' : ""}>${paras.join("")}</li>`;
   });
-  feed.innerHTML = items.length ? items.join("") : `<li class="placeholder">${S.metrics.length ? "Quiet so far: no forks, deaths or guard decisions yet." : "Notes appear as the run produces them."}</li>`;
+  feed.innerHTML = items.length ? items.join("") : `<li class="placeholder">${S.metrics.length ? "Quiet so far. No agent has forked, died or met the guard yet." : "Notes appear as the run produces them."}</li>`;
 }
 
 // ---------- selection pressures ----------
@@ -1089,13 +1125,14 @@ function renderExportPreview() {
   if (!ex) { p.textContent = "Reading the champion."; return; }
   if (ex.error) { p.textContent = `Nothing to export yet: ${ex.error}.`; return; }
   const c = ex.champion;
-  p.innerHTML = `The champion is ${idHtml(c.id)}, generation ${c.generation} of ${idHtml(c.founder)}’s line, with ${credits(c.earned)} credits earned. Markup ${c.genome.markup.toFixed(2)}, subcontract ${c.genome.subcontract.toFixed(2)}, at tick ${ex.tick}.`;
+  p.innerHTML = `The champion is ${idHtml(c.id)}, generation ${c.generation} of ${idHtml(c.founder)}’s line, with ${credits(c.earned)} credits earned. Markup ${c.genome.markup.toFixed(2)}, subcontract ${c.genome.subcontract.toFixed(2)}, at tick ${ex.tick} of the run with seed ${S.state?.seed ?? "unknown"}.`;
 }
 
 // ---------- transport and keyboard ----------
 $("#toggle").addEventListener("click", () => control(S.state?.paused ? "resume" : "pause"));
 $("#step").addEventListener("click", () => control("step"));
 $$("#speed input").forEach((i) => i.addEventListener("change", () => control("speed", Number(i.value))));
+$("#speed-select").addEventListener("change", (e) => control("speed", Number(e.target.value)));
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && openSheet) { closeSheet(); return; }

@@ -30,29 +30,20 @@
   --color-error: #ff7966;
   --color-success: #00ec97;
 
-  /* Dynasty pigments: the five NEAR hues (green 158, purple 282, amber 83, cyan 192, coral 30, measured
-     from the spec hexes) at four OKLCH lightness steps, chroma at the sRGB edge. Hue cycles in 5 and
-     lightness in 4, so every neighbour differs in both and the 20 pairs never repeat. */
-  --pigment-1: oklch(0.84 0.193 158.4);       /* NEAR green, L 0.84 */
-  --pigment-2: oklch(0.52 0.149 282.0);       /* NEAR purple, L 0.52 */
-  --pigment-3: oklch(0.70 0.143 83.2);        /* NEAR amber, L 0.70 */
-  --pigment-4: oklch(0.42 0.071 191.8);       /* NEAR cyan, L 0.42 */
-  --pigment-5: oklch(0.84 0.087 29.9);        /* NEAR coral, L 0.84 */
-  --pigment-6: oklch(0.52 0.117 158.4);       /* NEAR green, L 0.52 */
-  --pigment-7: oklch(0.70 0.149 282.0);       /* NEAR purple, L 0.70 */
-  --pigment-8: oklch(0.42 0.083 83.2);        /* NEAR amber, L 0.42 */
-  --pigment-9: oklch(0.84 0.135 191.8);       /* NEAR cyan, L 0.84 */
-  --pigment-10: oklch(0.52 0.167 29.9);       /* NEAR coral, L 0.52 */
-  --pigment-11: oklch(0.70 0.161 158.4);      /* NEAR green, L 0.70 */
-  --pigment-12: oklch(0.42 0.149 282.0);      /* NEAR purple, L 0.42 */
-  --pigment-13: oklch(0.84 0.167 83.2);       /* NEAR amber, L 0.84 */
-  --pigment-14: oklch(0.52 0.087 191.8);      /* NEAR cyan, L 0.52 */
-  --pigment-15: oklch(0.70 0.167 29.9);       /* NEAR coral, L 0.70 */
-  --pigment-16: oklch(0.42 0.097 158.4);      /* NEAR green, L 0.42 */
-  --pigment-17: oklch(0.84 0.081 282.0);      /* NEAR purple, L 0.84 */
-  --pigment-18: oklch(0.52 0.103 83.2);       /* NEAR amber, L 0.52 */
-  --pigment-19: oklch(0.70 0.119 191.8);      /* NEAR cyan, L 0.70 */
-  --pigment-20: oklch(0.42 0.167 29.9);       /* NEAR coral, L 0.42 */
+  /* Dynasty pigments: the five NEAR hues at two light steps, the spec hex and a half-white tint of it.
+     Hue cycles in 5, so neighbours always differ in hue; no step is dark, so every band reads on black. */
+  --pigment-1: #00ec97;   /* NEAR green */
+  --pigment-2: #9797ff;   /* NEAR purple */
+  --pigment-3: #fcbb00;   /* NEAR amber */
+  --pigment-4: #17d9d4;   /* NEAR cyan */
+  --pigment-5: #ff7966;   /* NEAR coral */
+  --pigment-6: #80f6cb;   /* green, half white */
+  --pigment-7: #cbcbff;   /* purple, half white */
+  --pigment-8: #fedd80;   /* amber, half white */
+  --pigment-9: #8becea;   /* cyan, half white */
+  --pigment-10: #ffbcb3;  /* coral, half white */
+  /* Dynasties that never pass a small share of the population share one muted band. */
+  --pigment-other: #595959;
 
   --font-display: "Mona Sans", "Arial Narrow", ui-sans-serif, sans-serif;
   --font-body: "Mona Sans", ui-sans-serif, system-ui, sans-serif;

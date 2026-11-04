@@ -1,6 +1,6 @@
 /* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · brand: NEAR (spec 2026-11-04) · surface: absolute · idea: "the economy as a living fossil record, read as a Muller plot of dynasties" · vibe: "museum specimen drawer, live and steerable"
  * paper: #000000 near.org black, raised steps #191919 and #333333 · accent: #00ec97 NEAR green, black text on it · display: Mona Sans at wdth 75 · body and figures: Mona Sans, tabular numerals · outlier: ui-monospace for agent ids only
- * nav: top bar, wordmark, run status in words, transport, three side sheets · signature: the full-width Muller plot of founding dynasties, banded in the five NEAR hues at four OKLCH lightness steps · states: loading, empty, disconnected, finished, full
+ * nav: top bar, wordmark, run status in words, transport, three side sheets · signature: the full-width Muller plot of founding dynasties, banded in the five NEAR hues at two light steps, small dynasties pooled in one grey band · states: loading, empty, disconnected, finished, full
  * axes: dark/display-condensed/chromatic-green · posture: full-palette data on black chrome · contrast: pass (black on #00ec97 15.2:1; #acaba6 on #000 9.5:1) · data: live from the sim server · redesign: restyle · v2.0.0 */
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V5 · weakest: H, three lower regions compete; the plot takes the full width and the largest type, the regions sit a step down */
 /* Hallmark · waive 7b · pure #000 ground and #fff ink come from the NEAR brand spec · near.org sets its bg-black sections with white ink, and the Muller plot's pigments read best on that black */
@@ -52,12 +52,20 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 /* Top bar */
 .bar { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: var(--color-paper); border-bottom: 1px solid var(--color-rule-soft); }
 .bar__inner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm) var(--space-lg); min-height: 64px; padding-block: var(--space-xs); }
+.brand { display: grid; gap: var(--space-3xs); flex: 1 1 24rem; min-width: 0; }
+.tagline { max-width: 62ch; }
+.tagline { color: var(--color-ink-2); font-size: var(--text-sm); line-height: 1.35; }
 .wordmark { font-size: var(--text-wordmark); font-weight: 800; line-height: 1; letter-spacing: 0.01em; }
-.status { flex: 1 1 18rem; min-width: 0; color: var(--color-ink-2); font-size: var(--text-sm); }
+.status { order: 3; flex: 1 1 55%; min-width: 0; color: var(--color-ink-2); font-size: var(--text-sm); }
 .status b { color: var(--color-ink); font-weight: 500; }
 .status .shock { color: var(--color-ink); }
+.actions { order: 4; }
 .transport, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
 #toggle { min-width: 6.5rem; }
+.speed-select { display: none; min-height: 36px; padding: 0 var(--space-sm); background: var(--color-paper-3); color: var(--color-ink); border: 1px solid var(--color-rule); border-radius: var(--radius-input); font-size: var(--text-sm); cursor: pointer; }
+.speed-select:hover { border-color: var(--color-muted); }
+.speed-select:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.speed-select:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .notice { background: var(--color-paper-2); border-bottom: 1px solid var(--color-rule); }
 .notice__inner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm) var(--space-lg); padding-block: var(--space-sm); }
@@ -105,6 +113,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .key i { flex: none; width: 14px; height: 8px; border-radius: 1px; }
 .key .k-shock { background: var(--color-ink-2); }
 .key .k-guard { width: 3px; height: 12px; background: var(--color-accent); }
+.key .k-other { background: var(--pigment-other); }
 .key .k-scar { width: 1px; height: 12px; background: var(--color-ink); }
 
 /* The three regions */
@@ -147,8 +156,12 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .feed .quiet { color: var(--color-ink-2); }
 .feed .t { font-family: var(--font-body); font-variant-numeric: tabular-nums; color: var(--color-muted); }
 .feed p + p { margin-top: var(--space-2xs); }
-.feed .guardline { position: relative; padding-left: var(--space-md); }
-.feed .guardline::before { position: absolute; left: 0; top: 0.5em; }
+.feed .mark { position: relative; padding-left: var(--space-md); color: var(--color-ink); font-weight: 500; }
+.feed .mark::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 8px; height: 8px; border-radius: 1px; }
+.feed .mark--guard::before { background: var(--color-accent); }
+.feed .mark--shock::before { background: var(--color-ink-2); }
+.feed .mark--extinct::before { background: var(--color-error); }
+.feed li:not(.quiet) p:not(.mark) { color: var(--color-ink-2); }
 .feed .id { font-family: var(--font-mono); font-size: 0.95em; }
 
 /* Selection pressures */
@@ -161,7 +174,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .fig canvas { width: 100%; height: 28px; }
 .guard { margin-top: var(--space-lg); padding: var(--space-md); border: 1px solid var(--color-rule); border-radius: var(--radius-card); }
 .guard h3 { display: flex; align-items: center; gap: var(--space-xs); }
-.guard h3::before, .feed .guardline::before { content: ""; flex: none; width: 8px; height: 8px; background: var(--color-accent); border-radius: 1px; }
+.guard h3::before { content: ""; flex: none; width: 8px; height: 8px; background: var(--color-accent); border-radius: 1px; }
 .guard h3 { font-size: var(--text-lg); margin-bottom: var(--space-2xs); }
 .guard p { font-size: var(--text-sm); color: var(--color-ink-2); }
 .guard .big { display: block; font-family: var(--font-body); font-variant-numeric: tabular-nums; font-size: var(--text-xl); color: var(--color-ink); margin-bottom: var(--space-2xs); }
@@ -214,6 +227,10 @@ input[aria-invalid="true"] { border-color: var(--color-error); }
 }
 @media (max-width: 40rem) {
   .actions { width: 100%; }
+  #speed { display: none; }
+  .speed-select { display: inline-block; }
+  .record__head { grid-template-columns: minmax(0, 1fr); gap: var(--space-sm); }
+  .brand { flex-basis: 100%; }
   .shocks li { grid-template-columns: minmax(0, 1fr); gap: var(--space-xs); }
   .gene { grid-template-columns: 7rem minmax(0, 1fr) 3.2rem; }
 }
