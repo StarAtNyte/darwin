@@ -45,7 +45,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .seg label:first-of-type { margin-left: 0; border-radius: var(--radius-input) 0 0 var(--radius-input); }
 .seg label:last-of-type { border-radius: 0 var(--radius-input) var(--radius-input) 0; }
 .seg label:hover { background: var(--color-paper-2); color: var(--color-ink); }
-.seg input:checked + label { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-paper); position: relative; }
+.seg input:checked + label { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); position: relative; transition: none; }
 .seg input:focus-visible + label { outline: 2px solid var(--color-focus); outline-offset: 2px; position: relative; z-index: 1; }
 .seg input:disabled + label { opacity: 0.5; cursor: not-allowed; }
 

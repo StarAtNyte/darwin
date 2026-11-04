@@ -88,6 +88,8 @@ function ingestMetrics(m) {
 
 function ingestSnapshot(snap) {
   S.snap = snap;
+  // The server sends state only on changes; keep the tick in the status line current from each snapshot.
+  if (S.state && snap.tick > S.state.tick) S.state.tick = snap.tick;
   for (const a of snap.agents) S.agents.set(a.id, a);
   ingestMetrics(snap.metrics);
 }
@@ -595,7 +597,8 @@ function renderAxis(g) {
   const span = g.t1 - g.t0;
   const raw = span / 8;
   const mag = 10 ** Math.floor(Math.log10(raw));
-  const stepT = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw) || raw;
+  // Ticks are whole numbers: never step by less than one.
+  const stepT = Math.max(1, Math.round([1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw) || raw));
   const out = [`<span style="left:0">tick ${g.t0}</span>`];
   for (let t = Math.ceil((g.t0 + stepT * 0.6) / stepT) * stepT; t < g.t1 - stepT * 0.4; t += stepT) out.push(`<span style="left:${((t - g.t0) / span) * 100}%">${t}</span>`);
   out.push(`<span style="left:100%">${g.t1}</span>`);
@@ -861,7 +864,7 @@ function renderNotes() {
   const windows = new Map(); // subcontract deals, summarised per ten ticks
   for (const [t, g] of S.notes) {
     const ss = groupSentences(g);
-    if (ss.length) entries.push({ t, label: `Tick ${t}.`, ss });
+    if (ss.length) entries.push({ t, from: t, to: t, ss });
     if (g.subs.length) {
       const w = Math.floor(t / 10) * 10;
       if (!windows.has(w)) windows.set(w, { subs: [], last: t });
@@ -870,9 +873,20 @@ function renderNotes() {
       win.last = Math.max(win.last, t);
     }
   }
-  for (const [w, win] of windows) entries.push({ t: win.last + 0.5, label: `Ticks ${w} to ${w + 9}.`, ss: [subsSentence(win.subs)], quiet: true });
+  for (const [w, win] of windows) entries.push({ t: win.last + 0.5, from: w, to: w + 9, ss: [subsSentence(win.subs)], quiet: true });
   entries.sort((a, b) => b.t - a.t);
-  const items = entries.slice(0, 90).map((en) => {
+  // Neighbouring entries that say the same thing become one entry over the whole range of ticks.
+  const same = (en) => en.ss.map((x) => (typeof x === "string" ? x : `${x.mark}:${x.html}`)).join("\n");
+  const merged = [];
+  for (const en of entries) {
+    const prev = merged.at(-1);
+    if (prev && prev.quiet === en.quiet && same(prev) === same(en)) {
+      prev.from = Math.min(prev.from, en.from);
+      prev.to = Math.max(prev.to, en.to);
+    } else merged.push({ ...en });
+  }
+  for (const en of merged) en.label = en.from === en.to ? `Tick ${en.from}.` : `Ticks ${en.from} to ${en.to}.`;
+  const items = merged.slice(0, 90).map((en) => {
     const paras = en.ss.map((s, i) => {
       const html = typeof s === "string" ? s : s.html;
       const cls = typeof s === "string" ? "" : ` class="mark mark--${s.mark}"`;

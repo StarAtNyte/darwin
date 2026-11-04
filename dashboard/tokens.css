@@ -30,9 +30,10 @@
   --color-error: #ff7966;
   --color-success: #00ec97;
 
-  /* Dynasty pigments: the five NEAR hues at two light steps, the spec hex and a half-white tint of it.
+  /* Dynasty pigments: the five NEAR hues at two light steps, the spec hex and a half-white tint of it
+     (green, the UI signal, takes two tints instead, so a winning dynasty never reads as the highlight).
      Hue cycles in 5, so neighbours always differ in hue; no step is dark, so every band reads on black. */
-  --pigment-1: #00ec97;   /* NEAR green */
+  --pigment-1: #b3f9e0;   /* green, 70% white: pure #00ec97 is kept for UI highlights, never a dynasty */
   --pigment-2: #9797ff;   /* NEAR purple */
   --pigment-3: #fcbb00;   /* NEAR amber */
   --pigment-4: #17d9d4;   /* NEAR cyan */
