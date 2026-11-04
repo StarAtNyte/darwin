@@ -488,6 +488,9 @@ function drawPlot() {
   const sel = S.selected && bands.get(S.selected);
   if (sel && sel.first >= 0) {
     tracePath(c, sel, Math.max(0, sel.first - 1), Math.min(lastSi, sel.last + 1), x, h);
+    c.lineWidth = 4;
+    c.strokeStyle = T.paper;
+    c.stroke();
     c.lineWidth = 2;
     c.strokeStyle = T.accent;
     c.stroke();

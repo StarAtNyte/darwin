@@ -8,50 +8,60 @@
   --container: 1600px; --gutter: 48px; --gap-columns: 40px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
   --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
 
-  /* Ground: a warm slate, mid-tone. Chrome stays in these neutrals. */
-  --color-paper: oklch(0.335 0.008 58);
-  --color-paper-2: oklch(0.375 0.009 58);
-  --color-paper-3: oklch(0.295 0.008 58);
-  --color-ink: oklch(0.95 0.008 80);
-  --color-ink-2: oklch(0.84 0.01 75);
-  --color-muted: oklch(0.74 0.012 70);
-  --color-rule: oklch(0.45 0.012 65);
-  --color-rule-soft: oklch(0.40 0.012 64);
+  /* NEAR brand (spec 2026-11-04, .hallmark/brand-spec.md). Literal values on purpose: app.js hands
+     these strings to the canvas, so they must be plain colours, not var() or color-mix(). */
+  --near-black: #000000; --near-white: #ffffff; --near-green: #00ec97; --near-blue: #17d9d4;
+  --near-purple: #9797ff; --near-red: #ff7966; --near-amber: #fcbb00; --near-black-subtle: #acaba6;
 
-  /* One signal: the primary action, the selection and the guard's interventions. */
-  --color-accent: oklch(0.80 0.15 352);
-  --color-accent-ink: oklch(0.25 0.03 352);
-  --color-focus: oklch(0.88 0.11 352);
-  --color-error: oklch(0.83 0.11 45);
-  --color-success: oklch(0.84 0.08 150);
+  /* Ground: near.org black; raised surfaces step up through the spec's white-opacity greys. */
+  --color-paper: #000000;
+  --color-paper-2: #333333;
+  --color-paper-3: #191919;
+  --color-ink: #ffffff;
+  --color-ink-2: #d6d5d3;   /* white over #acaba6, half and half */
+  --color-muted: #acaba6;
+  --color-rule: #595959;
+  --color-rule-soft: #333333;
 
-  /* Mineral pigments: the dynasties' colours, ordered so neighbours differ in lightness and hue. */
-  --pigment-1: oklch(0.74 0.125 75);   /* yellow ochre */
-  --pigment-2: oklch(0.47 0.115 262);  /* lapis */
-  --pigment-3: oklch(0.65 0.12 158);   /* malachite */
-  --pigment-4: oklch(0.56 0.16 33);    /* cinnabar */
-  --pigment-5: oklch(0.82 0.06 185);   /* verdigris */
-  --pigment-6: oklch(0.46 0.06 55);    /* raw umber */
-  --pigment-7: oklch(0.86 0.13 95);    /* orpiment */
-  --pigment-8: oklch(0.58 0.10 252);   /* smalt */
-  --pigment-9: oklch(0.69 0.13 50);    /* realgar */
-  --pigment-10: oklch(0.42 0.07 168);  /* viridian earth */
-  --pigment-11: oklch(0.76 0.07 135);  /* terre verte */
-  --pigment-12: oklch(0.50 0.13 12);   /* madder */
-  --pigment-13: oklch(0.70 0.09 238);  /* azurite */
-  --pigment-14: oklch(0.58 0.12 48);   /* burnt sienna */
-  --pigment-15: oklch(0.88 0.03 85);   /* chalk */
-  --pigment-16: oklch(0.40 0.08 280);  /* indigo */
-  --pigment-17: oklch(0.66 0.10 110);  /* green earth */
-  --pigment-18: oklch(0.62 0.09 20);   /* red bole */
+  /* One signal, NEAR green: the primary action, the selection and the guard's interventions. Black text on it. */
+  --color-accent: #00ec97;
+  --color-accent-ink: #000000;
+  --color-focus: #00ec97;
+  --color-error: #ff7966;
+  --color-success: #00ec97;
 
-  --font-display: "Antonio", "Arial Narrow", sans-serif;
-  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* Dynasty pigments: the five NEAR hues (green 158, purple 282, amber 83, cyan 192, coral 30, measured
+     from the spec hexes) at four OKLCH lightness steps, chroma at the sRGB edge. Hue cycles in 5 and
+     lightness in 4, so every neighbour differs in both and the 20 pairs never repeat. */
+  --pigment-1: oklch(0.84 0.193 158.4);       /* NEAR green, L 0.84 */
+  --pigment-2: oklch(0.52 0.149 282.0);       /* NEAR purple, L 0.52 */
+  --pigment-3: oklch(0.70 0.143 83.2);        /* NEAR amber, L 0.70 */
+  --pigment-4: oklch(0.42 0.071 191.8);       /* NEAR cyan, L 0.42 */
+  --pigment-5: oklch(0.84 0.087 29.9);        /* NEAR coral, L 0.84 */
+  --pigment-6: oklch(0.52 0.117 158.4);       /* NEAR green, L 0.52 */
+  --pigment-7: oklch(0.70 0.149 282.0);       /* NEAR purple, L 0.70 */
+  --pigment-8: oklch(0.42 0.083 83.2);        /* NEAR amber, L 0.42 */
+  --pigment-9: oklch(0.84 0.135 191.8);       /* NEAR cyan, L 0.84 */
+  --pigment-10: oklch(0.52 0.167 29.9);       /* NEAR coral, L 0.52 */
+  --pigment-11: oklch(0.70 0.161 158.4);      /* NEAR green, L 0.70 */
+  --pigment-12: oklch(0.42 0.149 282.0);      /* NEAR purple, L 0.42 */
+  --pigment-13: oklch(0.84 0.167 83.2);       /* NEAR amber, L 0.84 */
+  --pigment-14: oklch(0.52 0.087 191.8);      /* NEAR cyan, L 0.52 */
+  --pigment-15: oklch(0.70 0.167 29.9);       /* NEAR coral, L 0.70 */
+  --pigment-16: oklch(0.42 0.097 158.4);      /* NEAR green, L 0.42 */
+  --pigment-17: oklch(0.84 0.081 282.0);      /* NEAR purple, L 0.84 */
+  --pigment-18: oklch(0.52 0.103 83.2);       /* NEAR amber, L 0.52 */
+  --pigment-19: oklch(0.70 0.119 191.8);      /* NEAR cyan, L 0.70 */
+  --pigment-20: oklch(0.42 0.167 29.9);       /* NEAR coral, L 0.42 */
+
+  --font-display: "Mona Sans", "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-body: "Mona Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --font-outlier: var(--font-mono);
+  --stretch-display: 75%;
   --radius-card: 4px; --radius-input: 4px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: none;
-  --shadow-sheet: -24px 0 48px -24px oklch(0.15 0.01 60 / 0.6);
-  --shadow-tip: 0 8px 24px -12px oklch(0.15 0.01 60 / 0.7);
+  --shadow-sheet: -24px 0 48px -24px #000000;
+  --shadow-tip: 0 8px 24px -12px #000000;
   --tracking-display: -0.005em;
 }
 @media (max-width: 60rem) { :root { --gutter: 24px; --gap-columns: 32px; --text-counter: 3.2rem; } }
