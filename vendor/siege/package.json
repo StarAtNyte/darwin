@@ -1,0 +1,9 @@
+{
+  "name": "siege",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Vendored SIEGE Mandate guard library (https://github.com/StarAtNyte/near-siege). Do not edit; run scripts/sync-siege.sh.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@anthropic-ai/sdk": "^1.4.0" }
+}

@@ -1,7 +1,9 @@
-.PHONY: install demo headless test contract deploy checkpoint
+
+.PHONY: sync-siege install demo headless test contract deploy checkpoint
 install:
 	cd sim && npm install
-	cd ../siege && npm install
+sync-siege:      ## refresh vendor/siege from a SIEGE checkout (default ../siege)
+	scripts/sync-siege.sh
 demo:            ## run the economy live and serve the dashboard on http://localhost:8787
 	cd sim && npx tsx src/main.ts
 headless:        ## fast run, prints metrics (TICKS=2000 SEED=7 make headless)

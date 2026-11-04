@@ -5,18 +5,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: { path: darwin }
-      # DARWIN imports SIEGE as a sibling package. While the repos are private this needs a
-      # SIEGE_READ_TOKEN secret (fine-grained, read-only on near-siege); once public it is not needed.
-      - uses: actions/checkout@v4
-        with:
-          repository: StarAtNyte/near-siege
-          path: siege
-          token: ${{ secrets.SIEGE_READ_TOKEN || github.token }}
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: cd siege && npm ci
-      - run: cd darwin/sim && npm ci && npm test && npx tsc --noEmit
+      - run: cd sim && npm ci && npm test && npx tsc --noEmit
+      - name: server boots and answers
+        run: |
+          cd sim && (PORT=8787 TICKS=50 npx tsx src/main.ts &) && sleep 8
+          curl -fsS 127.0.0.1:8787/healthz
+          curl -fsS -XPOST 127.0.0.1:8787/api/shock -d '{"kind":"drought"}' > /dev/null
+          curl -fsS 127.0.0.1:8787/api/export/genome | grep -q darwin-genome/1
   contract:
     runs-on: ubuntu-latest
     steps:

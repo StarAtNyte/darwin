@@ -1,0 +1,4 @@
+sim/node_modules
+.env
+*.sqlite*
+contract/target

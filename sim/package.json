@@ -12,7 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
     "near-api-js": "^7.4.0",
-    "siege": "file:../../siege"
+    "siege": "file:../vendor/siege"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

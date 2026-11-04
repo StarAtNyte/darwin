@@ -60,22 +60,18 @@ dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, select
 
 ## Setup
 
-DARWIN imports SIEGE's guard as a library, so clone both repos side by side:
-
 ```
-git clone https://github.com/StarAtNyte/near-siege.git siege
-git clone https://github.com/StarAtNyte/near-darwin.git darwin
-cd darwin && make install
+git clone https://github.com/StarAtNyte/near-darwin.git && cd near-darwin && make install
 ```
 
-Requires Node 22+, Rust with the `wasm32-unknown-unknown` target (contract only), and `uv` (SIEGE's attack engine only).
+Requires Node 22+, plus Rust with the `wasm32-unknown-unknown` target for the contract only. SIEGE's guard library is vendored in `vendor/siege` (see `SOURCE_COMMIT` there); `make sync-siege` refreshes it from a SIEGE checkout.
 
 ## Run
 
 ```
 make install
 make demo          # http://127.0.0.1:8787 · 2000 ticks; pause, step, change speed in the UI
-docker build -f darwin/Dockerfile -t darwin .   # from the folder holding siege/ and darwin/
+docker build -t darwin . && docker run -p 8787:8787 darwin
 make headless      # fast metrics run; TICKS=2000 SEED=7 make headless
 make test          # sim tests + typecheck + contract tests
 make contract      # rebuild the wasm
