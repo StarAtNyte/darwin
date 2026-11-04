@@ -44,7 +44,15 @@ export interface Config {
   solverSubCap: number; // subcontracts a solver accepts per tick
   rogueAtTick: number;
   forkFee: number; // micro burned to pool on fork
+  forkShare: number; // fraction of the parent's balance a child is seeded with
+  mutationSigma: number;
+  auction: "reputation" | "price";
 }
+
+/** Rules a user may change while the economy runs. */
+export const TUNABLE = ["tasksPerTick", "upkeep", "deathFloor", "forkShare", "mutationSigma", "solverSubCap", "auction", "maxPop"] as const;
+export type Tunable = (typeof TUNABLE)[number];
+export type Shock = "drought" | "plague" | "rogue" | "immigration";
 
 export const DEFAULTS: Config = {
   seed: 42,
@@ -59,6 +67,9 @@ export const DEFAULTS: Config = {
   solverSubCap: 3,
   rogueAtTick: 120,
   forkFee: 100_000,
+  forkShare: 0.4,
+  mutationSigma: 0.08,
+  auction: "reputation",
 };
 
 const MANDATE = "Pay any contractor invoice up to 0.4 NEAR per transaction. At most 4 NEAR per hour. For subcontracting and task work.";
@@ -68,7 +79,9 @@ export type SimEvent =
   | { event: "born"; agent: string; role: Role; parent?: string; genome: Genome; founder: string }
   | { event: "guard_block"; agent: string; role: Role; to: string; amount: number; reasons: string[]; attack: string }
   | { event: "guard_allow_rogue"; agent: string; to: string; amount: number; attack: string }
-  | { event: "subcontract"; middleman: string; solver: string; task: number; ask: number; price: number };
+  | { event: "subcontract"; middleman: string; solver: string; task: number; ask: number; price: number }
+  | { event: "shock"; shock: Shock; until: number }
+  | { event: "rules"; changes: Partial<Config> };
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 function normalise(v: number[]) {
@@ -127,7 +140,59 @@ export class Economy {
   private solverLoad = new Map<string, { direct: number; sub: number }>();
   private settledLog: { tick: number; sub: boolean; kind: Kind; winner: string }[] = [];
   rogueStats = { attempts: 0, blocked: 0, leaked: 0 };
-  lastMetrics: Record<string, number> = {};
+  /** Active shocks and the tick each one ends. */
+  shocks = new Map<Shock, number>();
+
+  /** Change rules live. Unknown keys and out-of-range values are rejected. */
+  setRules(changes: Record<string, unknown>) {
+    const ranges: Record<string, [number, number]> = {
+      tasksPerTick: [1, 30], upkeep: [0, 100_000], deathFloor: [0, 0.9], forkShare: [0.05, 0.9],
+      mutationSigma: [0, 0.5], solverSubCap: [0, 20], maxPop: [10, 120],
+    };
+    const applied: Partial<Config> = {};
+    for (const [k, v] of Object.entries(changes)) {
+      if (!(TUNABLE as readonly string[]).includes(k)) throw new Error(`unknown rule: ${k}`);
+      if (k === "auction") {
+        if (v !== "reputation" && v !== "price") throw new Error("auction must be reputation or price");
+        applied.auction = v;
+        continue;
+      }
+      const n = Number(v);
+      const [lo, hi] = ranges[k];
+      if (!Number.isFinite(n) || n < lo || n > hi) throw new Error(`${k} must be between ${lo} and ${hi}`);
+      (applied as Record<string, number>)[k] = n;
+    }
+    Object.assign(this.cfg, applied);
+    this.emit({ event: "rules", changes: applied, tick: this.tick });
+    return applied;
+  }
+
+  shock(kind: Shock) {
+    const until = this.tick + (kind === "drought" ? 60 : kind === "plague" ? 40 : 0);
+    if (kind === "rogue") {
+      if (this.alive().some((a) => a.role === "rogue")) throw new Error("a rogue is already loose");
+      if (this.agents.has("r0gue.darwin.testnet")) {
+        // A second rogue gets a fresh name; the accomplice is reused if still alive.
+        const n = [...this.agents.keys()].filter((k) => k.startsWith("r0gue")).length + 1;
+        if (!this.market.agents.get("so1ver-1.darwin.testnet")?.alive) this.spawn("accomplice", randomGenome(this.r), undefined, `so1ver-${n}.darwin.testnet`);
+        this.spawn("rogue", { ...randomGenome(this.r), markup: 0.3, forkAt: 1e9 }, undefined, `r0gue-${n}.darwin.testnet`, 5 * SEED);
+      } else this.spawnRogue();
+    } else if (kind === "immigration") {
+      for (let i = 0; i < 6 && this.market.pool > 20 * SEED; i++) this.spawn("parametric", randomGenome(this.r));
+    } else this.shocks.set(kind, until);
+    this.emit({ event: "shock", shock: kind, until, tick: this.tick });
+  }
+
+  private active(kind: Shock) {
+    const u = this.shocks.get(kind);
+    if (u === undefined) return false;
+    if (this.tick >= u) {
+      this.shocks.delete(kind);
+      return false;
+    }
+    return true;
+  }
+  lastMetrics = {} as ReturnType<Economy["metrics"]>;
 
   constructor(cfg: Partial<Config> = {}, private emit: (e: SimEvent & { tick: number }) => void = () => {}) {
     this.cfg = { ...DEFAULTS, ...cfg };
@@ -156,7 +221,7 @@ export class Economy {
 
   spawn(role: Role, genome: Genome, parent?: string, id?: string, seed = SEED) {
     id ??= `a${++this.serial}.darwin.testnet`;
-    if (parent) this.market.fork(parent, id, Math.floor(this.market.agents.get(parent)!.balance * 0.4));
+    if (parent) this.market.fork(parent, id, Math.floor(this.market.agents.get(parent)!.balance * this.cfg.forkShare));
     else this.market.registerAgent(id, seed);
     const founder = parent ? this.agents.get(parent)!.founder : id;
     this.agents.set(id, { id, role, genome, founder, guard: this.guardFor(id), subcontracted: 0, selfSolved: 0, earned: 0, llmCalls: 0 });
@@ -182,7 +247,8 @@ export class Economy {
 
     // 1. Emission: post tasks while the pool can fund them.
     const tasks: Task[] = [];
-    for (let i = 0; i < this.cfg.tasksPerTick; i++) {
+    const emission = this.active("drought") ? Math.max(1, Math.floor(this.cfg.tasksPerTick / 3)) : this.cfg.tasksPerTick;
+    for (let i = 0; i < emission; i++) {
       const t = makeTask(this.r, -1, this.tick);
       if (t.reward > m.pool) break;
       t.id = m.postTask(t.kind, t.reward);
@@ -215,7 +281,7 @@ export class Economy {
 
     // 3. Award, work (or subcontract), submit, settle.
     for (const t of tasks) {
-      const winner = m.closeAuction(t.id);
+      const winner = m.closeAuction(t.id, this.cfg.auction);
       if (!winner) continue;
       const a = this.agents.get(winner)!;
       const price = m.tasks.get(t.id)!.price!;
@@ -246,7 +312,7 @@ export class Economy {
     // 5. Selection: upkeep, extinction, reproduction, immigration.
     for (const a of this.alive()) {
       if (a.role === "accomplice") continue;
-      m.chargeUpkeep(a.id, this.cfg.upkeep);
+      m.chargeUpkeep(a.id, this.active("plague") ? this.cfg.upkeep * 3 : this.cfg.upkeep);
       const rec = m.agents.get(a.id)!;
       if (rec.balance < this.cfg.deathFloor * SEED && a.role !== "solver") m.kill(a.id);
     }
@@ -255,7 +321,7 @@ export class Economy {
       if (a.role !== "parametric") continue;
       if (rec.balance > a.genome.forkAt * SEED && this.alive().length < this.cfg.maxPop) {
         m.chargeUpkeep(a.id, this.cfg.forkFee);
-        this.spawn("parametric", mutate(a.genome, this.r), a.id);
+        this.spawn("parametric", mutate(a.genome, this.r, this.cfg.mutationSigma), a.id);
       }
     }
     if (this.alive().filter((a) => a.role === "parametric").length < 14 && m.pool > 60 * SEED && this.r() < 0.3) this.spawn("parametric", randomGenome(this.r));
@@ -306,7 +372,7 @@ export class Economy {
   /** Every few ticks the rogue tries one of the SIEGE attack classes to move funds to its accomplice. */
   private async rogueAct(a: AgentState) {
     if (this.tick % 6 !== 0) return;
-    const sink = "so1ver-1.darwin.testnet";
+    const sink = [...this.alive()].find((x) => x.role === "accomplice")?.id ?? "so1ver-1.darwin.testnet";
     const bal = this.market.agents.get(a.id)!.balance;
     if (bal < 50_000) return;
     const attacks = ["injection", "poisoning", "race", "drip"] as const;
@@ -360,6 +426,38 @@ export class Economy {
       rogueAttempts: this.rogueStats.attempts,
       rogueBlocked: this.rogueStats.blocked,
       rogueLeaked: this.rogueStats.leaked,
+      shocks: Object.fromEntries(this.shocks),
+      /** Per founding dynasty: living parametric members and their wealth (the Muller plot's data). */
+      lineages: Object.fromEntries(
+        [...new Set(live.map((a) => a.founder))].map((f) => {
+          const members = live.filter((a) => a.founder === f);
+          return [f, { n: members.length, wealth: members.reduce((s, a) => s + this.market.agents.get(a.id)!.balance, 0) }];
+        }),
+      ),
+    };
+  }
+
+  /** The strategy worth copying: the living parametric agent with the most earned, and its dynasty's mean genome. */
+  exportBest() {
+    const live = this.alive().filter((a) => a.role === "parametric");
+    if (!live.length) throw new Error("no living agents to export");
+    const best = live.reduce((a, b) => (b.earned > a.earned ? b : a));
+    const kin = live.filter((a) => a.founder === best.founder);
+    const mean = (f: (g: Genome) => number) => kin.reduce((s, a) => s + f(a.genome), 0) / kin.length;
+    const rec = this.market.agents.get(best.id)!;
+    return {
+      format: "darwin-genome/1",
+      exportedAt: new Date().toISOString(),
+      seed: this.cfg.seed,
+      tick: this.tick,
+      rules: Object.fromEntries(TUNABLE.map((k) => [k, this.cfg[k]])),
+      champion: { id: best.id, founder: best.founder, generation: rec.generation, earned: best.earned, balance: rec.balance, wins: rec.wins, losses: rec.losses, genome: best.genome },
+      dynasty: {
+        founder: best.founder,
+        living: kin.length,
+        meanGenome: { markup: mean((g) => g.markup), risk: mean((g) => g.risk), subcontract: mean((g) => g.subcontract), reserve: mean((g) => g.reserve), forkAt: mean((g) => g.forkAt), spec: KINDS.map((_, i) => mean((g) => g.spec[i])) },
+      },
+      genes: { markup: "bid as a fraction of the task reward", spec: `skill/preference weights over ${KINDS.join(", ")}`, risk: "chance to bid outside its specialty", subcontract: "chance to resell won work to a solver", reserve: "stops bidding below this many seeds", forkAt: "forks when balance exceeds this many seeds" },
     };
   }
 

@@ -96,7 +96,7 @@ export class Market {
   }
 
   /** Winner minimises price * 1000 / reputation, tie-break by id. Same rule as the contract. */
-  closeAuction(task: number) {
+  closeAuction(task: number, rule: "reputation" | "price" = "reputation") {
     const t = this.tasks.get(task);
     if (!t || t.status !== "Open") throw new MarketError("not open");
     const live = t.bids.filter((b) => this.agents.get(b.agent)?.alive);
@@ -107,7 +107,8 @@ export class Market {
       this.emit({ event: "expire", task });
       return undefined;
     }
-    const score = (b: { agent: string; price: number }) => (b.price * 1000) / Math.max(1, this.agents.get(b.agent)!.reputation);
+    const score = (b: { agent: string; price: number }) =>
+      rule === "price" ? b.price : (b.price * 1000) / Math.max(1, this.agents.get(b.agent)!.reputation);
     live.sort((a, b) => score(a) - score(b) || (a.agent < b.agent ? -1 : 1));
     t.status = "Awarded";
     t.winner = live[0].agent;
