@@ -327,9 +327,10 @@ function renderChrome() {
   if (st.speed in SPEED_WORDS) sel.value = String(st.speed);
 
   const parts = [];
-  if (st.finished) parts.push(`Finished, tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}`);
-  else if (st.paused) parts.push(`Paused at tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}`);
-  else parts.push(`Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed, tick <b class="num">${fmt(st.tick)}</b> of ${fmt(st.maxTicks)}`);
+  // The tick lives in the big counter; the status line says only what the run is doing.
+  if (st.finished) parts.push("Finished");
+  else if (st.paused) parts.push("Paused");
+  else parts.push(`Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed`);
   status.title = `Seed ${st.seed}`;
   const shocks = Object.entries(st.shocks || {}).filter(([, end]) => end > st.tick);
   for (const [k, end] of shocks) parts.push(`<span class="shock">${k === "drought" ? "Drought" : "Plague"}, ${end - st.tick} ${plural(end - st.tick, "tick")} left</span>`);
@@ -539,10 +540,19 @@ function drawPlot() {
     c.lineWidth = 0.75;
     c.strokeStyle = T["paper-3"];
     c.stroke();
-    // Inside the leader, a hairline where its agents forked: the texture of its growth. Forks closer than
-    // FORK_GAP px merge into one line, so a busy stretch reads as denser texture, not a fence.
+    // Inside the leader, a few hairlines where its agents forked hardest: the texture of its growth. A leader
+    // forks almost every tick, so marking every fork (even merged a few px apart) drew a dark fence across
+    // the band. Only the busiest fork ticks are kept, at least FORK_GAP px apart and at most FORK_MAX in all.
     if (f === deepF) {
-      const FORK_GAP = 20;
+      const FORK_GAP = Math.max(80, w / 6), FORK_MAX = 5;
+      const busy = [];
+      for (const m of S.metrics) { const k = m.lineages?.[f]?.forks; if (k) busy.push({ x: Math.round(xt(m.tick)) + 0.5, k }); }
+      busy.sort((p, q) => q.k - p.k);
+      const marks = [];
+      for (const q of busy) {
+        if (marks.length >= FORK_MAX) break;
+        if (marks.every((x0) => Math.abs(x0 - q.x) >= FORK_GAP)) marks.push(q.x);
+      }
       c.save();
       tracePath(c, b, from, to, x, h);
       c.clip();
@@ -550,16 +560,7 @@ function drawPlot() {
       c.globalAlpha = 0.14;
       c.lineWidth = 1;
       c.beginPath();
-      let lastX = -Infinity;
-      for (const m of S.metrics) {
-        const k = m.lineages?.[f]?.forks;
-        if (!k) continue;
-        const xx = Math.round(xt(m.tick)) + 0.5;
-        if (xx - lastX < FORK_GAP) continue;
-        lastX = xx;
-        c.moveTo(xx, 0);
-        c.lineTo(xx, h);
-      }
+      for (const xx of marks) { c.moveTo(xx, 0); c.lineTo(xx, h); }
       c.stroke();
       c.restore();
     }
@@ -647,7 +648,9 @@ function drawNotes(points, xt) {
   const mc = notesCv.getContext("2d");
   mc.font = `500 12px ${T.body}`;
   const clear = (row, a, z) => row.every(([b0, b1]) => z + PAD < b0 || a > b1 + PAD);
-  for (const p of points) {
+  // Placed right to left, so each earlier note can climb a row and sit above the later notes' start while
+  // its own leader passes to their left: three events close together form a staircase instead of colliding.
+  for (const p of [...points].sort((a, b) => b.tick - a.tick)) {
     const xx = Math.round(xt(p.tick)) + 0.5;
     const text = p.lines.join(" ");
     const tw = mc.measureText(text).width + 8;
@@ -682,26 +685,77 @@ function drawNotes(points, xt) {
   }
 }
 
-// At most five turning points, most telling first: the largest extinction, the first dynasty past half,
-// the guard's first block, then shocks. Every one is read from the metrics and events the run produced.
+// Turning points across the whole run, every one read from the metrics and events the run produced:
+// the largest extinction, each dynasty that passes half the population, challengers that together climb back above
+// REINVADE of the population after a leader took over, the guard's first block, and shocks. The first three
+// kinds of note are always offered; the rest are picked to spread over time, so a long run is annotated
+// end to end rather than only at its start. drawNotes drops any that cannot fit without a collision.
+const REINVADE = 0.07, REARM = 0.06, REINVADE_GAP = 40, MAX_NOTES = 7;
 function turningPoints(sc) {
-  const M = S.metrics, D = S.derived, out = [];
+  const M = S.metrics, D = S.derived, must = [], rest = [];
+  const pct = (x) => `${Math.round(x * 100)}%`;
   const big = sc.reduce((a, s) => (!a || s.deaths > a.deaths ? s : a), null);
-  if (big) out.push({ tick: big.tick, scar: true, lines: [`Tick ${big.tick}. ${big.deaths} died,`, `${big.ended} ${plural(big.ended, "line")} ended.`] });
+  if (big) must.push({ tick: big.tick, scar: true, lines: [`Tick ${big.tick}. ${big.deaths} died,`, `${big.ended} ${plural(big.ended, "line")} ended.`] });
+
+  // One pass over the shares: who holds half, and when challengers win ground back from that leader. A
+  // reinvasion is everyone but the leader together climbing above REINVADE after falling below REARM; the
+  // note names the largest challenger at the wave's peak.
+  // A wave that starts again within REINVADE_GAP ticks of the last one ending is the same wave.
+  let lead = null, armed = false, wave = null;
+  const waves = [];
+  const closeWave = (tick) => { if (wave) { wave.end = tick; waves.push(wave); } wave = null; };
+  const biggestRival = (lin) => { let bf = null, bn = 0; for (const f in lin) if (f !== lead && lin[f].n > bn) { bn = lin[f].n; bf = f; } return bf; };
   for (const m of M) {
     const lin = m.lineages || {};
     let total = 0, top = null, topN = 0;
     for (const f in lin) { total += lin[f].n; if (lin[f].n > topN) { topN = lin[f].n; top = f; } }
-    if (total && topN / total > 0.5) { out.push({ tick: m.tick, lines: [`Tick ${m.tick}. ${short(top)}’s line`, "passes half the population."] }); break; }
+    if (!total) continue;
+    if (topN / total > 0.5 && top !== lead) {
+      const first = lead === null;
+      closeWave(m.tick);
+      lead = top;
+      armed = false;
+      const note = { tick: m.tick, lines: [`Tick ${m.tick}. ${short(top)}`, first ? "passes half." : "takes over half."] };
+      first ? must.push(note) : rest.push({ ...note, score: 1 });
+      continue;
+    }
+    if (!lead) continue;
+    const rival = 1 - (lin[lead]?.n || 0) / total;
+    if (wave) {
+      if (rival > wave.peak) { wave.peak = rival; wave.f = biggestRival(lin); }
+      if (rival < REARM) { closeWave(m.tick); armed = true; }
+    } else if (rival < REARM) armed = true;
+    else if (armed && rival >= REINVADE) {
+      armed = false;
+      const prev = waves[waves.length - 1];
+      if (prev && prev.lead === lead && m.tick - prev.end < REINVADE_GAP) wave = waves.pop();
+      else wave = { lead, f: biggestRival(lin), tick: m.tick, peak: rival };
+      if (rival > wave.peak) { wave.peak = rival; wave.f = biggestRival(lin); }
+    }
   }
+  closeWave(Infinity);
+  for (const v of waves) rest.push({ tick: v.tick, score: v.peak, lines: [`Tick ${v.tick}. Rivals, led by ${short(v.f)},`, `retake ${pct(v.peak)}.`] });
+
   const gi = D.findIndex((d) => d.blocked > 0);
-  if (gi >= 0) out.push({ tick: M[gi].tick, lines: [`Tick ${M[gi].tick}. The guard’s`, "first block of a rogue."] });
-  const shocks = [
-    ...shockSpans().map((s) => ({ tick: s.from, lines: [`Tick ${s.from}.`, `${s.kind === "plague" ? "Plague" : "Drought"} begins.`] })),
-    ...S.shockMarks.map((m) => ({ tick: m.tick, lines: [`Tick ${m.tick}.`, m.kind === "rogue" ? "A rogue is released." : "Newcomers arrive."] })),
-  ].sort((a, b) => b.tick - a.tick);
-  out.push(...shocks);
-  return out.slice(0, 5);
+  if (gi >= 0) must.push({ tick: M[gi].tick, lines: [`Tick ${M[gi].tick}.`, "First guard block."] });
+  for (const s of shockSpans()) rest.push({ tick: s.from, score: 0.5, lines: [`Tick ${s.from}.`, `${s.kind === "plague" ? "Plague" : "Drought"} begins.`] });
+  for (const m of S.shockMarks) rest.push({ tick: m.tick, score: 0.3, lines: [`Tick ${m.tick}.`, m.kind === "rogue" ? "A rogue is released." : "Newcomers arrive."] });
+
+  // Spread: repeatedly take the candidate farthest in time from every note already chosen, larger events
+  // breaking near-ties, until the budget is spent.
+  const out = must.slice(0, MAX_NOTES);
+  const span = Math.max(1, (M[M.length - 1]?.tick ?? 1) - (M[0]?.tick ?? 0));
+  const pool = rest.slice();
+  while (out.length < MAX_NOTES && pool.length) {
+    let bi = 0, best = -Infinity;
+    pool.forEach((p, i) => {
+      const gap = out.length ? Math.min(...out.map((o) => Math.abs(o.tick - p.tick))) / span : 1;
+      const v = gap + 0.05 * p.score;
+      if (v > best) { best = v; bi = i; }
+    });
+    out.push(pool.splice(bi, 1)[0]);
+  }
+  return out;
 }
 
 // One line under the counter: the most notable fact about the run right now, by simple rules.

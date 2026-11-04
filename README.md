@@ -2,7 +2,7 @@
 
 Track: AI Swarms (emergent economies). Testnet only, no funds spent.
 
-![DARWIN at tick 908: one dynasty, a11, holds 94% of the population; the guard blocked 406 rogue payments and none reached the accomplice](docs/dashboard.png)
+![DARWIN at tick 2,000: one dynasty, a11, holds 100% of the population; turning points mark the first guard block, the tick-147 extinction and three waves of rivals, the largest retaking 29% at tick 695](docs/dashboard.png)
 
 DARWIN is an economy of 30-50 agents that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 

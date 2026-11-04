@@ -240,14 +240,28 @@ input[aria-invalid="true"] { border-color: var(--color-error); }
   .status { order: 3; flex-basis: 100%; }
 }
 @media (max-width: 40rem) {
+  /* Phones: the chart should start within the first screen. Wordmark and transport share a row, the three
+     sheets sit in one row of small buttons beside the run state, and the counter shares a row with the summary. */
   .bar { position: static; }
-  .headline { font-size: var(--text-xl); }
-  .plot__caption { font-size: var(--text-md); left: var(--space-xs); top: var(--space-xs); }
-  .actions { width: 100%; }
+  .bar__inner { gap: var(--space-xs) var(--space-sm); padding-block: var(--space-sm) var(--space-xs); min-height: 0; }
+  .brand { flex: 1 1 auto; }
+  .tagline { display: none; }
+  .wordmark { font-size: var(--text-xl); }
+  .transport { flex-wrap: nowrap; }
+  .transport .btn, .actions .btn, .speed-select { min-height: 32px; padding: 0 var(--space-sm); }
+  .actions { order: 3; gap: var(--space-2xs); }
+  .status { order: 4; flex: 1 1 100%; font-size: var(--text-xs); }
   #speed { display: none; }
   .speed-select { display: inline-block; }
-  .record__head { grid-template-columns: minmax(0, 1fr); gap: var(--space-sm); }
-  .brand { flex-basis: 100%; }
+  .record { padding-block: var(--space-md) var(--space-md); }
+  .record__head { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-xs) var(--space-md); margin-bottom: var(--space-sm); }
+  .counter { flex-direction: column; align-items: flex-start; gap: var(--space-3xs); }
+  .counter__n { font-size: var(--text-3xl); }
+  .counter__of { font-size: var(--text-xs); }
+  .record__title h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .record__sum { font-size: var(--text-xs); margin-top: 0; }
+  .headline { font-size: var(--text-lg); margin-bottom: var(--space-sm); }
+  .plot__caption { font-size: var(--text-md); left: var(--space-xs); top: var(--space-xs); }
   .shocks li { grid-template-columns: minmax(0, 1fr); gap: var(--space-xs); }
   .gene { grid-template-columns: 7rem minmax(0, 1fr) 3.2rem; }
 }

@@ -43,13 +43,14 @@
   --pigment-8: #fedd80;   /* amber, half white */
   --pigment-9: #8becea;   /* cyan, half white */
   --pigment-10: #ffbcb3;  /* coral, half white */
-  /* The leading dynasty, once it holds a large share, is drawn in a deeper, saturated step of its hue,
-     so the winner reads as data rather than a pale field. One per hue family, cycling like the pigments. */
-  --pigment-deep-1: #00b371;  /* green, deepened: still darker than the #00ec97 UI signal */
-  --pigment-deep-2: #7070f0;  /* purple */
-  --pigment-deep-3: #e0a000;  /* amber */
-  --pigment-deep-4: #0fb5b0;  /* cyan */
-  --pigment-deep-5: #f05a44;  /* coral */
+  /* The leading dynasty, once it holds a large share, is drawn in a darker, slightly muted step of its hue,
+     so the winner reads as data rather than a pale field and the brighter challengers stand out against it.
+     One per hue family, cycling like the pigments. */
+  --pigment-deep-1: #0a8f60;  /* green, darkened and muted: well below the #00ec97 UI signal */
+  --pigment-deep-2: #5f5fc4;  /* purple */
+  --pigment-deep-3: #b88a12;  /* amber */
+  --pigment-deep-4: #149290;  /* cyan */
+  --pigment-deep-5: #c4533f;  /* coral */
   /* Dynasties that never pass a small share of the population share one muted band. */
   --pigment-other: #2a2a2a; /* recedes: background population, not a dynasty */
   /* Task kinds in the specimen drawer: four distinct NEAR hues, green left to the UI signal. */
