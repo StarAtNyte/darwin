@@ -74,11 +74,19 @@
         <h2 id="record-h">Lineages</h2>
         <p class="record__sum" id="record-sum">Each band is a dynasty: one founding agent and every child it forked. Its thickness is its share of the living population.</p>
       </div>
-      <fieldset class="seg seg--small" id="mode">
-        <legend class="visually-hidden">Band thickness</legend>
-        <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n">Share of population</label>
-        <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w">Share of wealth</label>
-      </fieldset>
+      <div class="record__tools">
+        <fieldset class="seg seg--small" id="mode">
+          <legend class="visually-hidden">Band thickness</legend>
+          <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n">Share of population</label>
+          <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w">Share of wealth</label>
+        </fieldset>
+      <div class="try" id="try">
+        <p class="try__lede">Steer it. Hit the market and watch who survives:</p>
+        <button class="btn btn--primary" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
+        <button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought<span class="try__sub">work dries up</span></button>
+        <p class="try__msg" id="try-msg" aria-live="polite"></p>
+      </div>
+      </div>
     </div>
     <p class="headline" id="headline"></p>
     <p class="visually-hidden" id="headline-live" aria-live="polite" aria-atomic="true"></p>
@@ -97,12 +105,6 @@
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
     <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns deep</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Ticks below: rogue payments blocked</span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
-    <div class="try" id="try">
-      <p class="try__lede">Steer it. Hit the market and watch who survives:</p>
-      <button class="btn btn--primary" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
-      <button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought<span class="try__sub">work dries up</span></button>
-      <p class="try__msg" id="try-msg" aria-live="polite"></p>
-    </div>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 
