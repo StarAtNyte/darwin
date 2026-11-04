@@ -307,6 +307,7 @@ function renderChrome() {
   const noticeAction = $("#notice-action");
 
   if (S.status === "disconnected") {
+    status.hidden = false;
     status.textContent = "Disconnected";
     toggle.disabled = true;
     step.hidden = true;
@@ -327,16 +328,17 @@ function renderChrome() {
   if (st.speed in SPEED_WORDS) sel.value = String(st.speed);
 
   const parts = [];
-  // The tick lives in the big counter; the status line says only what the run is doing.
-  if (st.finished) parts.push("Finished");
-  else if (st.paused) parts.push("Paused");
-  else parts.push(`Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed`);
+  // The tick lives in the big counter; the status line says only what the run is doing. A finished run says so in the banner.
+  if (!st.finished) parts.push(st.paused ? "Paused" : `Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed`);
   status.title = `Seed ${st.seed}`;
   const shocks = Object.entries(st.shocks || {}).filter(([, end]) => end > st.tick);
   for (const [k, end] of shocks) parts.push(`<span class="shock">${k === "drought" ? "Drought" : "Plague"}, ${end - st.tick} ${plural(end - st.tick, "tick")} left</span>`);
-  let html = parts.join(". ") + ".";
+  let html = parts.length ? parts.join(". ") + "." : "";
   if (statusErr) html += ` <span class="shock">${esc(statusErr)}</span>`;
   status.innerHTML = html;
+  status.hidden = !html;
+  // Nothing left to pause or speed up once the run is over.
+  $(".transport").hidden = st.finished;
 
   toggle.disabled = st.finished;
   toggle.textContent = st.paused ? "Resume" : "Pause";
@@ -779,15 +781,28 @@ function headline() {
   if (sc) return `A mass extinction just killed ${fmt(sc.deaths)} and ended ${lower(word(sc.ended))} ${plural(sc.ended, "line")}`;
   const lead = leader();
   const pct = (x) => `${Math.round(x * 100)}%`;
-  // 3. One dynasty holding most of the population.
+  // 3. While no dynasty has a quarter of the population, the race between lines is the story; only middlemen
+  // reselling a large cut of the work beat it.
+  if (lead && lead.share < 0.25) {
+    if (m.middlemanShare >= 0.3) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
+    // A lead only counts when it is a lead: more than one agent and no dynasty level with it.
+    const tied = Object.values(m.lineages || {}).filter((l) => l.n === lead.n).length > 1;
+    if (lead.n > 1 && !tied) return `${short(lead.f)} leads with ${fmt(lead.n)} of ${fmt(lead.total)} agents`;
+    return openField(lead);
+  }
+  // 4. One dynasty holding most of the population.
   if (lead && lead.share >= 0.7) return `One dynasty, ${short(lead.f)}, holds ${pct(lead.share)} of the population`;
-  // 4. Middlemen taking a large cut of the work.
+  // 5. Middlemen taking a large cut of the work.
   if (m.middlemanShare >= 0.3) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
   if (lead && lead.share >= 0.5) return `One dynasty, ${short(lead.f)}, holds ${pct(lead.share)} of the population`;
   if (m.middlemanShare >= 0.15) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
-  // 5. Otherwise, how open the field still is.
-  const founded = S.founders.size;
-  return `${word(m.dynasties)} of ${fmt(founded)} dynasties alive; the largest holds ${lead ? pct(lead.share) : "0%"} of the population`;
+  // 6. Otherwise, how open the field still is.
+  return openField(lead);
+}
+
+function openField(lead) {
+  const m = S.metrics[S.metrics.length - 1];
+  return `${word(m.dynasties)} of ${fmt(S.founders.size)} dynasties alive; the largest holds ${lead ? `${Math.round(lead.share * 100)}%` : "0%"} of the population`;
 }
 
 // The opening frame: while the run is young, say what the even stripes are, from the founding tick's own data.
@@ -1107,12 +1122,10 @@ function renderNotes() {
       win.last = Math.max(win.last, t);
     }
   }
-  // Only say how many middlemen resell work when that number changes.
-  let prevMids = -1;
-  for (const [w, win] of [...windows].sort((a, b) => a[0] - b[0])) {
-    const mids = new Set(win.subs.map((e) => e.middleman)).size;
-    if (mids === prevMids) continue;
-    prevMids = mids;
+  // Middlemen get two notes at most: when the first one appeared, and one rolling line for the latest ten ticks
+  // with deals, which moves up as the run goes. A per-window note would bury the extinctions and guard blocks.
+  const wins = [...windows].sort((a, b) => a[0] - b[0]);
+  for (const [w, win] of new Set([wins[0], wins.at(-1)].filter(Boolean))) {
     entries.push({ t: win.last + 0.5, from: w, to: w + 9, ss: [subsSentence(win.subs)], quiet: true });
   }
   entries.sort((a, b) => b.t - a.t);
