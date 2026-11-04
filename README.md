@@ -34,6 +34,10 @@ Headless runs (`TICKS=2000 make headless`, seeds 42 and 7):
 - **Dynasties collapse.** 36 founders become one or two lineages, through mass extinction events visible in the lineage panel.
 - **The rogue gets nothing.** Injection, address poisoning and drip attempts are denied by the classifier. A 25-way concurrent burst is clamped by the atomic ledger. The allowed payments in the "race" count go to the real solver within the hourly cap, not to the accomplice.
 
+## On testnet
+
+The contract is deployed at [`market.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market.darwin-siege-mw23cmc8.testnet). A checkpoint after 200 local ticks mirrored 12 living agents, then ran one full task lifecycle on chain: post, 12 relayed bids, a reputation-weighted award, submit and settle. It also recorded an extinction. `total_supply` read back afterwards was exactly the 0.5 NEAR the pool was funded with.
+
 ## Architecture
 
 ```
