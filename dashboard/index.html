@@ -30,7 +30,7 @@
   <div class="bar__inner container">
     <div class="brand">
       <h1 class="wordmark">DARWIN</h1>
-      <p class="tagline">A market of AI agents that bid for work, die when broke and fork mutated children. Watch which strategies take over.</p>
+      <p class="tagline">AI agents bid for work and pay rent every round. Broke ones die; rich ones fork, copying themselves with small random changes. Nobody writes the winning strategy: the market picks it. Every payment passes SIEGE’s guard on NEAR.</p>
     </div>
     <p class="status" id="status" aria-live="polite">Connecting to the run</p>
     <div class="transport" role="group" aria-label="Run controls">
@@ -71,8 +71,8 @@
     <div class="record__head">
       <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">ticks</span><small>a tick is one round of bidding</small></span></p>
       <div class="record__title">
-        <h2 id="record-h">Lineages</h2>
-        <p class="record__sum" id="record-sum">Each band is a dynasty: one founding agent and every child it forked. Its thickness is its share of the living population.</p>
+        <h2 id="record-h">Dynasties over time</h2>
+        <p class="record__sum" id="record-sum">Time runs left to right. Each band is a dynasty: a founding agent and all its descendants. Thickness is its share of the living population.</p>
       </div>
       <div class="record__tools">
         <fieldset class="seg seg--small" id="mode">
@@ -104,15 +104,15 @@
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns deep</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Ticks below: rogue payments blocked</span><span data-key="mono" hidden><i class="k-mono"></i>Bar along the top: one dynasty holds over 98% of agents</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
+    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns darker</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Marks below: rogue payments the guard blocked</span><span data-key="mono" hidden><i class="k-mono"></i>Bar along the top: one dynasty holds over 98% of agents</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 
   <div class="regions">
     <section class="region specimen" aria-labelledby="spec-h" id="specimen">
       <div class="region__head">
-        <h2 id="spec-h">Specimen</h2>
-        <p class="region__sub" id="spec-sub">The richest dynasty, until you pick a band.</p>
+        <h2 id="spec-h">Why it is winning</h2>
+        <p class="region__sub" id="spec-sub">The richest dynasty’s strategy, until you pick a band.</p>
       </div>
       <div id="spec-body" class="spec">
         <p class="placeholder">No living dynasty yet.</p>
@@ -121,21 +121,21 @@
 
     <section class="region notes" aria-labelledby="notes-h">
       <div class="region__head">
-        <h2 id="notes-h">Field notes</h2>
-        <p class="region__sub">Newest first, grouped by tick.</p>
+        <h2 id="notes-h">What happened</h2>
+        <p class="region__sub">Newest first.</p>
       </div>
       <ol class="feed" id="feed" aria-live="polite" aria-relevant="additions"><li class="placeholder">Notes appear as the run produces them.</li></ol>
     </section>
 
     <section class="region pressures" aria-labelledby="press-h">
       <div class="region__head">
-        <h2 id="press-h">Selection pressures</h2>
-        <p class="region__sub">What the market rewards, over the whole run.</p>
+        <h2 id="press-h">The market so far</h2>
+        <p class="region__sub">Each line traces the whole run; the dot is now.</p>
       </div>
       <dl class="figs" id="figs"></dl>
       <div class="guard" id="guard">
-        <h3>The guard</h3>
-        <p class="guard__what">Every agent payment passes SIEGE’s Mandate guard on NEAR. A rogue agent keeps trying to steal.</p>
+        <h3>The rogue and the guard</h3>
+        <p class="guard__what">A rogue agent tries to steal by paying an accomplice. Every payment passes SIEGE’s guard on NEAR, which blocks any that break the payer’s spending rules.</p>
         <p id="guard-text">No rogue has appeared yet.</p>
       </div>
     </section>
@@ -174,7 +174,7 @@
     <li><button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought</button><p>Task emission falls to a third for 60 ticks.</p></li>
     <li><button class="btn btn--quiet" type="button" data-shock="plague" data-label="Plague">Plague</button><p>Upkeep triples for 40 ticks.</p></li>
     <li><button class="btn btn--quiet" type="button" data-shock="rogue" data-label="Release a rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
-    <li><button class="btn btn--quiet" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random genomes, each founding a dynasty.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random strategies, each founding a dynasty.</p></li>
   </ul>
   <p class="form-msg" id="shock-msg" aria-live="polite"></p>
 </aside>
@@ -183,10 +183,10 @@
   <div class="sheet__head"><h2 id="export-h">Export</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
   <p class="sheet__lede" id="export-preview">Reading the champion.</p>
   <div class="exports">
-    <a class="btn btn--primary" href="/api/export/genome" download>Download the winning genome</a>
-    <a class="btn btn--quiet" href="/api/export/metrics.csv" download>Download the metrics CSV</a>
+    <a class="btn btn--primary" href="/api/export/genome" download>Download the champion’s strategy (JSON)</a>
+    <a class="btn btn--quiet" href="/api/export/metrics.csv" download>Download the run’s numbers (CSV)</a>
   </div>
-  <p class="hint">The genome file holds the champion, its dynasty’s mean genome and the rules it won under.</p>
+  <p class="hint">What you get. The JSON: the champion’s genes, the numbers it bids by, plus its dynasty’s average genes and the seed and rules it won under. The CSV: one row per tick with population, deaths, wealth gap, middleman share and guard counts.</p>
 </aside>
 </body>
 </html>

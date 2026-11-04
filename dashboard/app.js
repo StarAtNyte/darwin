@@ -160,6 +160,7 @@ function clearAll() {
   S.exportInfo = null;
   S.exportTick = -1;
   S.hover = null;
+  S.lastShock = null;
 }
 
 // ---------- network ----------
@@ -281,7 +282,7 @@ function flush() {
   if (dirty.has("plot")) drawPlot();
   if (dirty.has("specimen")) renderSpecimen();
   if (dirty.has("notes")) renderNotes();
-  if (dirty.has("figs")) renderFigs();
+  if (dirty.has("figs")) { renderFigs(); renderShockOutcome(); }
   if (dirty.has("plot") && S.metrics.length) refreshExport(false);
   dirty.clear();
 }
@@ -867,7 +868,7 @@ function turningPoints(sc) {
   const M = S.metrics, D = S.derived, must = [], rest = [];
   const pct = (x) => `${Math.round(x * 100)}%`;
   const big = sc.reduce((a, s) => (!a || s.deaths > a.deaths ? s : a), null);
-  if (big) must.push({ tick: big.tick, scar: true, lines: [`Tick ${big.tick}. ${big.deaths} died,`, `${big.ended} ${plural(big.ended, "line")} ended.`] });
+  if (big) must.push({ tick: big.tick, scar: true, lines: [`Tick ${big.tick}. ${big.deaths} died,`, `${big.ended} ${plural(big.ended, "dynasty", "dynasties")} ended.`] });
 
   // One pass over the shares: who holds half, and when challengers win ground back from that leader. A
   // reinvasion is everyone but the leader together climbing above REINVADE after falling below REARM; the
@@ -909,7 +910,7 @@ function turningPoints(sc) {
   for (const v of waves) rest.push({ tick: v.tick, score: v.peak, lines: [`Tick ${v.tick}. Rivals, led by ${short(v.f)},`, `retake ${pct(v.peak)}.`] });
 
   const mono = monoculture();
-  if (mono) must.push({ tick: mono.tick, lines: [`Tick ${mono.tick}. Monoculture:`, `${short(mono.f)} holds ${mono.all ? "everything" : `over ${Math.round(MONO_SHARE * 100)}%`}.`] });
+  if (mono) must.push({ tick: mono.tick, lines: [`Tick ${mono.tick}. ${short(mono.f)} holds`, `${mono.all ? "every agent" : `over ${Math.round(MONO_SHARE * 100)}%`}.`] });
   const gi = D.findIndex((d) => d.blocked > 0);
   if (gi >= 0) must.push({ tick: M[gi].tick, lines: [`Tick ${M[gi].tick}.`, "First guard block."] });
   for (const s of shockSpans()) rest.push({ tick: s.from, score: 0.5, lines: [`Tick ${s.from}.`, `${s.kind === "plague" ? "Plague" : "Drought"} begins.`] });
@@ -950,7 +951,7 @@ function headline() {
   }
   // 2. A mass extinction in the last 15 ticks.
   const sc = scars().filter((s) => m.tick - s.tick <= 15).pop();
-  if (sc) return `A mass extinction just killed ${fmt(sc.deaths)} and ended ${lower(word(sc.ended))} ${plural(sc.ended, "line")}`;
+  if (sc) return `A mass extinction just killed ${fmt(sc.deaths)} and ended ${lower(word(sc.ended))} ${plural(sc.ended, "dynasty", "dynasties")}`;
   const lead = leader();
   const pct = (x) => `${Math.round(x * 100)}%`;
   // 3. While no dynasty has a quarter of the population, the race between lines is the story; only middlemen
@@ -1031,7 +1032,7 @@ function updateRecordSummary() {
   const last = M[M.length - 1];
   const founded = S.founders.size;
   const what = S.mode === "wealth" ? "share of the living population’s wealth" : "share of the living population";
-  let s = `Each band is a dynasty: a founding agent and every child it forked. Thickness is its ${what}.`;
+  let s = `Time runs left to right. Each band is a dynasty: a founding agent and all its descendants. Thickness is its ${what}.`;
   if (last) s += ` ${word(founded)} ${plural(founded, "dynasty", "dynasties")} founded, ${lower(word(last.dynasties))} still alive.`;
   $("#record-sum").textContent = s;
 }
@@ -1149,7 +1150,7 @@ canvas.addEventListener("keydown", (e) => {
   select(pick);
   const n = last.lineages[pick]?.n ?? 0, tot = Object.values(last.lineages).reduce((a, l) => a + l.n, 0);
   const st = strategyOf(pick);
-  announce(`${short(pick)}’s dynasty, ${tot ? Math.round((n / tot) * 100) : 0}% of the population${st ? `, ${st}` : ""}. Details in the specimen panel.`, true);
+  announce(`${short(pick)}’s dynasty, ${tot ? Math.round((n / tot) * 100) : 0}% of the population${st ? `, ${st}` : ""}. Details in the strategy panel.`, true);
 });
 
 function setParam(k, v) {
@@ -1184,16 +1185,29 @@ function richestFounder() {
   return best;
 }
 
+// Why a dynasty wins, in one sentence: its price and reselling against the market's averages, from the snapshot.
+function edgeSentence(mk, mkAvg, sub, subAvg) {
+  if (mkAvg === null) return "";
+  const parts = [];
+  const d = mk - mkAvg;
+  if (Math.abs(d) >= 0.03) parts.push(d < 0 ? `It asks ${mk.toFixed(2)} of each reward against a market average of ${mkAvg.toFixed(2)}, so it wins more auctions` : `It asks ${mk.toFixed(2)} of each reward against a market average of ${mkAvg.toFixed(2)}, so it earns more per task`);
+  if (subAvg !== null && sub - subAvg >= 0.05) parts.push(`it resells more of its work to cheaper solvers (${sub.toFixed(2)} against ${subAvg.toFixed(2)})`);
+  if (!parts.length) return `<p class="spec__edge">Its price and reselling sit close to the market average; compare the other genes below.</p>`;
+  const out = parts.join(", and ");
+  return `<p class="spec__edge">${out.charAt(0).toUpperCase() + out.slice(1)}.</p>`;
+}
+
 function renderSpecimen() {
   const body = $("#spec-body");
   const sub = $("#spec-sub");
   const f = S.selected || richestFounder();
   if (!f) {
-    sub.textContent = "The richest dynasty, until you pick a band.";
+    sub.textContent = "The richest dynasty’s strategy, until you pick a band.";
     body.innerHTML = `<p class="placeholder">${S.metrics.length ? "No dynasty is alive." : "No dynasty has a record yet."}</p>`;
     return;
   }
-  sub.textContent = S.selected ? "The band you picked. Click it again, or press Escape on the plot, to go back to the richest." : "The richest dynasty right now. Click a band to inspect another.";
+  $("#spec-h").textContent = S.selected && S.selected !== richestFounder() ? "Its strategy" : "Why it is winning";
+  sub.textContent = S.selected ? "The band you picked. Click it again, or press Escape on the plot, to go back to the richest." : "The richest dynasty right now. Click a band to see another.";
   const { living, founder, gens } = dynastyFacts(f);
   const lead = leader();
   const colour = colourOf(f, !!lead && lead.f === f && lead.share >= LEAD_SHARE);
@@ -1203,8 +1217,8 @@ function renderSpecimen() {
   if (!living.length) {
     let endTick = null;
     for (let i = S.derived.length - 1; i >= 0; i--) if (S.derived[i].ended.includes(f)) { endTick = S.metrics[i].tick; break; }
-    body.innerHTML = `<div class="spec__name"><span class="spec__swatch" style="background:${colour}"></span><h3>${esc(short(f))}’s line</h3></div>` +
-      `<p>This dynasty is extinct${endTick !== null ? `; its last member died at tick ${endTick}` : ""}. Its genome went with it.</p>`;
+    body.innerHTML = `<div class="spec__name"><span class="spec__swatch" style="background:${colour}"></span><h3>${esc(short(f))}’s dynasty</h3></div>` +
+      `<p>This dynasty is extinct${endTick !== null ? `; its last member died at tick ${endTick}` : ""}. Its strategy went with it.</p>`;
     return;
   }
 
@@ -1219,9 +1233,14 @@ function renderSpecimen() {
   const meanOr = (k) => (living.every((a) => typeof a[k] === "number") ? mean(k) : null);
   const g3 = { risk: meanOr("risk"), reserve: meanOr("reserve"), forkAt: meanOr("forkAt"), source: "all" };
 
-  const gene = (label, hint, v, max, shown) => `<div class="gene"><dt>${label}<small>${hint}</small></dt><dd>${v === null
+  // Every living parametric agent in the market, for the average mark on each gene's track.
+  const market = [...S.agents.values()].filter((a) => a.alive && a.role === "parametric");
+  const avg = (k) => (market.length && market.every((a) => typeof a[k] === "number") ? market.reduce((s, a) => s + a[k], 0) / market.length : null);
+  const avgSpec = market.length ? market.reduce((s, a) => s + Math.max(...a.spec), 0) / market.length : null;
+  const clamp = (v, max) => Math.max(0.01, Math.min(1, v / max));
+  const gene = (label, hint, v, max, shown, mk) => `<div class="gene"><dt>${label}<small>${hint}</small></dt><dd>${v === null
     ? `<span class="none">Not reported yet</span>`
-    : `<div class="track"><span class="fill" style="background:${colour};transform:scaleX(${Math.max(0.01, Math.min(1, v / max))})"></span></div>`}</dd><dd class="val">${v === null ? "" : shown}</dd></div>`;
+    : `<div class="track"><span class="fill" style="background:${colour};transform:scaleX(${clamp(v, max)})"></span>${mk === null || mk === undefined ? "" : `<span class="avg" style="left:${clamp(mk, max) * 100}%"></span>`}</div>`}</dd><dd class="val">${v === null ? "" : shown}${mk === null || mk === undefined ? "" : `<small>avg ${mk.toFixed(2)}</small>`}</dd></div>`;
 
   const facts = [
     ["Living members", fmt(living.length)],
@@ -1231,23 +1250,24 @@ function renderSpecimen() {
     ["Founder", short(f)],
     [isChampLine ? "Champion, most earned" : "Champion, richest now", short(champ)],
   ];
-  let note = "Means over living members.";
+  let note = "Bars average the dynasty’s living members. The white mark is the whole market’s average.";
   if (!isChampLine && g3.source !== "all") {
-    note += g3.source ? ` Risk, reserve and fork threshold average the ${g3.source} of ${living.length} members born while this page was open.` : " Risk, reserve and fork threshold arrive with the next birth in this line.";
+    note += g3.source ? ` Risk, reserve and fork threshold average the ${g3.source} of ${living.length} members born while this page was open.` : " Risk, reserve and fork threshold arrive with the next birth in this dynasty.";
   }
   body.innerHTML =
-    `<div class="spec__name"><span class="spec__swatch" style="background:${colour}"></span><h3>${esc(short(f))}’s line</h3></div>` +
+    `<div class="spec__name"><span class="spec__swatch" style="background:${colour}"></span><h3>${esc(short(f))}’s dynasty</h3></div>` +
     (strategyOf(f) ? `<p class="spec__strategy">Strategy: ${esc(strategyOf(f))}</p>` : "") +
+    edgeSentence(mean("markup"), avg("markup"), mean("subcontract"), avg("subcontract")) +
     `<dl class="spec__facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` +
     `<dl class="genes">` +
-    gene("Markup", "bid as share of reward", mean("markup"), 1, mean("markup").toFixed(2)) +
-    gene("Risk", "bids outside its specialty", g3.risk, 1, g3.risk?.toFixed(2)) +
-    gene("Subcontract", "the middleman gene", mean("subcontract"), 1, mean("subcontract").toFixed(2)) +
-    gene("Reserve", "stops bidding below, credits", g3.reserve, 1, g3.reserve?.toFixed(2)) +
-    gene("Fork threshold", "forks above, credits", g3.forkAt, 6, g3.forkAt?.toFixed(2)) +
-    gene("Specialisation", "top skill weight", specialisation, 1, specialisation.toFixed(2)) +
+    gene("Markup", "share of the reward it asks; lower wins more", mean("markup"), 1, mean("markup").toFixed(2), avg("markup")) +
+    gene("Risk", "how often it bids outside its skill", g3.risk, 1, g3.risk?.toFixed(2), avg("risk")) +
+    gene("Subcontract", "how often it resells won work, as a middleman", mean("subcontract"), 1, mean("subcontract").toFixed(2), avg("subcontract")) +
+    gene("Reserve", "stops bidding below this many credits", g3.reserve, 1, g3.reserve?.toFixed(2), avg("reserve")) +
+    gene("Fork threshold", "has a child above this many credits", g3.forkAt, 6, g3.forkAt?.toFixed(2), avg("forkAt")) +
+    gene("Specialisation", "focus on one task kind; 0.25 is none", specialisation, 1, specialisation.toFixed(2), avgSpec) +
     `</dl>` +
-    `<div class="spec__kinds"><h4>Specialisation by task kind</h4><div class="kinds">${specMean.map((v, i) => `<span class="kind--${KINDS[i]}" style="flex-grow:${v}"></span>`).join("")}</div>` +
+    `<div class="spec__kinds"><h4>Skill by task kind</h4><div class="kinds">${specMean.map((v, i) => `<span class="kind--${KINDS[i]}" style="flex-grow:${v}"></span>`).join("")}</div>` +
     `<div class="kinds-legend">${KINDS.map((k, i) => `<span><i class="kind--${k}"></i>${k}<b>${specMean[i].toFixed(2)}</b></span>`).join("")}</div></div>` +
     `<p class="spec__note">${note}</p>`;
 }
@@ -1268,7 +1288,7 @@ function founderOf(id) {
 }
 
 // Plain-language notes. Only extinctions, shocks and guard blocks are marked; everything else reads as context.
-const lineName = (f) => `${esc(short(f))}’s line`;
+const lineName = (f) => `${esc(short(f))}’s dynasty`;
 const mark = (kind, html) => ({ mark: kind, html });
 
 // Deaths that end a dynasty, or four or more in one tick, are notable and get their own note. The rest, and
@@ -1311,7 +1331,7 @@ function groupSentences(g) {
     const why = (e.reasons || []).slice(0, 2).map(reason);
     out.push(mark("guard", `The guard stopped the rogue agent sending ${credits(e.amount)} credits to its accomplice. It tried ${ATTACKS[e.attack] || e.attack}${why.length ? ` and was flagged for ${list(why)}` : ""}.`));
   }
-  for (const e of g.allow) out.push(`The guard let the rogue agent pay ${credits(e.amount)} credits, because the payment was inside its mandate.`);
+  for (const e of g.allow) out.push(`The guard let the rogue agent pay ${credits(e.amount)} credits, because the payment was inside its spending rules.`);
   const nk = notableKills(g);
   if (nk) {
     const k = g.kills.length;
@@ -1453,10 +1473,19 @@ function renderFigs() {
   const legit = Math.min(allowed, last.rogueAllowedLegit ?? 0);
   const other = allowed - legit;
   const parts = [];
-  if (legit) parts.push(`${fmt(legit)} allowed: ${plural(legit, "a payment", "payments")} to a real solver, inside the hourly cap.`);
-  if (other) parts.push(`${fmt(other)} ${legit ? "more " : ""}allowed inside the mandate.`);
-  parts.push(last.rogueLeaked ? `${credits(last.rogueLeaked)} credits stolen by the accomplice.` : "0 credits stolen.");
-  g.innerHTML = `<span class="big">Blocked ${fmt(last.rogueBlocked)} rogue ${plural(last.rogueBlocked, "payment")}</span>${parts.join(" ")}`;
+  // The latest block this page has seen names the rogue, its accomplice and its trick.
+  let lb = null;
+  for (const n of S.notes.values()) for (const e of n.guard) if (!lb || n.tick >= lb.tick) lb = { ...e, tick: n.tick };
+  if (lb) parts.push(`Latest, tick ${lb.tick}: rogue ${idHtml(lb.agent)} tried ${ATTACKS[lb.attack] || esc(lb.attack)} to ${idHtml(lb.to)}. Blocked.`);
+  else {
+    const all = [...S.agents.values()];
+    const rogue = all.filter((a) => a.role === "rogue").pop(), acc = all.find((a) => a.role === "accomplice" && a.alive);
+    if (rogue) parts.push(`The rogue is ${idHtml(rogue.id)}${acc ? `, paying ${idHtml(acc.id)}` : ""}; it is ${rogue.alive ? "still loose" : "dead now"}.`);
+  }
+  if (legit) parts.push(`${fmt(legit)} let through: ${plural(legit, "a payment", "payments")} to a real solver, inside the hourly cap, so not theft.`);
+  if (other) parts.push(`${fmt(other)} ${legit ? "more " : ""}let through inside the spending rules.`);
+  parts.push(last.rogueLeaked ? `Stolen: ${credits(last.rogueLeaked)} credits.` : "Stolen: 0 credits.");
+  g.innerHTML = `<span class="big">Blocked ${fmt(last.rogueBlocked)} of ${fmt(last.rogueAttempts)} rogue ${plural(last.rogueAttempts, "payment")}</span>${parts.join(" ")}`;
 }
 
 // ---------- sheets ----------
@@ -1632,6 +1661,7 @@ $$("[data-shock]").forEach((b) => b.addEventListener("click", async () => {
     msg.classList.remove("is-error");
     const left = st.shocks?.[b.dataset.shock] ? st.shocks[b.dataset.shock] - st.tick : 0;
     msg.textContent = `${b.dataset.label} started at tick ${st.tick}${left ? `, for ${left} ticks` : ""}. Watch the bands.`;
+    S.lastShock = { kind: b.dataset.shock, label: b.dataset.label, from: st.tick, until: st.shocks?.[b.dataset.shock] ?? null, el: msg };
     schedule("chrome");
   } catch (err) {
     msg.classList.add("is-error");
@@ -1642,6 +1672,39 @@ $$("[data-shock]").forEach((b) => b.addEventListener("click", async () => {
   }
 }));
 
+// Cause and effect: after a shock from this page, its message says what the shock has done so far, from the run's own data.
+function renderShockOutcome() {
+  const sh = S.lastShock, M = S.metrics, last = M[M.length - 1];
+  if (!sh || sh.done || !last || last.tick <= sh.from) return;
+  const before = [...M].reverse().find((m) => m.tick <= sh.from) || M[0];
+  const on = sh.until !== null && last.tick < sh.until;
+  let text;
+  if (sh.kind === "plague" || sh.kind === "drought") {
+    const end = sh.until ?? last.tick;
+    const died = (on ? last.deaths : (M.find((m) => m.tick >= end) || last).deaths) - before.deaths;
+    const by = new Map();
+    for (const g of S.notes.values()) if (g.tick > sh.from && g.tick <= end) for (const k of g.kills) { const f = founderOf(k.agent); if (f) by.set(f, (by.get(f) || 0) + 1); }
+    let top = null;
+    for (const [f, n] of by) if (!top || n > top[1]) top = [f, n];
+    let ended = 0;
+    M.forEach((m, i) => { if (m.tick > sh.from && m.tick <= end) ended += S.derived[i].ended.length; });
+    text = `${sh.label}, ${on ? `under way since tick ${sh.from}` : `ticks ${sh.from} to ${end}`}: ${fmt(died)} ${plural(died, "agent")} died` +
+      (top && died > 1 ? `, most in ${short(top[0])}’s dynasty (${top[1]})` : "") +
+      (ended ? `; ${lower(word(ended))} ${plural(ended, "dynasty", "dynasties")} ended` : "") + ".";
+  } else if (sh.kind === "rogue") {
+    const blocked = last.rogueBlocked - before.rogueBlocked, stolen = last.rogueLeaked - before.rogueLeaked;
+    text = `Rogue released at tick ${sh.from}. The guard has blocked ${fmt(blocked)} of its payments since; stolen: ${credits(stolen)} credits.`;
+  } else if (sh.kind === "immigration") {
+    const g = [...S.notes.values()].find((n) => n.tick >= sh.from && n.arrivals.length);
+    if (!g) return;
+    const alive = g.arrivals.filter((f) => (last.lineages || {})[f]).length;
+    text = `Newcomers arrived at tick ${g.tick}: ${lower(word(alive))} of their ${lower(word(g.arrivals.length))} dynasties still alive.`;
+  } else return;
+  if (sh.el.textContent !== text) sh.el.textContent = text;
+  // A finished shock's tally is final: freeze it, so later trimming of old notes cannot change it.
+  if (sh.until !== null && last.tick > sh.until + 1) sh.done = true;
+}
+
 // Export
 function renderExportPreview() {
   const p = $("#export-preview");
@@ -1651,7 +1714,7 @@ function renderExportPreview() {
   dl.toggleAttribute("aria-disabled", !!ex.error);
   if (ex.error) { dl.setAttribute("aria-disabled", "true"); p.textContent = `Nothing to export yet: ${ex.error.replace(/\.$/, "")}.`; return; }
   const c = ex.champion;
-  p.innerHTML = `The champion is ${idHtml(c.id)}, generation ${c.generation} of ${idHtml(c.founder)}’s line, with ${credits(c.earned)} credits earned. Markup ${c.genome.markup.toFixed(2)}, subcontract ${c.genome.subcontract.toFixed(2)}, at tick ${ex.tick} of the run with seed ${S.state?.seed ?? "unknown"}.`;
+  p.innerHTML = `The champion is ${idHtml(c.id)}, generation ${c.generation} of ${idHtml(c.founder)}’s dynasty, with ${credits(c.earned)} credits earned. It asks ${c.genome.markup.toFixed(2)} of each reward and resells won work ${Math.round(c.genome.subcontract * 100)}% of the time. Tick ${ex.tick}, seed ${S.state?.seed ?? "unknown"}.`;
 }
 
 $$(".exports a").forEach((a) => a.addEventListener("click", (e) => {
