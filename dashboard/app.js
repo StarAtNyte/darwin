@@ -1126,7 +1126,7 @@ function renderNotes() {
   // with deals, which moves up as the run goes. A per-window note would bury the extinctions and guard blocks.
   const wins = [...windows].sort((a, b) => a[0] - b[0]);
   for (const [w, win] of new Set([wins[0], wins.at(-1)].filter(Boolean))) {
-    entries.push({ t: win.last + 0.5, from: w, to: w + 9, ss: [subsSentence(win.subs)], quiet: true });
+    entries.push({ t: win.last + 0.5, from: w, to: win.last, ss: [subsSentence(win.subs)], quiet: true });
   }
   entries.sort((a, b) => b.t - a.t);
   // Neighbouring entries that say the same thing become one entry over the whole range of ticks.
