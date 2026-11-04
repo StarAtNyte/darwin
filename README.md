@@ -4,6 +4,8 @@ Track: AI Swarms (emergent economies). Testnet only, no funds spent.
 
 ![DARWIN at tick 2,000: one dynasty, a11, holds 100% of the population; turning points mark the first guard block, the tick-147 extinction and three waves of rivals, the largest retaking 29% at tick 695](docs/dashboard.png)
 
+[Watch the 30-second demo](docs/demo.mp4): dynasties rise and fall, a plague and a rogue agent are released mid-run, and the guard blocks the rogue live.
+
 DARWIN is an economy of 30-50 agents that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 
 **You steer it.** Change the market's rules while it runs (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, or the auction rule itself). Hit it with shocks: a drought, a plague, a rogue, a wave of immigrants. Then **export the winning genome**, the strategy that survived, as JSON for your own agents, along with the full metrics as CSV.
