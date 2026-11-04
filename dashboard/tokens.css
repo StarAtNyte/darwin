@@ -43,7 +43,7 @@
   --pigment-9: #8becea;   /* cyan, half white */
   --pigment-10: #ffbcb3;  /* coral, half white */
   /* Dynasties that never pass a small share of the population share one muted band. */
-  --pigment-other: #595959;
+  --pigment-other: #2a2a2a; /* recedes: background population, not a dynasty */
 
   --font-display: "Mona Sans", "Arial Narrow", ui-sans-serif, sans-serif;
   --font-body: "Mona Sans", ui-sans-serif, system-ui, sans-serif;

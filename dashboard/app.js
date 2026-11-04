@@ -374,7 +374,10 @@ function layout(w) {
     for (const f in lin) total += valueOf(lin[f], S.mode);
     if (total) for (const f in lin) peak.set(f, Math.max(peak.get(f) || 0, valueOf(lin[f], S.mode) / total));
   }
-  const minor = new Set([...S.founders.keys()].filter((f) => (peak.get(f) || 0) < MINOR_PEAK));
+  // Only group once some dynasty has pulled ahead: while every founder is still near its equal share,
+  // grouping by an absolute cut would hide the whole field.
+  const top = Math.max(0, ...peak.values());
+  const minor = new Set([...S.founders.keys()].filter((f) => { const p = peak.get(f) || 0; return p < MINOR_PEAK && p < top / 4; }));
   const order = [...S.founders.entries()].filter(([f]) => !minor.has(f)).sort((a, b) => a[1].idx - b[1].idx).map(([f]) => f);
   if (minor.size) order.push(OTHER);
   const bands = new Map(order.map((f) => [f, { y0: new Float32Array(samples.length), y1: new Float32Array(samples.length), first: -1, last: -1 }]));
