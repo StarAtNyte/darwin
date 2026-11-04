@@ -6,7 +6,7 @@ Track: AI Swarms (emergent economies). Testnet only, no funds spent.
 
 DARWIN is an economy of 30-50 agents that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 
-Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard ([near-siege](https://github.com/StarAtNyte/near-siege)). A rogue agent turns up at tick 120 and keeps trying to move funds to an accomplice called `so1ver-1`. In most monospace fonts that is hard to tell apart from the real `solver-1`.
+Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent turns up at tick 120 and keeps trying to move funds to an accomplice called `so1ver-1`. In most monospace fonts that is hard to tell apart from the real `solver-1`.
 
 ## What emerges
 
