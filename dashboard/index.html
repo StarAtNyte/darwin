@@ -1,258 +1,151 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>DARWIN</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-:root{--bg:#07090d;--panel:#0d1117;--line:#1b2330;--tx:#c9d4e3;--dim:#5d6b7e;--par:#35d4ff;--sol:#a78bfa;--rog:#ff4d5e;--acc:#ff9f43;--ok:#3ddc84;--warn:#ffb020;--mono:ui-monospace,"JetBrains Mono","DejaVu Sans Mono",Consolas,monospace}
-*{box-sizing:border-box;margin:0}
-html,body{height:100%;background:var(--bg);color:var(--tx);font:13px/1.3 system-ui,Segoe UI,Roboto,sans-serif;overflow:hidden}
-body{display:grid;grid-template-rows:auto 1fr;gap:8px;padding:8px}
-header{display:flex;align-items:center;gap:18px;background:var(--panel);border:1px solid var(--line);padding:8px 14px}
-h1{font:800 34px var(--mono);letter-spacing:.2em;color:#fff}
-.sub{color:var(--dim);font-size:12px;max-width:230px}
-.tick{font:700 26px var(--mono);color:var(--par);min-width:150px}.tick small{display:block;font-size:10px;color:var(--dim);letter-spacing:.2em}
-.kpis{display:flex;gap:8px;flex:1;flex-wrap:nowrap}
-.k{flex:1;background:#0a0e14;border:1px solid var(--line);padding:6px 10px;min-width:0}
-.k b{display:block;font:700 24px var(--mono);color:#fff;white-space:nowrap}
-.k span{font-size:10px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
-.k i{font:12px var(--mono);font-style:normal;color:var(--dim)}
-main{display:grid;grid-template-columns:1.55fr 1fr;gap:8px;min-height:0}
-.col{display:grid;gap:8px;min-height:0}
-.colL{grid-template-rows:1fr 1fr}.colR{grid-template-rows:auto auto 1fr}
-.p{background:var(--panel);border:1px solid var(--line);padding:8px 10px;min-height:0;display:flex;flex-direction:column;position:relative;overflow:hidden}
-.p h2{font:600 11px var(--mono);letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between}
-.p h2 em{font-style:normal;color:var(--tx)}
-.fill{flex:1;min-height:0;position:relative}
-canvas,svg{display:block;width:100%;height:100%}
-#tree{overflow:hidden}
-.spk{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.sp{background:#0a0e14;border:1px solid var(--line);padding:4px 6px}
-.sp div{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--dim)}.sp div b{color:#fff;font-size:14px}
-.sp canvas{height:44px}
-#bar{display:flex;height:22px;margin-top:8px;border:1px solid var(--line)}
-#bar div{font:11px var(--mono);color:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:flex .5s}
-#siege{border-color:#4a3a10;box-shadow:inset 0 0 30px rgba(255,176,32,.05)}
-#siege.flash{animation:fl .9s}
-@keyframes fl{0%{background:#5a3a00;box-shadow:0 0 40px var(--warn)}100%{background:var(--panel)}}
-.atk{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
-.atk div{background:#0a0e14;border:1px solid var(--line);text-align:center;padding:5px}
-.atk b{display:block;font:700 28px var(--mono);color:var(--warn)}.atk span{font-size:10px;color:var(--dim);letter-spacing:.15em}
-.leak{font:700 20px var(--mono)}.ok{color:var(--ok)}.bad{color:var(--rog)}
-#last{font:12px var(--mono);color:var(--warn);min-height:34px}
-#feed{flex:1;overflow:hidden;font:12px/1.55 var(--mono)}
-#feed div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid transparent;padding-left:6px}
-.e-kill{color:var(--rog);border-color:var(--rog)!important}.e-fork{color:var(--ok);border-color:var(--ok)!important}
-.e-block{color:var(--warn);font-weight:700;border-color:var(--warn)!important;background:rgba(255,176,32,.08)}
-.e-leak{color:#fff;font-weight:700;background:var(--rog)}.e-sub,.e-born{color:var(--dim)}
-.leg{display:flex;gap:12px;font:10px var(--mono);color:var(--dim)}.leg s{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;text-decoration:none}
-</style></head><body>
-<header>
- <div><h1>DARWIN</h1></div>
- <div class="sub">agents that live and die &middot; NEAR testnet &middot; guarded by SIEGE</div>
- <div class="tick"><small>TICK</small><span id="tick">0</span></div>
- <div class="kpis" id="kpis"></div>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DARWIN, a live agent economy</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="description" content="Watch and steer an evolving economy of AI agents on NEAR.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="./app.css">
+<script src="./app.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <div class="bar__inner container">
+    <h1 class="wordmark">DARWIN</h1>
+    <p class="status" id="status" aria-live="polite">Connecting to the run</p>
+    <div class="transport" role="group" aria-label="Run controls">
+      <button class="btn btn--primary" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
+      <button class="btn btn--quiet" type="button" id="step" hidden>Step one tick</button>
+      <fieldset class="seg" id="speed">
+        <legend class="visually-hidden">Speed</legend>
+        <input type="radio" name="speed" id="sp0" value="0"><label for="sp0">Slow</label>
+        <input type="radio" name="speed" id="sp1" value="1"><label for="sp1">Normal</label>
+        <input type="radio" name="speed" id="sp2" value="2"><label for="sp2">Fast</label>
+        <input type="radio" name="speed" id="sp3" value="3"><label for="sp3">Fastest</label>
+      </fieldset>
+    </div>
+    <nav class="actions" aria-label="Steer the run">
+      <button class="btn btn--quiet" type="button" data-sheet="rules" aria-expanded="false" aria-controls="sheet-rules">Rules</button>
+      <button class="btn btn--quiet" type="button" data-sheet="shocks" aria-expanded="false" aria-controls="sheet-shocks">Shocks</button>
+      <button class="btn btn--quiet" type="button" data-sheet="export" aria-expanded="false" aria-controls="sheet-export">Export</button>
+    </nav>
+  </div>
 </header>
-<main>
- <div class="col colL">
-  <section class="p"><h2><span>Wealth &middot; top living agents, last 400 ticks</span><em id="wlbl"></em></h2><div class="fill"><canvas id="wealth"></canvas></div></section>
-  <section class="p"><h2><span>Lineage &middot; x = birth tick, one band per dynasty</span><span class="leg"><span><s style="background:var(--par)"></s>parametric</span><span><s style="background:var(--sol)"></s>solver</span><span><s style="background:var(--rog)"></s>rogue</span><span><s style="background:var(--acc)"></s>accomplice</span><span><s style="background:#3a4352"></s>dead</span></span></h2><div class="fill" id="tree"><svg id="treesvg"></svg></div></section>
- </div>
- <div class="col colR">
-  <section class="p"><h2><span>Evolution</span><em id="elbl"></em></h2>
-   <div class="spk" id="spk"></div>
-   <h2 style="margin-top:8px"><span>Living specialisation (argmax)</span></h2><div id="bar"></div>
+
+<div class="notice" id="notice" role="status" hidden>
+  <div class="container notice__inner">
+    <p id="notice-text"></p>
+    <button class="btn btn--quiet" type="button" id="notice-action" hidden>Restart with a new seed</button>
+  </div>
+</div>
+
+<main class="container">
+  <section class="record" aria-labelledby="record-h">
+    <div class="record__head">
+      <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of" id="tick-of">ticks</span></p>
+      <div class="record__title">
+        <h2 id="record-h">Lineages</h2>
+        <p class="record__sum" id="record-sum">Each band is a founding dynasty. Its thickness is its share of the living population.</p>
+      </div>
+      <fieldset class="seg seg--small" id="mode">
+        <legend class="visually-hidden">Band thickness</legend>
+        <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n">Share of population</label>
+        <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w">Share of wealth</label>
+      </fieldset>
+    </div>
+
+    <div class="plot" id="plot" data-state="loading">
+      <div class="lane lane--shock" aria-hidden="true"><canvas id="shock-lane"></canvas></div>
+      <div class="plot__well">
+        <canvas id="muller" tabindex="0" role="img" aria-label="Muller plot of dynasties over time. Use the up and down arrow keys to select a dynasty."></canvas>
+        <div class="skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="plot__empty" id="plot-empty" hidden>Nothing has happened yet. The founders are registered; resume the run to start tick 1.</p>
+        <div class="tip" id="tip" role="tooltip" hidden></div>
+      </div>
+      <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
+      <div class="axis" id="axis" aria-hidden="true"></div>
+    </div>
+    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
+    <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
-  <section class="p" id="siege"><h2><span style="color:var(--warn)">SIEGE guard &middot; mandate enforcement</span><em id="leakt"></em></h2>
-   <div class="atk" id="atk"></div><div id="last">no blocks yet</div></section>
-  <section class="p"><h2><span>Event feed</span></h2><div id="feed"></div></section>
- </div>
+
+  <div class="regions">
+    <section class="region specimen" aria-labelledby="spec-h" id="specimen">
+      <div class="region__head">
+        <h2 id="spec-h">Specimen</h2>
+        <p class="region__sub" id="spec-sub">The richest dynasty, until you pick a band.</p>
+      </div>
+      <div id="spec-body" class="spec">
+        <p class="placeholder">No living dynasty yet.</p>
+      </div>
+    </section>
+
+    <section class="region notes" aria-labelledby="notes-h">
+      <div class="region__head">
+        <h2 id="notes-h">Field notes</h2>
+        <p class="region__sub">Newest first, grouped by tick.</p>
+      </div>
+      <ol class="feed" id="feed" aria-live="polite" aria-relevant="additions"><li class="placeholder">Notes appear as the run produces them.</li></ol>
+    </section>
+
+    <section class="region pressures" aria-labelledby="press-h">
+      <div class="region__head">
+        <h2 id="press-h">Selection pressures</h2>
+        <p class="region__sub">Living parametric agents, over the whole run.</p>
+      </div>
+      <dl class="figs" id="figs"></dl>
+      <div class="guard" id="guard">
+        <h3>The guard</h3>
+        <p id="guard-text">No rogue has appeared yet.</p>
+      </div>
+    </section>
+  </div>
 </main>
-<script>
-const $=id=>document.getElementById(id);
-const ROLE={parametric:'#35d4ff',solver:'#a78bfa',rogue:'#ff4d5e',accomplice:'#ff9f43'};
-const KINDS=['arith','extract','classify','reason'],KCOL=['#35d4ff','#3ddc84','#ffb020','#a78bfa'];
-const ATK=['injection','poisoning','race','drip'];
-const S={agents:new Map(),metrics:[],ring:new Map(),tick:0,feed:[],seen:new Set(),blocks:{injection:0,poisoning:0,race:0,drip:0},lastBlock:null,dirty:{tree:1}};
-const num=(v,d=0)=>typeof v==='number'&&isFinite(v)?v:d;
-const cr=v=>(num(v)/1e6);
-const fmt=(v,d=2)=>num(v).toFixed(d);
-function hue(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)%360}
-// ---------- KPIs
-const KP=[['pop','Population',m=>num(m.population)],['dth','Extinctions',m=>num(m.deaths)],['gen','Max generation',m=>num(m.maxGeneration)],['dyn','Dynasties',m=>num(m.dynasties)],
-['gin','Gini',m=>fmt(m.gini,3)],['mid','Middleman share',m=>fmt(num(m.middlemanShare)*100,1)+'%'],['spc','Specialisation',m=>fmt(m.specialisation,3)],['pool','Pool',m=>fmt(cr(m.pool),1)],['rog','Rogue blocked',null]];
-$('kpis').innerHTML=KP.map(k=>`<div class="k"><span>${k[1]}</span><b id="k_${k[0]}">-</b><i id="s_${k[0]}">&nbsp;</i></div>`).join('');
-function renderKpi(m){
- if(!m)return;$('tick').textContent=num(m.tick).toLocaleString();
- for(const k of KP){if(k[2])$('k_'+k[0]).textContent=k[2](m)}
- const att=num(m.rogueAttempts),bl=num(m.rogueBlocked),lk=cr(m.rogueLeaked);
- $('k_rog').innerHTML=`${bl}<small style="font-size:14px;color:var(--dim)"> / ${att}</small>`;
- $('s_rog').innerHTML=lk===0?'<span class="ok">0.00 leaked</span>':`<span class="bad">${fmt(lk)} leaked</span>`;
- $('leakt').innerHTML=lk===0?'<span class="leak ok">0.00 leaked</span>':`<span class="leak bad">${fmt(lk)} LEAKED</span>`;
-}
-// ---------- ingest
-function ingestAgents(list,tick){
- for(const a of list||[]){
-  if(!a||!a.id)continue;S.agents.set(a.id,a);
-  let r=S.ring.get(a.id);if(!r){r=[];S.ring.set(a.id,r)}
-  const l=r[r.length-1];
-  if(!l||l.t!==tick){r.push({t:tick,b:cr(a.balance)});if(r.length>600)r.shift()}
- }
-}
-function onSnapshot(d){
- if(!d)return;const t=num(d.tick,d.metrics&&d.metrics.tick);S.tick=Math.max(S.tick,t);
- if(d.metrics){const l=S.metrics[S.metrics.length-1];if(!l||l.tick!==d.metrics.tick){S.metrics.push(d.metrics);if(S.metrics.length>3000)S.metrics.splice(0,500)}S.last=d.metrics;renderKpi(d.metrics)}
- ingestAgents(d.agents,t);
-}
-function evKey(e){return [e.event,e.tick,e.agent||e.child||e.middleman||'',e.to||e.solver||'',e.amount||e.price||''].join('|')}
-function onEv(e,quiet){
- if(!e||!e.event)return;const k=evKey(e);if(S.seen.has(k))return;S.seen.add(k);
- if(S.seen.size>5000){S.seen=new Set([...S.seen].slice(-2500))}
- let cls,txt;const t=String(num(e.tick)).padStart(6,' ');
- switch(e.event){
-  case 'kill':cls='e-kill';txt=`${t}  EXTINCT ${e.agent} (balance ${fmt(cr(e.balance))})`;break;
-  case 'fork':cls='e-fork';txt=`${t}  FORK ${e.parent} -> ${e.child}${e.seed!=null?' seed '+e.seed:''}`;break;
-  case 'guard_block':{cls='e-block';const rs=(e.reasons||[]).join(',');txt=`${t}  BLOCKED ${e.agent} -> ${e.to} · ${e.attack||'?'} · ${rs}`;
-    if(S.blocks[e.attack]!=null)S.blocks[e.attack]++;else S.blocks[e.attack]=1;
-    S.lastBlock=e;renderSiege();if(!quiet){const s=$('siege');s.classList.remove('flash');void s.offsetWidth;s.classList.add('flash')}break}
-  case 'guard_allow_rogue':cls='e-leak';txt=`${t}  LEAK ${e.agent} -> ${e.to} ${fmt(cr(e.amount))} · ${e.attack||''}`;break;
-  case 'subcontract':cls='e-sub';txt=`${t}  deal ${e.middleman} -> ${e.solver} ask ${fmt(cr(e.ask))} price ${fmt(cr(e.price))}`;break;
-  case 'born':cls='e-born';txt=`${t}  born ${e.agent} (${e.role||''})${e.parent?' of '+e.parent:''}`;break;
-  default:return;
- }
- S.tick=Math.max(S.tick,num(e.tick));
- S.feed.unshift({cls,txt});if(S.feed.length>60)S.feed.length=60;S.feedDirty=1;
-}
-function renderSiege(){
- const keys=[...new Set([...ATK,...Object.keys(S.blocks)])];
- $('atk').innerHTML=keys.slice(0,4).map(k=>`<div><b>${S.blocks[k]||0}</b><span>${k.toUpperCase()}</span></div>`).join('');
- const e=S.lastBlock;
- $('last').innerHTML=e?`LAST: ${e.agent} -> ${e.to} &middot; ${fmt(cr(e.amount))} cr<br>${(e.reasons||[]).join(' &middot; ')||'-'}`:'no blocks yet';
-}
-function renderFeed(){
- if(!S.feedDirty)return;S.feedDirty=0;
- $('feed').innerHTML=S.feed.map(f=>`<div class="${f.cls}">${f.txt.replace(/</g,'&lt;')}</div>`).join('');
-}
-// ---------- wealth chart
-function fit(c){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;const w=Math.max(10,r.width*d|0),h=Math.max(10,r.height*d|0);if(c.width!==w||c.height!==h){c.width=w;c.height=h}return [c.getContext('2d'),w,h,d]}
-function drawWealth(){
- const [g,W,H,d]=fit($('wealth'));g.clearRect(0,0,W,H);
- const T=S.tick,T0=T-400,pl=54*d,pr=44*d,pt=8*d,pb=18*d,pw=W-pl-pr,ph=H-pt-pb;
- const all=[...S.agents.values()];
- const live=all.filter(a=>a.alive!==false).sort((a,b)=>num(b.balance)-num(a.balance)).slice(0,12);
- const dead=all.filter(a=>a.alive===false&&num(a.died,-1)>=T0&&(S.ring.get(a.id)||[]).length>1&&num(a.balance)>=0).sort((a,b)=>num(b.died)-num(a.died)).slice(0,6);
- const sel=[...live,...dead];let mx=1;
- for(const a of sel)for(const p of S.ring.get(a.id)||[])if(p.t>=T0&&p.b>mx)mx=p.b;
- mx*=1.08;const X=t=>pl+(t-T0)/400*pw,Y=v=>pt+ph-(v/mx)*ph;
- g.font=10*d+'px monospace';g.fillStyle='#5d6b7e';g.strokeStyle='#161e2a';g.lineWidth=d;
- for(let i=0;i<=4;i++){const v=mx*i/4,y=Y(v);g.beginPath();g.moveTo(pl,y);g.lineTo(pl+pw,y);g.stroke();g.textAlign='right';g.fillText(v.toFixed(v<10?1:0),pl-6*d,y+3*d)}
- g.textAlign='center';for(let i=0;i<=4;i++){g.fillText(Math.round(T0+400*i/4),pl+pw*i/4,H-4*d)}
- // population line
- const pm=S.metrics.filter(m=>m.tick>=T0);
- if(pm.length>1){const pmx=Math.max(...pm.map(m=>num(m.population)),1)*1.1;g.beginPath();pm.forEach((m,i)=>{const x=X(m.tick),y=pt+ph-num(m.population)/pmx*ph;i?g.lineTo(x,y):g.moveTo(x,y)});g.strokeStyle='rgba(201,212,227,.35)';g.setLineDash([4*d,3*d]);g.lineWidth=1.5*d;g.stroke();g.setLineDash([]);
-  g.fillStyle='rgba(201,212,227,.6)';g.textAlign='left';g.fillText('pop '+num(pm[pm.length-1].population),pl+pw+4*d,pt+ph-num(pm[pm.length-1].population)/pmx*ph+3*d)}
- for(const a of sel){
-  const r=(S.ring.get(a.id)||[]).filter(p=>p.t>=T0-5);if(r.length<2)continue;
-  const col=`hsl(${hue(rootOf(a.id))},80%,${a.alive===false?45:62}%)`;
-  g.beginPath();r.forEach((p,i)=>{const x=X(p.t),y=Y(p.b);i?g.lineTo(x,y):g.moveTo(x,y)});
-  g.strokeStyle=col;g.lineWidth=(a.alive===false?1:1.8)*d;g.globalAlpha=a.alive===false?.6:1;g.stroke();
-  const l=r[r.length-1],x=X(l.t),y=Y(l.b);
-  if(a.alive===false){g.beginPath();const s=4*d;g.moveTo(x-s,y-s);g.lineTo(x+s,y+s);g.moveTo(x+s,y-s);g.lineTo(x-s,y+s);g.strokeStyle='#ff4d5e';g.lineWidth=2*d;g.stroke()}
-  else{g.fillStyle=col;g.beginPath();g.arc(x,y,2.5*d,0,7);g.fill();g.font=10*d+'px monospace';g.textAlign='left';g.fillText(String(a.id).slice(0,9),x+5*d,y+3*d)}
-  g.globalAlpha=1;
- }
- $('wlbl').textContent=`${live.length} live / ${dead.length} fallen`;
-}
-// ---------- lineage
-const rootCache=new Map();
-function rootOf(id){
- let c=rootCache.get(id);if(c)return c;let cur=id,n=0;
- while(n++<500){const a=S.agents.get(cur);if(!a||!a.parent||!S.agents.has(a.parent))break;cur=a.parent}
- const a=S.agents.get(cur);
- if(a&&a.parent==null&&typeof a.founder==='string')cur=a.founder;
- rootCache.set(id,cur);return cur;
-}
-function drawTree(){
- const svg=$('treesvg'),box=$('tree'),W=box.clientWidth,Hh=box.clientHeight;if(!W||!Hh)return;
- rootCache.clear();
- const kids=new Map(),groups=new Map();
- for(const a of S.agents.values()){
-  const r=rootOf(a.id);if(!groups.has(r))groups.set(r,[]);groups.get(r).push(a);
-  if(a.parent&&S.agents.has(a.parent)){if(!kids.has(a.parent))kids.set(a.parent,[]);kids.get(a.parent).push(a.id)}
- }
- let gl=[...groups.entries()].filter(([r,m])=>m.length>2||m.some(a=>a.alive!==false));
- gl.sort((a,b)=>Math.min(...a[1].map(x=>num(x.born)))-Math.min(...b[1].map(x=>num(x.born))));
- const pos=new Map();let row=0;const bands=[];
- function walk(id,depth){const ks=(kids.get(id)||[]).sort((a,b)=>num(S.agents.get(a).born)-num(S.agents.get(b).born));
-  if(!ks.length){pos.set(id,row++);return}
-  const ys=[];for(const k of ks){walk(k,depth+1);ys.push(pos.get(k))}
-  pos.set(id,ys[0]);}
- for(const [r,m] of gl){const start=row;
-  const top=m.filter(a=>!a.parent||!S.agents.has(a.parent)).map(a=>a.id);
-  for(const t of top)walk(t,0);
-  bands.push({r,start,end:row,live:m.filter(a=>a.alive!==false).length,n:m.length});row++}
- const rows=Math.max(row,1),rh=Math.max(2.5,Math.min(14,(Hh-6)/rows)),pl=62,pr=10;
- const all=gl.flatMap(g=>g[1]);const t0=Math.min(...all.map(a=>num(a.born)),S.tick),t1=Math.max(S.tick,t0+1);
- const X=t=>pl+(t-t0)/(t1-t0)*(W-pl-pr),Y=id=>3+pos.get(id)*rh+rh/2;
- let o=`<rect x="0" y="0" width="${W}" height="${Hh}" fill="none"/>`;
- bands.forEach((b,i)=>{const y=3+b.start*rh;o+=`<rect x="0" y="${y}" width="${W}" height="${(b.end-b.start+.9)*rh}" fill="hsl(${hue(b.r)},60%,50%)" opacity="${i%2?.05:.09}"/>`;
-  if((b.end-b.start+1)*rh>9)o+=`<text x="4" y="${y+10}" fill="hsl(${hue(b.r)},70%,65%)" font-size="9" font-family="monospace">${String(b.r).slice(0,9)} ${b.live}/${b.n}</text>`});
- let e='',n='';
- const rmax=Math.max(1.6,rh*.55);
- for(const [,m] of gl)for(const a of m){
-  if(!pos.has(a.id))continue;const x=X(num(a.born)),y=Y(a.id),alive=a.alive!==false;
-  const p=a.parent&&pos.has(a.parent)?S.agents.get(a.parent):null;
-  if(p)e+=`M${X(num(p.born))} ${Y(p.id)}L${x} ${Y(p.id)}L${x} ${y}`;
-  const xe=alive?X(S.tick):X(num(a.died,a.born));
-  e+=`M${x} ${y}L${xe} ${y}`;
-  const rr=Math.min(rmax,0.8+Math.sqrt(cr(a.balance))*0.45);
-  const col=alive?(ROLE[a.role]||'#fff'):'#3a4352';
-  n+=`<circle cx="${x}" cy="${y}" r="${rr.toFixed(1)}" fill="${col}"${alive?'':' opacity=".7"'}/>`;
-  if(!alive)n+=`<circle cx="${xe}" cy="${y}" r="1.2" fill="#ff4d5e" opacity=".8"/>`;
- }
- svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);svg.setAttribute('preserveAspectRatio','none');
- svg.innerHTML=o+`<path d="${e}" stroke="#2c3646" stroke-width="1" fill="none"/>`+n;
-}
-// ---------- evolution
-const SP=[['meanMarkup','Mean markup','#ffb020'],['meanSubcontract','Subcontract gene','#ff9f43'],['specialisation','Specialisation','#3ddc84'],['gini','Gini','#35d4ff']];
-$('spk').innerHTML=SP.map(s=>`<div class="sp"><div><span>${s[1]}</span><b id="sv_${s[0]}"></b></div><canvas id="sc_${s[0]}"></canvas></div>`).join('');
-function drawSpark(){
- const ms=S.metrics.slice(-600);
- for(const [k,,col] of SP){
-  const c=$('sc_'+k),[g,W,H,d]=fit(c);g.clearRect(0,0,W,H);
-  const v=ms.map(m=>num(m[k],NaN)).filter(isFinite);if(v.length<2)continue;
-  let lo=Math.min(...v),hi=Math.max(...v);if(hi-lo<1e-9){hi=lo+1}
-  g.beginPath();v.forEach((y,i)=>{const px=i/(v.length-1)*W,py=H-3*d-(y-lo)/(hi-lo)*(H-6*d);i?g.lineTo(px,py):g.moveTo(px,py)});
-  g.strokeStyle=col;g.lineWidth=1.8*d;g.stroke();g.lineTo(W,H);g.lineTo(0,H);g.fillStyle=col+'22';g.fill();
-  $('sv_'+k).textContent=fmt(v[v.length-1],3);
- }
- // specialisation bar
- const cnt=[0,0,0,0];
- for(const a of S.agents.values()){if(a.alive===false||!Array.isArray(a.spec))continue;let b=0;a.spec.forEach((w,i)=>{if(num(w)>num(a.spec[b]))b=i});cnt[b]++}
- const tot=cnt.reduce((a,b)=>a+b,0)||1;
- $('bar').innerHTML=cnt.map((c,i)=>`<div style="flex:${c||.001};background:${KCOL[i]}">${c? KINDS[i]+' '+c:''}</div>`).join('');
- $('elbl').textContent=tot>1?`${tot} alive`:'';
-}
-// ---------- load / stream
-async function backfill(){
- try{const h=await (await fetch('/history')).json();
-  S.metrics=(h.metrics||[]).concat(S.metrics.filter(m=>!h.metrics||!h.metrics.length||m.tick>h.metrics[h.metrics.length-1].tick));
-  const m=S.metrics[S.metrics.length-1];if(m){S.tick=Math.max(S.tick,num(m.tick));renderKpi(m)}
-  S.blocks={injection:0,poisoning:0,race:0,drip:0};S.lastBlock=null;S.feed=[];S.seen=new Set();
-  for(const e of h.events||[])onEv(e,true);
-  S.feed.sort((a,b)=>0);renderSiege();
- }catch(err){console.warn('history',err)}
-}
-function connect(){
- const es=new EventSource('/stream');
- es.addEventListener('open',backfill);
- es.addEventListener('snapshot',m=>{try{onSnapshot(JSON.parse(m.data))}catch(e){}});
- es.addEventListener('ev',m=>{try{onEv(JSON.parse(m.data))}catch(e){}});
-}
-backfill().then(()=>{renderSiege();connect()});
-let lt=0;
-(function loop(ts){
- requestAnimationFrame(loop);
- if(ts-(loop.w||0)>100){loop.w=ts;drawWealth();renderFeed()}
- if(ts-(loop.s||0)>500){loop.s=ts;drawSpark()}
- if(ts-lt>1000){lt=ts;drawTree()}
-})(0);
-</script></body></html>
+
+<aside class="sheet" id="sheet-rules" aria-labelledby="rules-h" hidden>
+  <div class="sheet__head"><h2 id="rules-h">Rules</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
+  <p class="sheet__lede">Changes apply from the next tick. The run keeps going.</p>
+  <form id="rules-form" novalidate>
+    <div id="rules-fields"></div>
+    <p class="form-msg" id="rules-msg" aria-live="polite"></p>
+    <button class="btn btn--primary" type="submit" id="rules-apply">Apply rules</button>
+  </form>
+  <form class="restart" id="reset-form" novalidate>
+    <h3>Restart with seed</h3>
+    <p class="hint">Starts a new run from tick 0 with these rules. The current run is discarded.</p>
+    <div class="restart__row">
+      <label for="seed">Seed</label>
+      <input id="seed" name="seed" type="number" min="0" step="1" inputmode="numeric" aria-describedby="reset-msg">
+      <button class="btn btn--quiet" type="submit" id="reset-go">Restart</button>
+    </div>
+    <p class="form-msg" id="reset-msg" aria-live="polite"></p>
+  </form>
+</aside>
+
+<aside class="sheet" id="sheet-shocks" aria-labelledby="shocks-h" hidden>
+  <div class="sheet__head"><h2 id="shocks-h">Shocks</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
+  <p class="sheet__lede">Each one starts now. Watch the plot for who survives it.</p>
+  <ul class="shocks">
+    <li><button class="btn btn--quiet" type="button" data-shock="drought">Drought</button><p>Task emission falls to a third for 60 ticks.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="plague">Plague</button><p>Upkeep triples for 40 ticks.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="immigration">Immigration</button><p>Six newcomers arrive with random genomes, each founding a dynasty.</p></li>
+  </ul>
+  <p class="form-msg" id="shock-msg" aria-live="polite"></p>
+</aside>
+
+<aside class="sheet" id="sheet-export" aria-labelledby="export-h" hidden>
+  <div class="sheet__head"><h2 id="export-h">Export</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
+  <p class="sheet__lede" id="export-preview">Reading the champion.</p>
+  <div class="exports">
+    <a class="btn btn--primary" href="/api/export/genome" download>Download the winning genome</a>
+    <a class="btn btn--quiet" href="/api/export/metrics.csv" download>Download the metrics CSV</a>
+  </div>
+  <p class="hint">The genome file holds the champion, its dynasty’s mean genome and the rules it won under.</p>
+</aside>
+</body>
+</html>

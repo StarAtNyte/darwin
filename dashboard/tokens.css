@@ -1,0 +1,58 @@
+:root {
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.44rem; --text-title: 1rem; --text-lead: 1rem;
+  --text-counter: 4.3rem; --text-wordmark: 1.9rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --container: 1600px; --gutter: 48px; --gap-columns: 40px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+
+  /* Ground: a warm slate, mid-tone. Chrome stays in these neutrals. */
+  --color-paper: oklch(0.335 0.008 58);
+  --color-paper-2: oklch(0.375 0.009 58);
+  --color-paper-3: oklch(0.295 0.008 58);
+  --color-ink: oklch(0.95 0.008 80);
+  --color-ink-2: oklch(0.84 0.01 75);
+  --color-muted: oklch(0.74 0.012 70);
+  --color-rule: oklch(0.45 0.012 65);
+  --color-rule-soft: oklch(0.40 0.012 64);
+
+  /* One signal: the primary action, the selection and the guard's interventions. */
+  --color-accent: oklch(0.80 0.15 352);
+  --color-accent-ink: oklch(0.25 0.03 352);
+  --color-focus: oklch(0.88 0.11 352);
+  --color-error: oklch(0.83 0.11 45);
+  --color-success: oklch(0.84 0.08 150);
+
+  /* Mineral pigments: the dynasties' colours, ordered so neighbours differ in lightness and hue. */
+  --pigment-1: oklch(0.74 0.125 75);   /* yellow ochre */
+  --pigment-2: oklch(0.47 0.115 262);  /* lapis */
+  --pigment-3: oklch(0.65 0.12 158);   /* malachite */
+  --pigment-4: oklch(0.56 0.16 33);    /* cinnabar */
+  --pigment-5: oklch(0.82 0.06 185);   /* verdigris */
+  --pigment-6: oklch(0.46 0.06 55);    /* raw umber */
+  --pigment-7: oklch(0.86 0.13 95);    /* orpiment */
+  --pigment-8: oklch(0.58 0.10 252);   /* smalt */
+  --pigment-9: oklch(0.69 0.13 50);    /* realgar */
+  --pigment-10: oklch(0.42 0.07 168);  /* viridian earth */
+  --pigment-11: oklch(0.76 0.07 135);  /* terre verte */
+  --pigment-12: oklch(0.50 0.13 12);   /* madder */
+  --pigment-13: oklch(0.70 0.09 238);  /* azurite */
+  --pigment-14: oklch(0.58 0.12 48);   /* burnt sienna */
+  --pigment-15: oklch(0.88 0.03 85);   /* chalk */
+  --pigment-16: oklch(0.40 0.08 280);  /* indigo */
+  --pigment-17: oklch(0.66 0.10 110);  /* green earth */
+  --pigment-18: oklch(0.62 0.09 20);   /* red bole */
+
+  --font-display: "Antonio", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-outlier: var(--font-mono);
+  --radius-card: 4px; --radius-input: 4px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: none;
+  --shadow-sheet: -24px 0 48px -24px oklch(0.15 0.01 60 / 0.6);
+  --shadow-tip: 0 8px 24px -12px oklch(0.15 0.01 60 / 0.7);
+  --tracking-display: -0.005em;
+}
+@media (max-width: 60rem) { :root { --gutter: 24px; --gap-columns: 32px; --text-counter: 3.2rem; } }
+@media (max-width: 40rem) { :root { --gutter: 16px; --gap-columns: 24px; } }

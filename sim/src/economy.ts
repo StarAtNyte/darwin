@@ -470,7 +470,7 @@ export class Economy {
         return {
           id: a.id, role: a.role, balance: r.balance, reputation: r.reputation, alive: r.alive, parent: r.parent, generation: r.generation,
           founder: a.founder, born: r.bornTick, died: r.diedTick, spec: a.genome.spec.map((x) => +x.toFixed(3)), markup: +a.genome.markup.toFixed(3),
-          subcontract: +a.genome.subcontract.toFixed(3), wins: r.wins, losses: r.losses, sub: a.subcontracted, self: a.selfSolved,
+          subcontract: +a.genome.subcontract.toFixed(3), risk: +a.genome.risk.toFixed(3), reserve: +a.genome.reserve.toFixed(3), forkAt: +a.genome.forkAt.toFixed(3), wins: r.wins, losses: r.losses, sub: a.subcontracted, self: a.selfSolved,
         };
       }),
     };

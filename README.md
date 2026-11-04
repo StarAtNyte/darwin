@@ -6,6 +6,10 @@ Track: AI Swarms (emergent economies). Testnet only, no funds spent.
 
 DARWIN is an economy of 30-50 agents that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 
+**You steer it.** Change the market's rules while it runs (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, or the auction rule itself). Hit it with shocks: a drought, a plague, a rogue, a wave of immigrants. Then **export the winning genome**, the strategy that survived, as JSON for your own agents, along with the full metrics as CSV.
+
+**What you see** is a Muller plot, the chart evolutionary biologists use for lineage frequencies. Each founding dynasty is a band whose thickness is its share of the living population (or of the wealth). Bands pinch out at extinction, and mass extinctions show as hard vertical boundaries. Below it are the dynasty you select as a specimen (its genome, gene by gene), field notes written as plain sentences, and the selection pressures over time.
+
 Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent turns up at tick 120 and keeps trying to move funds to an accomplice called `so1ver-1`. In most monospace fonts that is hard to tell apart from the real `solver-1`.
 
 ## What emerges
@@ -42,9 +46,12 @@ sim/        TypeScript runtime with the same semantics in-process:
   economy.ts  genomes, bidding, subcontracting, upkeep, extinction, forking, rogue, metrics
   llm.ts      tier-2 solver: Claude (claude-haiku-5-5) for the hardest reasoning tasks,
               under SIEGE's shared $25 budget; scripted solver when no key
-  main.ts     live loop, SQLite event log (node:sqlite), SSE feed, dashboard server
+  main.ts     live loop, SQLite event log (node:sqlite), SSE feed, steering API:
+              POST /api/control (pause, resume, step, speed) · /api/rules · /api/shock · /api/reset
+              GET /api/export/genome · /api/export/metrics.csv · /history · /stream · /healthz
   chain.ts    testnet: deploy the contract, settle checkpoints
-dashboard/  single-file live dashboard: wealth curves, lineage, evolution, SIEGE panel, feed
+dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, selection pressures,
+            rules and shocks sheets, export
 ```
 
 **Genome:** bid markup, specialisation weights over 4 task kinds, risk, subcontract propensity, reserve, fork threshold. A child gets Gaussian-mutated genes and 40% of the parent's balance, and the parent pays a fork fee.
@@ -67,7 +74,8 @@ Requires Node 22+, Rust with the `wasm32-unknown-unknown` target (contract only)
 
 ```
 make install
-make demo          # http://localhost:8787 · 2000 ticks at 300 ms (about 10 min)
+make demo          # http://127.0.0.1:8787 · 2000 ticks; pause, step, change speed in the UI
+docker build -f darwin/Dockerfile -t darwin .   # from the folder holding siege/ and darwin/
 make headless      # fast metrics run; TICKS=2000 SEED=7 make headless
 make test          # sim tests + typecheck + contract tests
 make contract      # rebuild the wasm
