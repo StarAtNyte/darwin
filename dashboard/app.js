@@ -918,10 +918,25 @@ function strategyOf(f) {
   const markup = mean("markup"), sub = mean("subcontract");
   const spec = KINDS.map((_, i) => living.reduce((s, a) => s + a.spec[i], 0) / living.length);
   const top = spec.indexOf(Math.max(...spec));
-  const price = markup < 0.5 ? "cheap bids" : markup > 0.75 ? "pricey bids" : "mid-price bids";
-  const skill = spec[top] >= 0.4 ? `${KIND_WORDS[KINDS[top]]} specialists` : "generalists";
-  return `${skill}, ${price}${sub >= 0.45 ? ", resell work" : ""}`;
+  // Labels change only once a gene clears its threshold by a margin, so a mean hovering on a line does not flicker.
+  const prev = STRAT_MEMO.get(f) || {};
+  const band = (v, cuts, old) => {
+    const raw = cuts.findIndex((c) => v < c);
+    const i = raw === -1 ? cuts.length : raw;
+    if (old === undefined || i === old) return i;
+    const edge = i > old ? cuts[i - 1] : cuts[i];
+    return Math.abs(v - edge) >= HYST ? i : old;
+  };
+  const pi = band(markup, [0.5, 0.75], prev.pi);
+  const si = band(spec[top], [0.4], prev.si);
+  const ri = band(sub, [0.45], prev.ri);
+  STRAT_MEMO.set(f, { pi, si, ri });
+  const price = ["cheap bids", "mid-price bids", "pricey bids"][pi];
+  const skill = si === 1 ? `${KIND_WORDS[KINDS[top]]} specialists` : "generalists";
+  return `${skill}, ${price}${ri === 1 ? ", resell work" : ""}`;
 }
+const STRAT_MEMO = new Map();
+const HYST = 0.04;
 
 function dynastyFacts(f) {
   const living = [...S.agents.values()].filter((a) => a.founder === f && a.alive && a.role === "parametric");
