@@ -1182,7 +1182,7 @@ function renderNotes() {
   const windows = new Map(); // subcontract deals, summarised per ten ticks
   for (const [t, g] of S.notes) {
     const ss = groupSentences(g);
-    if (ss.length) entries.push({ t, from: t, to: t, ss });
+    if (ss.length) entries.push({ t, from: t, to: t, ss, forks: g.forks.length });
     if (g.subs.length) {
       const w = Math.floor(t / 10) * 10;
       if (!windows.has(w)) windows.set(w, { subs: [], last: t });
@@ -1206,7 +1206,13 @@ function renderNotes() {
     if (prev && prev.quiet === en.quiet && same(prev) === same(en)) {
       prev.from = Math.min(prev.from, en.from);
       prev.to = Math.max(prev.to, en.to);
+      if (en.forks) prev.forks = (prev.forks || 0) + en.forks;
     } else merged.push({ ...en });
+  }
+  // Merged fork notes carry the total, so the sentence keeps the count the range of ticks would hide.
+  for (const en of merged) {
+    if (!(en.forks > 1)) continue;
+    en.ss = en.ss.map((x) => (typeof x === "string" ? x.replace(/^.*? earned enough to fork (?:a mutated child|mutated children)/, `${word(en.forks)} agents earned enough to fork mutated children`) : x));
   }
   for (const en of merged) en.label = en.from === en.to ? `Tick ${en.from}.` : `Ticks ${en.from} to ${en.to}.`;
   const items = merged.slice(0, 90).map((en) => {
