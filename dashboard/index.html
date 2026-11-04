@@ -71,6 +71,7 @@
 
     <div class="plot" id="plot" data-state="loading">
       <div class="lane lane--shock" aria-hidden="true"><canvas id="shock-lane"></canvas></div>
+      <div class="lane lane--notes" aria-hidden="true" hidden><canvas id="notes-lane"></canvas></div>
       <div class="plot__well">
         <canvas id="muller" tabindex="0" role="img" aria-label="Muller plot of dynasties over time. Use the up and down arrow keys to select a dynasty."></canvas>
         <p class="plot__caption" id="plot-caption"></p>
@@ -81,7 +82,7 @@
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction</span><span><i class="k-fork"></i>Dark hairlines in the leading dynasty: ticks when one of its agents forked</span><span><i class="k-other"></i>Grey: small dynasties that never reached 3% of the population</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
+    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction; the turning points are named just above the plot</span><span><i class="k-fork"></i>Faint hairlines in the leading dynasty: when its agents forked, merged where they crowd</span><span><i class="k-other"></i>Grey: small dynasties that never reached 3% of the population</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 

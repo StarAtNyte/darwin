@@ -54,9 +54,14 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const idHtml = (id) => `<span class="id">${esc(short(id))}</span>`;
 const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
 
-// Dynasties whose share never passes this are pooled into one muted band on the plot.
+// The TOP_BANDS dynasties by peak share always get their own band; of the rest, those whose share
+// never passes MINOR_PEAK are pooled into one muted band on the plot.
 const OTHER = "__other";
 const MINOR_PEAK = 0.03;
+const TOP_BANDS = 12;
+// The pooled band may never hold more than this share at any tick: while many small founders together
+// are most of the field, the largest of them come back out as their own bands.
+const OTHER_CAP = 0.2;
 
 function colourOf(f, deep = false) {
   if (f === OTHER) return T.other;
@@ -359,6 +364,7 @@ const canvas = $("#muller");
 const ctx = canvas.getContext("2d");
 const shockCv = $("#shock-lane");
 const guardCv = $("#guard-lane");
+const notesCv = $("#notes-lane");
 let geo = null; // last layout: { samples, bands: Map(f -> {y0, y1}), w, h, x(i) }
 
 function sizeCanvas(cv) {
@@ -396,7 +402,30 @@ function layout(w) {
   // Only group once some dynasty has pulled ahead: while every founder is still near its equal share,
   // grouping by an absolute cut would hide the whole field.
   const top = Math.max(0, ...peak.values());
-  const minor = new Set([...S.founders.keys()].filter((f) => { const p = peak.get(f) || 0; return p < MINOR_PEAK && p < top / 4; }));
+  const kept = new Set([...S.founders.keys()].sort((a, b) => (peak.get(b) || 0) - (peak.get(a) || 0)).slice(0, TOP_BANDS));
+  const minor = new Set([...S.founders.keys()].filter((f) => { const p = peak.get(f) || 0; return !kept.has(f) && p < MINOR_PEAK && p < top / 4; }));
+  // Per sample: the pooled share, and each pooled founder's own share, so promoting one is a subtraction.
+  const pooled = new Float64Array(samples.length);
+  const shareOf = new Map();
+  samples.forEach((mi, si) => {
+    const lin = M[mi].lineages || {};
+    let total = 0;
+    for (const f in lin) total += valueOf(lin[f], S.mode);
+    if (!total) return;
+    for (const f in lin) if (minor.has(f)) {
+      const v = valueOf(lin[f], S.mode) / total;
+      pooled[si] += v;
+      if (!shareOf.has(f)) shareOf.set(f, new Float64Array(samples.length));
+      shareOf.get(f)[si] = v;
+    }
+  });
+  const pooledPeak = () => pooled.reduce((a, v) => Math.max(a, v), 0);
+  const byPeak = [...minor].sort((a, b) => (peak.get(b) || 0) - (peak.get(a) || 0));
+  while (byPeak.length && pooledPeak() > OTHER_CAP) {
+    const f = byPeak.shift();
+    minor.delete(f);
+    shareOf.get(f)?.forEach((v, si) => (pooled[si] -= v));
+  }
   const order = [...S.founders.entries()].filter(([f]) => !minor.has(f)).sort((a, b) => a[1].idx - b[1].idx).map(([f]) => f);
   if (minor.size) order.push(OTHER);
   const bands = new Map(order.map((f) => [f, { y0: new Float32Array(samples.length), y1: new Float32Array(samples.length), first: -1, last: -1 }]));
@@ -510,19 +539,24 @@ function drawPlot() {
     c.lineWidth = 0.75;
     c.strokeStyle = T["paper-3"];
     c.stroke();
-    // Inside the leader, a hairline at every tick one of its agents forked: the texture of its growth.
+    // Inside the leader, a hairline where its agents forked: the texture of its growth. Forks closer than
+    // FORK_GAP px merge into one line, so a busy stretch reads as denser texture, not a fence.
     if (f === deepF) {
+      const FORK_GAP = 20;
       c.save();
       tracePath(c, b, from, to, x, h);
       c.clip();
       c.strokeStyle = T.paper;
-      c.globalAlpha = 0.38;
+      c.globalAlpha = 0.14;
       c.lineWidth = 1;
       c.beginPath();
+      let lastX = -Infinity;
       for (const m of S.metrics) {
         const k = m.lineages?.[f]?.forks;
         if (!k) continue;
         const xx = Math.round(xt(m.tick)) + 0.5;
+        if (xx - lastX < FORK_GAP) continue;
+        lastX = xx;
         c.moveTo(xx, 0);
         c.lineTo(xx, h);
       }
@@ -583,38 +617,10 @@ function drawPlot() {
     c.globalAlpha = 1;
   }
 
-  // Turning points, pinned as short notes in up to three rows so none overlap.
-  c.font = `500 12px ${T.body}`;
-  c.textBaseline = "top";
-  const rows = [[], [], []];
-  const ROW_H = 44;
-  for (const a of turningPoints(sc)) {
-    const xx = Math.round(xt(a.tick)) + 0.5;
-    const tw = Math.max(...a.lines.map((l) => c.measureText(l).width)) + 12;
-    let lx = xx + 6;
-    if (lx + tw > w) lx = xx - 6 - tw;
-    if (lx < 0) continue;
-    const r = rows.findIndex((row) => row.every(([a0, a1]) => lx + tw + 8 < a0 || lx > a1 + 8));
-    if (r < 0 || (r + 1) * ROW_H + 8 > h) continue;
-    rows[r].push([lx, lx + tw]);
-    const ly = 8 + r * ROW_H;
-    if (!a.scar) {
-      c.strokeStyle = T.ink;
-      c.globalAlpha = 0.7;
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(xx, 0);
-      c.lineTo(xx, ly + 38 + 10);
-      c.stroke();
-    }
-    c.fillStyle = T["paper-3"];
-    c.globalAlpha = 0.9;
-    c.fillRect(lx, ly, tw, 38);
-    c.globalAlpha = 1;
-    c.fillStyle = T.ink;
-    c.fillText(a.lines[0], lx + 6, ly + 4);
-    c.fillText(a.lines[1], lx + 6, ly + 20);
-  }
+  // Turning points, in their own lane above the plot so they never cover a band: stacked in up to three rows,
+  // most telling first, each with a thin leader down to its tick. A note that cannot fit without overlapping
+  // another note or a leader is dropped.
+  drawNotes(turningPoints(sc), xt);
 
   // Guard lane: every tick the guard blocked a payment, in the signal colour.
   const D = S.derived;
@@ -631,6 +637,49 @@ function drawPlot() {
     }
   }
   renderAxis(geo);
+}
+
+function drawNotes(points, xt) {
+  const ROW_H = 18, MAX_ROWS = 3, PAD = 6;
+  const rows = Array.from({ length: MAX_ROWS }, () => []); // row 0 sits nearest the plot
+  const placed = [];
+  const w = canvas.clientWidth;
+  const mc = notesCv.getContext("2d");
+  mc.font = `500 12px ${T.body}`;
+  const clear = (row, a, z) => row.every(([b0, b1]) => z + PAD < b0 || a > b1 + PAD);
+  for (const p of points) {
+    const xx = Math.round(xt(p.tick)) + 0.5;
+    const text = p.lines.join(" ");
+    const tw = mc.measureText(text).width + 8;
+    let lx = Math.min(Math.max(0, xx - 4), w - tw);
+    if (lx < 0) continue;
+    const lead = [xx - 2, xx + 2];
+    const r = rows.findIndex((row, ri) => clear(row, lx, lx + tw) && rows.slice(0, ri).every((below) => clear(below, lead[0], lead[1])));
+    if (r < 0) continue;
+    rows[r].push([lx, lx + tw]);
+    for (let i = 0; i < r; i++) rows[i].push(lead);
+    placed.push({ xx, lx, r, text });
+  }
+  const used = placed.length ? Math.max(...placed.map((p) => p.r)) + 1 : 0;
+  notesCv.parentElement.hidden = !used;
+  if (!used) return;
+  notesCv.style.height = `${used * ROW_H + 6}px`;
+  const { c, h } = sizeCanvas(notesCv);
+  // the lane was sized while hidden on an earlier frame; keep its width in step with the plot
+  c.clearRect(0, 0, w, h);
+  c.font = `500 12px ${T.body}`;
+  c.textBaseline = "middle";
+  for (const p of placed) {
+    const cy = h - 6 - p.r * ROW_H - ROW_H / 2;
+    c.strokeStyle = T.muted;
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(p.xx, cy + ROW_H / 2 - 2);
+    c.lineTo(p.xx, h);
+    c.stroke();
+    c.fillStyle = T.ink;
+    c.fillText(p.text, p.lx + 4, cy);
+  }
 }
 
 // At most five turning points, most telling first: the largest extinction, the first dynasty past half,
@@ -916,8 +965,8 @@ function renderSpecimen() {
     gene("Fork threshold", "forks above, credits", g3.forkAt, 6, g3.forkAt?.toFixed(2)) +
     gene("Specialisation", "top skill weight", specialisation, 1, specialisation.toFixed(2)) +
     `</dl>` +
-    `<div class="spec__kinds"><h4>Specialisation by task kind</h4><div class="kinds">${specMean.map((v, i) => `<span style="flex-grow:${v};background:color-mix(in oklch, ${colour} ${100 - i * 22}%, ${T["paper-3"]})"></span>`).join("")}</div>` +
-    `<div class="kinds-legend">${KINDS.map((k, i) => `<span>${k}<b>${specMean[i].toFixed(2)}</b></span>`).join("")}</div></div>` +
+    `<div class="spec__kinds"><h4>Specialisation by task kind</h4><div class="kinds">${specMean.map((v, i) => `<span class="kind--${KINDS[i]}" style="flex-grow:${v}"></span>`).join("")}</div>` +
+    `<div class="kinds-legend">${KINDS.map((k, i) => `<span><i class="kind--${k}"></i>${k}<b>${specMean[i].toFixed(2)}</b></span>`).join("")}</div></div>` +
     `<p class="spec__note">${note}</p>`;
 }
 

@@ -52,6 +52,11 @@
   --pigment-deep-5: #f05a44;  /* coral */
   /* Dynasties that never pass a small share of the population share one muted band. */
   --pigment-other: #2a2a2a; /* recedes: background population, not a dynasty */
+  /* Task kinds in the specimen drawer: four distinct NEAR hues, green left to the UI signal. */
+  --kind-arith: #17d9d4;    /* NEAR cyan */
+  --kind-extract: #9797ff;  /* NEAR purple */
+  --kind-classify: #fcbb00; /* NEAR amber */
+  --kind-reason: #ff7966;   /* NEAR coral */
 
   --font-display: "Mona Sans", "Arial Narrow", ui-sans-serif, sans-serif;
   --font-body: "Mona Sans", ui-sans-serif, system-ui, sans-serif;

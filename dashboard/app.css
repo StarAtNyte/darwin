@@ -51,7 +51,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 
 /* Top bar */
 .bar { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: var(--color-paper); border-bottom: 1px solid var(--color-rule-soft); }
-.bar__inner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm) var(--space-lg); min-height: 64px; padding-block: var(--space-xs); }
+.bar__inner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm) var(--space-lg); min-height: 64px; padding-block: var(--space-md) var(--space-sm); }
 .brand { display: grid; gap: var(--space-3xs); flex: 1 1 24rem; min-width: 0; }
 .tagline { max-width: 62ch; }
 .tagline { color: var(--color-ink-2); font-size: var(--text-sm); line-height: 1.35; }
@@ -91,6 +91,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 
 .plot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2xs); }
 .lane canvas { width: 100%; height: 16px; }
+.lane--notes canvas { height: 24px; }
 .plot__well { position: relative; height: clamp(300px, 46vh, 520px); background: var(--color-paper-3); border-radius: 2px; }
 .plot__well canvas { width: 100%; height: 100%; cursor: crosshair; border-radius: 2px; }
 .plot__well canvas:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
@@ -153,6 +154,11 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .kinds { display: flex; height: 24px; border-radius: 2px; overflow: hidden; gap: var(--space-3xs); }
 .kinds span { min-width: 0; transition: flex-grow var(--dur-long) var(--ease-out); }
 .kinds-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-xs); margin-top: var(--space-2xs); font-size: var(--text-xs); color: var(--color-muted); }
+.kind--arith { background: var(--kind-arith); }
+.kind--extract { background: var(--kind-extract); }
+.kind--classify { background: var(--kind-classify); }
+.kind--reason { background: var(--kind-reason); }
+.kinds-legend i { display: inline-block; width: 8px; height: 8px; margin-right: var(--space-2xs); border-radius: 1px; vertical-align: 0.05em; }
 .kinds-legend b { display: block; color: var(--color-ink); font-family: var(--font-body); font-weight: 400; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
 .spec__note { margin-top: var(--space-md); font-size: var(--text-xs); color: var(--color-muted); }
 
