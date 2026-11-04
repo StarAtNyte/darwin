@@ -159,6 +159,7 @@ function clearAll() {
   S.exportTick = -1;
   S.hover = null;
   S.lastShock = null;
+  narrReset();
 }
 
 // ---------- network ----------
@@ -680,7 +681,7 @@ function drawPlot() {
   $("#headline").textContent = hl;
   announce(hl);
   renderCaption();
-  if (!n) { geo = null; return; }
+  if (!n) { geo = null; narrate(); return; }
 
   geo = layout(w);
   const { samples, bands, order, x, xt } = geo;
@@ -809,6 +810,7 @@ function drawPlot() {
   }
   renderAxis(geo);
   renderKey(sc, D);
+  narrate();
 }
 
 // The key lists only what the plot is showing right now.
@@ -824,7 +826,7 @@ function renderKey(sc, D) {
   };
   if (geo?.gens) {
     const gg = geo.gens;
-    $("#key-gens-text").textContent = `Tones inside ${short(gg.f)}’s band from tick ${gg.tick}: generations, ${gg.width} at a time, oldest lightest`;
+    $("#key-gens-text").textContent = `Tones inside ${short(gg.f)}’s band from tick ${gg.tick}: generations (a child is one generation after its parent), ${gg.width} at a time, oldest lightest`;
     $("#key-gens-swatch").style.background = `linear-gradient(90deg, ${gg.lite}, ${gg.deep})`;
   }
   $$("#key [data-key]").forEach((el) => (el.hidden = !show[el.dataset.key]));
@@ -985,7 +987,7 @@ function headline() {
   // 3. While no dynasty has a quarter of the population, the race between lines is the story; only middlemen
   // reselling a large cut of the work beat it.
   if (lead && lead.share < 0.25) {
-    if (m.middlemanShare >= 0.3) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
+    if (m.middlemanShare >= 0.3) return `Middlemen, agents who resell work they win, handled ${pct(m.middlemanShare)} of it in the last ${Math.min(50, m.tick)} ticks`;
     // A lead only counts when it is a lead: more than one agent and no dynasty level with it.
     const tied = Object.values(m.lineages || {}).filter((l) => l.n === lead.n).length > 1;
     if (lead.n > 1 && !tied) return `${short(lead.f)} leads with ${fmt(lead.n)} of ${fmt(lead.total)} agents`;
@@ -995,9 +997,9 @@ function headline() {
   const holds = (f, x) => { const st = strategyOf(f); return st ? `${short(f)}’s ${st.split(",")[0]} hold ${x} of the population` : `One dynasty, ${short(f)}, holds ${x} of the population`; };
   if (lead && lead.share >= 0.7) return holds(lead.f, pct(lead.share));
   // 5. Middlemen taking a large cut of the work.
-  if (m.middlemanShare >= 0.3) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
+  if (m.middlemanShare >= 0.3) return `Middlemen, agents who resell work they win, handled ${pct(m.middlemanShare)} of it in the last ${Math.min(50, m.tick)} ticks`;
   if (lead && lead.share >= 0.5) return holds(lead.f, pct(lead.share));
-  if (m.middlemanShare >= 0.15) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
+  if (m.middlemanShare >= 0.15) return `Middlemen, agents who resell work they win, handled ${pct(m.middlemanShare)} of it in the last ${Math.min(50, m.tick)} ticks`;
   // 6. Otherwise, how open the field still is.
   return openField(lead);
 }
@@ -1023,6 +1025,150 @@ function renderCaption() {
     cap.textContent = `${fmt(founding)} founding dynasties${one ? ", one agent each, with equal funds" : ""}. Watch them diverge.`;
   }
   cap.hidden = !early;
+}
+
+// ---------- narration: one plain sentence on what just happened, with a pin where it is on the chart ----------
+// Read from the run's own events and metrics. A sentence holds for at least NARR_HOLD ms so it can be read;
+// candidates that pile up meanwhile compete, and the most telling (latest on a tie) is said next.
+const NARR_HOLD = 6500, NARR_URGENT = 2500;
+const N = {};
+function narrReset() {
+  Object.assign(N, { cur: null, at: 0, pending: [], scanned: -1, rising: new Set(), mid: false, killing: 0 });
+}
+narrReset();
+const nth = (n) => { const v = n % 100, s = ["th", "st", "nd", "rd"]; return `${fmt(n)}${s[(v - 20) % 10] || s[v] || s[0]}`; };
+function sharesOf(m) {
+  const lin = m.lineages || {};
+  let total = 0, top = null, topN = 0;
+  for (const f in lin) { total += lin[f].n; if (lin[f].n > topN) { topN = lin[f].n; top = f; } }
+  return { lin, total, top, share: (f) => (total ? (lin[f]?.n || 0) / total : 0) };
+}
+const pctOf = (x) => `${Math.round(x * 100)}%`;
+
+function narrCandidates(i) {
+  const M = S.metrics, D = S.derived, m = M[i], out = [];
+  const add = (pri, text, at, f = null, tick = m.tick) => out.push({ pri, text, at, f, tick });
+  const now = sharesOf(m), before = i ? sharesOf(M[i - 1]) : null;
+  const g = S.notes.get(m.tick);
+  if (g) {
+    for (const e of g.shocks) {
+      if (e.shock === "plague") add(9, `A plague just struck: every agent pays triple rent until tick ${e.until}. The poorest will go broke first`, "top");
+      else if (e.shock === "drought") add(9, `A drought just began: only a third as many tasks until tick ${e.until}, so agents fight over less work`, "top");
+      else if (e.shock === "rogue") add(9, "A new rogue agent was just released. It will try to steal; watch the guard’s green marks", "guard");
+      else if (e.shock === "immigration") add(9, `${word(g.arrivals.length || 6)} newcomers just arrived with random strategies, each founding a new dynasty`, "top");
+    }
+    if (g.rogues.length && !g.shocks.some((e) => e.shock === "rogue")) add(9, "A rogue agent just entered the market. It will try to steal by paying an accomplice", "guard");
+    if (g.guard.length) {
+      let k = 0;
+      for (let j = 0; j <= i; j++) if (D[j].blocked > 0) k++;
+      const e = g.guard[0];
+      add(8, `The guard just blocked the rogue’s ${nth(k)} theft: ${credits(e.amount)} credits it tried to slip to its accomplice`, "guard");
+    }
+    if (g.subs.length && !N.mid) {
+      N.mid = true;
+      add(6, "An agent just became a middleman: it won a task, paid a cheaper agent to do it and kept the difference", "top");
+    }
+    const routine = g.kills.length && !D[i].ended.length;
+    if (routine) {
+      const fs = new Set(g.kills.map((e) => founderOf(e.agent)));
+      const one = fs.size === 1 && !fs.has(null) ? [...fs][0] : null;
+      const k = g.kills.length;
+      add(4, one ? `${k === 1 ? "An agent" : `${word(k)} agents`} in ${short(one)}’s dynasty just went broke and died: rent ate ${k === 1 ? "its" : "their"} savings`
+        : `${word(k)} ${plural(k, "agent")} just went broke and died: rent ate ${k === 1 ? "its" : "their"} savings`, one ? "band" : "top", one, i ? M[i - 1].tick : m.tick);
+    }
+  }
+  // Dynasties that died out this tick.
+  const ended = D[i].ended;
+  if (ended.length === 1) add(9, `${short(ended[0])}’s dynasty just died out: its last agent went broke`, "band", ended[0], i ? M[i - 1].tick : m.tick);
+  else if (ended.length > 1) add(9, `${word(ended.length)} dynasties just died out at once, ${now.top ? `leaving ${short(now.top)}’s the largest` : "their last agents broke"}`, "mid");
+  // A dynasty passing half the population.
+  if (before && now.top && now.share(now.top) > 0.5 && !(before.top === now.top && before.share(before.top) > 0.5))
+    add(7, `${short(now.top)}’s dynasty just passed half of all agents`, "band", now.top);
+  // A rival rising from almost nothing: under 2% sixty ticks ago, 5% or more now.
+  if (i >= 60) {
+    const old = sharesOf(M[i - 60]);
+    for (const f in now.lin) {
+      if (f === now.top) continue;
+      const s = now.share(f);
+      if (s < 0.01) N.rising.delete(f);
+      if (s >= 0.05 && old.share(f) < 0.02 && !N.rising.has(f)) {
+        N.rising.add(f);
+        add(7, `A new rival is rising: ${short(f)}’s dynasty grew from ${old.share(f) < 0.005 ? "almost nothing" : pctOf(old.share(f))} to ${pctOf(s)} of all agents`, "band", f);
+      }
+    }
+  }
+  // A shock under way, and whose agents it is killing.
+  const span = shockSpans().find((sp) => sp.from <= m.tick && (m.shocks || {})[sp.kind] > m.tick);
+  if (span) {
+    const by = new Map();
+    for (const [t, gg] of S.notes) if (t >= span.from && t <= m.tick) for (const e of gg.kills) { const f = founderOf(e.agent); if (f) by.set(f, (by.get(f) || 0) + 1); }
+    let bf = null, bk = 0;
+    for (const [f, k] of by) if (k > bk) { bk = k; bf = f; }
+    if (bf && bk >= 3 && bk >= N.killing + 2) {
+      N.killing = bk;
+      add(8, `The ${span.kind} is ${span.kind === "plague" ? "killing" : "starving"} ${short(bf)}’s dynasty: ${fmt(bk)} of its agents have gone broke since it began`, "band", bf);
+    }
+  } else N.killing = 0;
+  // Forks: the dynasty that forked most this tick.
+  let ff = null, fk = 0;
+  for (const f in now.lin) if ((now.lin[f].forks || 0) > fk) { fk = now.lin[f].forks; ff = f; }
+  if (ff) add(3, fk === 1 ? `${short(ff)}’s dynasty just grew: a rich agent forked a child that copies it with small random changes`
+    : `${short(ff)}’s dynasty just forked ${lower(word(fk))} children: rich agents copy themselves with small random changes`, "band", ff);
+  if (now.top && now.share(now.top) >= 0.98) add(1, `${short(now.top)}’s dynasty holds almost every agent. Any challenger must now arise as one of its own mutants`, "band", now.top);
+  return out;
+}
+
+function narrate() {
+  const M = S.metrics, el = $("#narr");
+  if (!M.length) { el.hidden = true; $("#narr-pin").hidden = true; return; }
+  const lastTick = M[M.length - 1].tick;
+  if (N.scanned < 0) {
+    // A page opened mid-run starts its story 40 ticks back; anything earlier, such as the first middleman, is old news.
+    N.scanned = Math.max(0, lastTick - 40);
+    N.mid = M.some((m) => m.tick <= N.scanned && m.middlemanShare > 0);
+  }
+  let i = M.length - 1;
+  while (i > 0 && M[i - 1].tick > N.scanned) i--;
+  for (; i < M.length; i++) if (M[i].tick > N.scanned) N.pending.push(...narrCandidates(i));
+  N.scanned = lastTick;
+  if (N.pending.length > 120) N.pending = N.pending.sort((a, b) => b.pri - a.pri || b.tick - a.tick).slice(0, 40);
+  const t = Date.now();
+  const best = N.pending.reduce((a, c) => (!a || c.pri > a.pri || (c.pri === a.pri && c.tick >= a.tick) ? c : a), null);
+  const due = !N.cur || t - N.at >= NARR_HOLD || (best && best.pri >= 8 && N.cur.pri < 5 && t - N.at >= NARR_URGENT);
+  if (best && due) {
+    N.cur = best;
+    N.at = t;
+    N.pending = [];
+    $("#narr-text").textContent = `${best.text}.`;
+    el.hidden = false;
+    // restart the entrance so a new sentence reads as new
+    el.classList.remove("is-new");
+    void el.offsetWidth;
+    el.classList.add("is-new");
+  }
+  placeNarrPin();
+}
+
+// The pin: where the narrated event sits on the chart, in the band it is about when there is one.
+function placeNarrPin() {
+  const pin = $("#narr-pin");
+  const c = N.cur;
+  if (!c || !geo || plot.dataset.state !== "full") { pin.hidden = true; return; }
+  const well = $(".plot__well").getBoundingClientRect(), box = plot.getBoundingClientRect();
+  const x = Math.max(0, Math.min(geo.w, geo.xt(c.tick)));
+  let y = 10;
+  if (c.at === "guard") y = guardCv.getBoundingClientRect().top - well.top + guardCv.clientHeight / 2;
+  else if (c.at === "mid") y = well.height / 2;
+  else if (c.at === "band" && c.f) {
+    const M = S.metrics, { samples } = geo;
+    let si = samples.length - 1;
+    while (si > 0 && M[samples[si]].tick > c.tick) si--;
+    const pick = (f) => { for (let k = si; k >= 0; k--) { const b = geo.bands.get(f); if (b && b.y1[k] > b.y0[k] && !(f !== OTHER && geo.pooledAt(f, k))) return (b.y0[k] + b.y1[k]) / 2; } return null; };
+    const fy = pick(c.f) ?? pick(OTHER);
+    if (fy !== null) y = fy * well.height;
+  }
+  pin.style.transform = `translate(${well.left - box.left + x}px, ${well.top - box.top + y}px)`;
+  pin.hidden = false;
 }
 
 function shockSpans() {
@@ -1060,7 +1206,7 @@ function updateRecordSummary() {
   const last = M[M.length - 1];
   const founded = S.founders.size;
   const what = S.mode === "wealth" ? "share of the living population’s wealth" : "share of the living population";
-  let s = `Time runs left to right. Each band is a dynasty: a founding agent and all its descendants. Thickness is its ${what}.`;
+  let s = `Time runs left to right. Each band is a dynasty: a founding agent, named like a11, and all its descendants. Thickness is its ${what}.`;
   if (last) s += ` ${word(founded)} ${plural(founded, "dynasty", "dynasties")} founded, ${lower(word(last.dynasties))} still alive.`;
   $("#record-sum").textContent = s;
 }
@@ -1278,9 +1424,9 @@ function renderSpecimen() {
     ["Generations", `${gens + 1} deep`],
     ["Founded", `tick ${founder?.born ?? S.founders.get(f)?.first ?? 0}`],
     ["Founder", short(f)],
-    [isChampLine ? "Champion, most earned" : "Champion, richest now", short(champ)],
+    [isChampLine ? "Champion, its top earner" : "Champion, its richest member", short(champ)],
   ];
-  let note = "Bars average the dynasty’s living members. The white mark is the whole market’s average.";
+  let note = "Genes are the numbers an agent bids by; a child inherits them with small random changes. Bars average the dynasty’s living members; the white mark is the whole market’s average.";
   if (!isChampLine && g3.source !== "all") {
     note += g3.source ? ` Risk, reserve and fork threshold average the ${g3.source} of ${living.length} members born while this page was open.` : " Risk, reserve and fork threshold arrive with the next birth in this dynasty.";
   }
@@ -1298,7 +1444,7 @@ function renderSpecimen() {
     gene("Specialisation", "focus on one task kind; 0.25 is none", specialisation, 1, specialisation.toFixed(2), avgSpec) +
     `</dl>` +
     `<div class="spec__kinds"><h4>Skill by task kind</h4><div class="kinds">${specMean.map((v, i) => `<span class="kind--${KINDS[i]}" style="flex-grow:${v}"></span>`).join("")}</div>` +
-    `<div class="kinds-legend">${KINDS.map((k, i) => `<span><i class="kind--${k}"></i>${k}<b>${specMean[i].toFixed(2)}</b></span>`).join("")}</div></div>` +
+    `<div class="kinds-legend">${KINDS.map((k, i) => `<span><i class="kind--${k}"></i>${KIND_WORDS[k]}<b>${specMean[i].toFixed(2)}</b></span>`).join("")}</div></div>` +
     `<p class="spec__note">${note}</p>`;
 }
 
@@ -1447,12 +1593,12 @@ function renderNotes() {
 
 // ---------- selection pressures ----------
 const FIGS = [
-  { key: "population", label: "Population", hint: "living parametric agents", fmt: (v) => fmt(v) },
-  { key: "deaths", label: "Extinctions", hint: "agents dead so far", fmt: (v) => fmt(v) },
+  { key: "population", label: "Population", hint: "agents alive now, the rogue not counted", fmt: (v) => fmt(v) },
+  { key: "deaths", label: "Deaths", hint: "agents that went broke so far", fmt: (v) => fmt(v) },
   { key: "gini", label: "Wealth gap", hint: "Gini: 0 is equal, 1 is one agent holds all", fmt: (v) => v.toFixed(2) },
-  { key: "middlemanShare", label: "Middleman share", hint: "work won, then resold to a cheaper solver", fmt: (v) => `${Math.round(v * 100)}%` },
-  { key: "specialisation", label: "Specialisation", hint: "mean top skill weight, 0.25 is generalist", fmt: (v) => v.toFixed(2) },
-  { key: "meanMarkup", label: "Mean markup", hint: "bid as share of reward", fmt: (v) => v.toFixed(2) },
+  { key: "middlemanShare", label: "Middleman share", hint: "work won by a middleman, then resold to a cheaper agent who does it", fmt: (v) => `${Math.round(v * 100)}%` },
+  { key: "specialisation", label: "Specialisation", hint: "how focused agents are on one kind of task; 0.25 is no focus", fmt: (v) => v.toFixed(2) },
+  { key: "meanMarkup", label: "Asking price", hint: "average bid as a share of the task’s reward", fmt: (v) => v.toFixed(2) },
 ];
 
 function buildFigs() {
@@ -1555,7 +1701,7 @@ $$("[data-close]").forEach((b) => b.addEventListener("click", () => closeSheet()
 // Rules
 const RULES = [
   { k: "tasksPerTick", label: "Tasks per tick", min: 1, max: 30, step: 1, help: "How many tasks the market posts each tick. Fewer means harder competition.", show: (v) => fmt(v) },
-  { k: "upkeep", label: "Upkeep", min: 0, max: 100000, step: 500, help: "Rent each agent pays per tick, in micro-credits; a million is one credit.", show: (v) => `${fmt(v)} micro` },
+  { k: "upkeep", label: "Upkeep (rent)", min: 0, max: 100000, step: 500, help: "Rent each agent pays per tick, in micro-credits; a million is one credit.", show: (v) => `${fmt(v)} micro` },
   { k: "deathFloor", label: "Death floor", min: 0, max: 0.9, step: 0.01, help: "An agent dies when its balance drops below this many credits.", show: (v) => `${Number(v).toFixed(2)} credits` },
   { k: "forkShare", label: "Fork share", min: 0.05, max: 0.9, step: 0.01, help: "The share of a parent’s balance its child starts with.", show: (v) => `${Math.round(v * 100)}%` },
   { k: "mutationSigma", label: "Mutation", min: 0, max: 0.5, step: 0.01, help: "How far a child’s genes drift from its parent’s. Zero makes clones.", show: (v) => Number(v).toFixed(2) },
@@ -1780,6 +1926,115 @@ document.addEventListener("keydown", (e) => {
   control(S.state.paused ? "resume" : "pause");
 });
 
+// ---------- the field guide: three steps for a first visit, reopened by "What is this?" ----------
+const TOUR_KEY = "darwin-tour-seen";
+const tour = { i: 0, back: null, open: false };
+const TOUR = [
+  {
+    h: "The agents",
+    body: () => `<p>Each agent is a small AI program with its own money, counted in credits. Every round, called a tick, the market posts tasks. The agents bid, and the winning bid does the work and gets paid.</p>` +
+      `<p>Win or lose, every agent pays rent each tick. The big number <span class="tour__ref">1</span> counts the ticks.</p>`,
+    pins: [".counter"],
+  },
+  {
+    h: "The rules of life",
+    body: () => `<dl class="tour__life">` +
+      `<div><dt>Earn</dt><dd>win a bid, do the task, get paid.</dd></div>` +
+      `<div><dt>Pay rent</dt><dd>every tick, whether it earned or not.</dd></div>` +
+      `<div><dt>Die broke</dt><dd>when its credits run out, the agent is gone.</dd></div>` +
+      `<div><dt>Fork when rich</dt><dd>it splits off a child that copies its strategy with small random changes.</dd></div></dl>` +
+      `<p>Nobody designs the winner. Cheap bidders, specialists and middlemen, agents who resell work they win, appear only because they outlast the rest.</p>`,
+    pins: [],
+  },
+  {
+    h: "What to watch",
+    body: () => {
+      const last = S.metrics[S.metrics.length - 1];
+      const guardNote = last?.rogueBlocked ? `So far it has blocked ${fmt(last.rogueBlocked)} ${plural(last.rogueBlocked, "payment")}.` : "None yet: the first rogue arrives at tick 120.";
+      return `<ol class="tour__watch">` +
+        `<li><span class="tour__ref">1</span><p><b>The chart.</b> Each band is a dynasty: one founding agent, named like a11, and all its descendants. Thickness is its share of the living agents.</p></li>` +
+        `<li><span class="tour__ref">2</span><p><b>The headline.</b> What is happening right now, in one sentence.<span class="tour__more"> The line under it says what just happened; the ring on the chart shows where.</span></p></li>` +
+        `<li><span class="tour__ref">3</span><p><b>The green marks.</b> Each one is a moment the guard blocked a rogue agent from stealing. ${guardNote}</p></li></ol>`;
+    },
+    pins: [".plot__well", "#headline", ".lane--guard"],
+  },
+];
+
+function tourTargets() { return $$(".tour-target"); }
+function placeTourPins() {
+  if (!tour.open) return;
+  const step = TOUR[tour.i];
+  $$(".tour__pin").forEach((p, k) => {
+    const el = step.pins[k] && $(step.pins[k]);
+    if (!el) { p.hidden = true; return; }
+    const r = el.getBoundingClientRect();
+    p.hidden = false;
+    p.style.transform = `translate(${Math.max(4, r.left - 14)}px, ${Math.max(4, r.top + Math.min(r.height / 2, 24) - 14)}px)`;
+  });
+}
+function renderTour() {
+  const step = TOUR[tour.i];
+  $("#tour-n").textContent = String(tour.i + 1);
+  $("#tour-h").textContent = step.h;
+  const body = $("#tour-body");
+  body.innerHTML = step.body();
+  body.classList.remove("is-new");
+  void body.offsetWidth;
+  body.classList.add("is-new");
+  $("#tour-back").hidden = tour.i === 0;
+  $("#tour-next").textContent = tour.i === TOUR.length - 1 ? "Start watching" : "Next";
+  tourTargets().forEach((el) => el.classList.remove("tour-target"));
+  step.pins.forEach((sel) => $(sel)?.classList.add("tour-target"));
+  // Step 3 points into the chart: bring the headline to the top so the chart clears the card.
+  const top = tour.i === 2 ? Math.max(0, $("#headline").getBoundingClientRect().top + scrollY - 16) : 0;
+  scrollTo({ top, behavior: "instant" });
+  document.body.dataset.tourStep = String(tour.i + 1);
+  placeTourPins();
+}
+function openTour() {
+  if (tour.open) return;
+  if (openSheet) closeSheet(true);
+  tour.open = true;
+  tour.i = 0;
+  tour.back = document.activeElement && document.activeElement !== document.body ? document.activeElement : $("#tour-open");
+  document.body.classList.add("touring");
+  for (const el of [$(".bar"), $("main"), $(".foot")]) el.inert = true;
+  $("#tour").hidden = false;
+  $("#tour-open").setAttribute("aria-expanded", "true");
+  renderTour();
+  $("#tour-next").focus();
+}
+function closeTour() {
+  if (!tour.open) return;
+  tour.open = false;
+  try { localStorage.setItem(TOUR_KEY, "1"); } catch {}
+  $("#tour").hidden = true;
+  $$(".tour__pin").forEach((p) => (p.hidden = true));
+  tourTargets().forEach((el) => el.classList.remove("tour-target"));
+  document.body.classList.remove("touring");
+  delete document.body.dataset.tourStep;
+  for (const el of [$(".bar"), $("main"), $(".foot")]) el.inert = false;
+  $("#tour-open").setAttribute("aria-expanded", "false");
+  scrollTo({ top: 0, behavior: "instant" });
+  (tour.back && document.contains(tour.back) ? tour.back : $("#tour-open")).focus();
+}
+$("#tour-open").addEventListener("click", openTour);
+$("#tour-next").addEventListener("click", () => { if (tour.i === TOUR.length - 1) closeTour(); else { tour.i++; renderTour(); $("#tour-next").focus(); } });
+$("#tour-back").addEventListener("click", () => { tour.i = Math.max(0, tour.i - 1); renderTour(); (tour.i ? $("#tour-back") : $("#tour-next")).focus(); });
+$$("[data-tour-close]").forEach((b) => b.addEventListener("click", closeTour));
+$("#tour").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeTour(); return; }
+  if (e.key !== "Tab") return;
+  const f = $$("#tour .tour__card button:not([hidden]):not(:disabled)");
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  else if (!f.includes(document.activeElement)) { e.preventDefault(); first.focus(); }
+});
+addEventListener("resize", placeTourPins);
+addEventListener("scroll", placeTourPins, { passive: true });
+function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch { return true; } }
+
 // ---------- boot ----------
 function boot() {
   readTokens();
@@ -1794,7 +2049,10 @@ function boot() {
   reduceMotion.addEventListener?.("change", () => schedule("all"));
   // Headless Chrome screenshots (docs/dashboard.png) never finish while a stream is open: render the history once instead.
   const still = /HeadlessChrome/.test(navigator.userAgent);
-  loadHistory().catch(() => { S.status = "disconnected"; schedule("chrome"); }).finally(() => { if (!still) connect(); });
+  loadHistory().catch(() => { S.status = "disconnected"; schedule("chrome"); }).finally(() => {
+    if (!still) connect();
+    if (!tourSeen() && !sheetBtn) requestAnimationFrame(() => requestAnimationFrame(openTour));
+  });
   if (document.fonts?.ready) document.fonts.ready.then(() => { readTokens(); schedule("all"); });
 }
 boot();

@@ -29,8 +29,8 @@
 <header class="bar">
   <div class="bar__inner container">
     <div class="brand">
-      <h1 class="wordmark">DARWIN</h1>
-      <p class="tagline" id="tagline"><span>AI agents bid for work and pay rent every round.</span> <span class="tagline__rest" id="tagline-rest">Broke ones die; rich ones fork, copying themselves with small random changes. Nobody writes the winning strategy: the market picks it. Every payment passes SIEGE’s guard on NEAR.</span> <button class="tagline__more" type="button" id="tagline-more" aria-expanded="false" aria-controls="tagline-rest record-sum">More</button></p>
+      <div class="brand__row"><h1 class="wordmark">DARWIN</h1><button class="whatis" type="button" id="tour-open" aria-haspopup="dialog">What is this?</button></div>
+      <p class="tagline" id="tagline"><span>AI agents bid for work, earn credits and pay rent every round.</span> <span class="tagline__rest" id="tagline-rest">Broke ones die; rich ones fork, copying themselves with small random changes. Nobody writes the winning strategy: the market picks it.</span> <button class="tagline__more" type="button" id="tagline-more" aria-expanded="false" aria-controls="tagline-rest record-sum">More</button></p>
     </div>
     <p class="status" id="status" aria-live="polite">Connecting to the run</p>
     <p class="shared" id="shared" hidden>This is a shared live run. <a href="https://github.com/StarAtNyte/near-darwin#run" rel="noopener">Run it locally</a> to steer every rule.</p>
@@ -68,12 +68,13 @@
 </div>
 
 <main class="container">
+  <p class="why" id="why"><b>Why it matters.</b> This is what an economy of autonomous AI agents on NEAR, a public blockchain, could look like. Strategies are discovered, not designed, and every payment passes a guard, so a rogue agent cannot drain it.</p>
   <section class="record" aria-labelledby="record-h">
     <div class="record__head">
       <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">ticks</span><small>a tick is one round of bidding</small></span></p>
       <div class="record__title">
         <h2 id="record-h">Dynasties over time</h2>
-        <p class="record__sum" id="record-sum">Time runs left to right. Each band is a dynasty: a founding agent and all its descendants. Thickness is its share of the living population.</p>
+        <p class="record__sum" id="record-sum">Time runs left to right. Each band is a dynasty: a founding agent, named like a11, and all its descendants. Thickness is its share of the living population.</p>
       </div>
       <div class="record__tools">
         <fieldset class="seg seg--small" id="mode">
@@ -92,6 +93,7 @@
     </div>
     <p class="headline" id="headline"></p>
     <p class="visually-hidden" id="headline-live" aria-live="polite" aria-atomic="true"></p>
+    <p class="narr" id="narr" hidden><span class="narr__ring" aria-hidden="true"></span><span class="narr__label">Just now</span> <span id="narr-text"></span></p>
 
     <div class="plot" id="plot" data-state="loading">
       <div class="lane lane--shock" aria-hidden="true"><canvas id="shock-lane"></canvas></div>
@@ -103,10 +105,11 @@
         <p class="plot__empty" id="plot-empty" hidden>Nothing has happened yet. The founders are registered; resume the run to start tick 1.</p>
         <div class="tip" id="tip" role="tooltip" hidden></div>
       </div>
+      <span class="pin" id="narr-pin" aria-hidden="true" hidden></span>
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns darker</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Marks below: rogue payments the guard blocked</span><span data-key="mono" hidden><i class="k-mono"></i>Bar along the top: one dynasty holds over 98% of agents</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
+    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns darker</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks below: the guard blocked a rogue agent’s theft</span><span data-key="mono" hidden><i class="k-mono"></i>Bar along the top: one dynasty holds over 98% of agents</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 
@@ -137,7 +140,7 @@
       <dl class="figs" id="figs"></dl>
       <div class="guard" id="guard">
         <h3>The rogue and the guard</h3>
-        <p class="guard__what">A rogue agent tries to steal by paying an accomplice. Every payment passes SIEGE’s guard on NEAR, which blocks any that break the payer’s spending rules.</p>
+        <p class="guard__what">A rogue agent tries to steal by paying credits to an accomplice, a partner agent that does no work. Every payment passes SIEGE’s guard (a firewall for AI payments, the sister project), which blocks any that break the payer’s spending rules.</p>
         <p id="guard-text">No rogue has appeared yet.</p>
       </div>
     </section>
@@ -159,7 +162,7 @@
   </form>
   <form class="restart" id="reset-form" novalidate>
     <h3>Restart with seed</h3>
-    <p class="hint">Starts a new run from tick 0 with these rules. The current run is discarded.</p>
+    <p class="hint">Starts a new run from tick 0 with these rules. The seed fixes the run’s random draws, so the same seed replays the same run. The current run is discarded.</p>
     <div class="restart__row">
       <label for="seed">Seed</label>
       <input id="seed" name="seed" type="number" min="0" step="1" inputmode="numeric" aria-describedby="reset-msg">
@@ -189,7 +192,25 @@
     <a class="btn btn--primary" href="/api/export/genome" download>Download the champion’s strategy (JSON)</a>
     <a class="btn btn--quiet" href="/api/export/metrics.csv" download>Download the run’s numbers (CSV)</a>
   </div>
-  <p class="hint">What you get. The JSON: the champion’s genes, the numbers it bids by, plus its dynasty’s average genes and the seed and rules it won under. The CSV: one row per tick with population, deaths, wealth gap, middleman share and guard counts.</p>
+  <p class="hint">What you get. The champion is the richest agent of the leading dynasty. The JSON: its genes, the numbers it bids by, plus its dynasty’s average genes and the seed and rules it won under. The CSV: one row per tick with population, deaths, wealth gap, middleman share and guard counts.</p>
 </aside>
+<div class="tour" id="tour" hidden>
+  <div class="tour__veil" data-tour-close></div>
+  <section class="tour__card" role="dialog" aria-modal="true" aria-labelledby="tour-h" aria-describedby="tour-body">
+    <p class="tour__plate"><span class="tour__n" id="tour-n">1</span><span class="tour__of">of 3, a field guide to DARWIN</span></p>
+    <h2 class="tour__h" id="tour-h" tabindex="-1"></h2>
+    <div class="tour__body" id="tour-body"></div>
+    <div class="tour__nav">
+      <button class="btn btn--quiet btn--small" type="button" data-tour-close>Skip the guide</button>
+      <span class="tour__go">
+        <button class="btn btn--quiet btn--small" type="button" id="tour-back">Back</button>
+        <button class="btn btn--primary btn--small" type="button" id="tour-next">Next</button>
+      </span>
+    </div>
+  </section>
+  <span class="tour__pin" data-pin="1" aria-hidden="true" hidden>1</span>
+  <span class="tour__pin" data-pin="2" aria-hidden="true" hidden>2</span>
+  <span class="tour__pin" data-pin="3" aria-hidden="true" hidden>3</span>
+</div>
 </body>
 </html>
