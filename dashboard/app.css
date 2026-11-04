@@ -128,6 +128,8 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .key .k-guard { width: 3px; height: 12px; background: var(--color-accent); }
 .key .k-other { background: var(--pigment-other); }
 .key .k-scar { width: 1px; height: 12px; background: var(--color-ink); }
+.key .k-mono { height: 3px; background: var(--color-ink); }
+.key .k-gens { width: 28px; background: var(--pigment-deep-1); }
 .key .k-fork { width: 14px; height: 12px; background: repeating-linear-gradient(90deg, var(--pigment-deep-1) 0 3px, var(--color-paper) 3px 4px); }
 
 /* The first action: two shocks, one tap away */

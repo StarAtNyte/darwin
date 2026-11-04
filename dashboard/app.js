@@ -509,6 +509,132 @@ function scars(g) {
   return out;
 }
 
+// A monoculture: from some tick to now, one dynasty holds more than MONO_SHARE of the living agents at every
+// tick, for at least MONO_MIN ticks. Read from the per-tick lineage counts the run reported.
+const MONO_SHARE = 0.98, MONO_MIN = 50;
+function monoculture() {
+  const M = S.metrics;
+  let f = null, start = -1, all = true;
+  for (let i = M.length - 1; i >= 0; i--) {
+    const lin = M[i].lineages || {};
+    let total = 0, top = null, topN = 0;
+    for (const k in lin) { total += lin[k].n; if (lin[k].n > topN) { topN = lin[k].n; top = k; } }
+    if (!total || topN / total <= MONO_SHARE || (f && top !== f)) break;
+    f = top;
+    start = i;
+    if (topN !== total) all = false;
+  }
+  if (start < 0 || M[M.length - 1].tick - M[start].tick < MONO_MIN) return null;
+  // The tones inside its band start earlier, where it last took over half the living agents: the flat stretch
+  // before the monoculture, with a newcomer or two at its edge, has the same inner structure to show.
+  let from = start;
+  while (from > 0) {
+    const lin = M[from - 1].lineages || {};
+    let total = 0;
+    for (const k in lin) total += lin[k].n;
+    if (!total || (lin[f]?.n || 0) / total <= 0.5) break;
+    from--;
+  }
+  return { f, tick: M[start].tick, from: M[from].tick, all };
+}
+
+// Living members of one dynasty per tick, by generation, rebuilt from every agent's birth and death tick in
+// the snapshot (an agent counts at tick t when born <= t < died, as the run's own lineage counts do).
+let genCache = null;
+function generationCounts(f, t0, t1) {
+  const key = `${f}|${t0}|${t1}|${S.snap?.tick}`;
+  if (genCache?.key === key) return genCache.v;
+  const len = t1 - t0 + 1;
+  const diff = new Map(); // generation -> Int32Array of +1/-1 steps
+  for (const a of S.agents.values()) {
+    if (a.founder !== f || a.role !== "parametric" || typeof a.born !== "number") continue;
+    const s0 = Math.max(a.born, t0), e0 = Math.min(typeof a.died === "number" ? a.died : t1 + 1, t1 + 1);
+    if (s0 >= e0) continue;
+    if (!diff.has(a.generation)) diff.set(a.generation, new Int32Array(len + 1));
+    const d = diff.get(a.generation);
+    d[s0 - t0]++;
+    d[e0 - t0]--;
+  }
+  const v = new Map();
+  for (const [g, d] of diff) {
+    const out = new Int32Array(len);
+    let run = 0;
+    for (let i = 0; i < len; i++) out[i] = run += d[i];
+    v.set(g, out);
+  }
+  genCache = { key, v };
+  return v;
+}
+
+// Inside a monoculture's band, sub-bands by generation bracket in tonal steps of the dynasty's colour: the
+// oldest bracket lightest, the newest the deep pigment. Bracket width grows in fives to keep at most GEN_STEPS.
+const GEN_STEPS = 6;
+function drawGenerations(c, mono, b, x, h) {
+  const { samples } = geo;
+  const M = S.metrics;
+  const tLast = M[M.length - 1].tick;
+  const counts = generationCounts(mono.f, mono.from, tLast);
+  if (!counts.size) return null;
+  const sFrom = samples.findIndex((mi) => M[mi].tick >= mono.from);
+  if (sFrom < 0) return null;
+  const gens = [...counts.keys()].filter((g) => counts.get(g).some((v) => v > 0)).sort((a, b) => a - b);
+  if (gens.length < 2) return null;
+  let width = 5;
+  const bucketOf = (g) => Math.floor(g / width);
+  while (bucketOf(gens.at(-1)) - bucketOf(gens[0]) + 1 > GEN_STEPS) width += 5;
+  const lo = bucketOf(gens[0]), K = bucketOf(gens.at(-1)) - lo + 1;
+  // Per sample: members per bracket, oldest first.
+  const per = samples.map((mi) => {
+    const t = M[mi].tick;
+    const row = new Float64Array(K);
+    if (t < mono.from) return row;
+    for (const g of gens) row[bucketOf(g) - lo] += counts.get(g)[t - mono.from];
+    return row;
+  });
+  const deep = colourOf(mono.f, true), lite = colourOf(mono.f, false);
+  c.save();
+  c.globalAlpha = S.hover && S.hover !== mono.f ? 0.78 : 1;
+  const last = samples.length - 1;
+  const cum = new Float64Array(samples.length);
+  const labels = [];
+  for (let k = 0; k < K; k++) {
+    const sub = { y0: new Float32Array(samples.length), y1: new Float32Array(samples.length) };
+    let any = false;
+    for (let si = sFrom; si <= last; si++) {
+      const tot = per[si].reduce((a, v) => a + v, 0);
+      const span = b.y1[si] - b.y0[si];
+      sub.y0[si] = b.y0[si] + (tot ? cum[si] / tot : 0) * span;
+      cum[si] += per[si][k];
+      sub.y1[si] = b.y0[si] + (tot ? cum[si] / tot : 0) * span;
+      if (per[si][k] > 0) any = true;
+    }
+    if (!any) continue;
+    tracePath(c, sub, sFrom, last, x, h);
+    c.fillStyle = deep;
+    c.fill();
+    if (k < K - 1) {
+      c.save();
+      c.globalAlpha *= 0.45 * (1 - k / (K - 1));
+      c.fillStyle = lite;
+      c.fill();
+      c.restore();
+    }
+    c.lineWidth = 0.75;
+    c.strokeStyle = T["paper-3"];
+    c.stroke();
+    const yh = (sub.y1[last] - sub.y0[last]) * h;
+    const g0 = (lo + k) * width;
+    labels.push({ y: ((sub.y0[last] + sub.y1[last]) / 2) * h, yh, text: `gen ${g0}–${g0 + width - 1}` });
+  }
+  // Each bracket tall enough to hold one is labelled at the right edge, in the plot's own face.
+  c.font = `500 11px ${T.body}`;
+  c.textBaseline = "middle";
+  c.textAlign = "right";
+  for (const l of labels) if (l.yh >= 16) { c.fillStyle = T.paper; c.fillText(l.text, geo.w - 6, l.y); }
+  c.restore();
+  return { f: mono.f, tick: mono.from, width, deep, lite };
+}
+
 function drawPlot() {
   const n = S.metrics.length;
   if (S.status === "loading") { plot.dataset.state = "loading"; return; }
@@ -534,6 +660,8 @@ function drawPlot() {
   // Bands. The leading dynasty, once it holds LEAD_SHARE, takes its deep pigment.
   const lead = leader();
   const deepF = lead && lead.share >= LEAD_SHARE && bands.has(lead.f) ? lead.f : null;
+  const mono = monoculture();
+  geo.gens = null;
   for (const f of order) {
     const b = bands.get(f);
     if (b.first < 0) continue;
@@ -546,6 +674,7 @@ function drawPlot() {
     c.lineWidth = 0.75;
     c.strokeStyle = T["paper-3"];
     c.stroke();
+    if (mono && f === mono.f && S.mode === "n") geo.gens = drawGenerations(c, mono, b, x, h);
     // Inside the leader, a few hairlines where its agents forked hardest: the texture of its growth. A leader
     // forks almost every tick, so marking every fork (even merged a few px apart) drew a dark fence across
     // the band. Only the busiest fork ticks are kept, at least FORK_GAP px apart and at most FORK_MAX in all.
@@ -610,6 +739,12 @@ function drawPlot() {
     c.stroke();
   }
 
+  // Monoculture: a bar along the top edge from the tick one dynasty came to hold over MONO_SHARE of the agents.
+  if (mono) {
+    c.fillStyle = T.ink;
+    c.fillRect(xt(mono.tick), 0, w - xt(mono.tick), 3);
+  }
+
   // Mass extinction scars: a hairline each.
   const sc = scars();
   for (const s of sc) {
@@ -655,7 +790,14 @@ function renderKey(sc, D) {
     scar: sc.length > 0,
     shock: shockSpans().length > 0 || !!last?.rogueAttempts,
     guard: D.some((d) => d.blocked > 0),
+    gens: !!geo?.gens,
+    mono: !!monoculture(),
   };
+  if (geo?.gens) {
+    const gg = geo.gens;
+    $("#key-gens-text").textContent = `Tones inside ${short(gg.f)}’s band from tick ${gg.tick}: generations, ${gg.width} at a time, oldest lightest`;
+    $("#key-gens-swatch").style.background = `linear-gradient(90deg, ${gg.lite}, ${gg.deep})`;
+  }
   $$("#key [data-key]").forEach((el) => (el.hidden = !show[el.dataset.key]));
 }
 
@@ -766,6 +908,8 @@ function turningPoints(sc) {
   closeWave(Infinity);
   for (const v of waves) rest.push({ tick: v.tick, score: v.peak, lines: [`Tick ${v.tick}. Rivals, led by ${short(v.f)},`, `retake ${pct(v.peak)}.`] });
 
+  const mono = monoculture();
+  if (mono) must.push({ tick: mono.tick, lines: [`Tick ${mono.tick}. Monoculture:`, `${short(mono.f)} holds ${mono.all ? "everything" : `over ${Math.round(MONO_SHARE * 100)}%`}.`] });
   const gi = D.findIndex((d) => d.blocked > 0);
   if (gi >= 0) must.push({ tick: M[gi].tick, lines: [`Tick ${M[gi].tick}.`, "First guard block."] });
   for (const s of shockSpans()) rest.push({ tick: s.from, score: 0.5, lines: [`Tick ${s.from}.`, `${s.kind === "plague" ? "Plague" : "Drought"} begins.`] });
@@ -1127,6 +1271,28 @@ function founderOf(id) {
 const lineName = (f) => `${esc(short(f))}’s line`;
 const mark = (kind, html) => ({ mark: kind, html });
 
+// Deaths that end a dynasty, or four or more in one tick, are notable and get their own note. The rest, and
+// every fork, are routine: renderNotes sums them over windows of ROUTINE_TICKS ticks.
+const ROUTINE_TICKS = 50;
+function notableKills(g) {
+  if (!g.kills.length) return null;
+  const idx = S.metrics.findIndex((m) => m.tick === g.tick);
+  const ended = idx >= 0 ? S.derived[idx].ended : [];
+  return ended.length || g.kills.length >= 4 ? { idx, ended } : null;
+}
+
+function routineSentence(w) {
+  const d = w.deaths.length, k = w.forks.length;
+  const lines = new Set([...w.deaths.map((e) => founderOf(e.agent)), ...w.forks.map((e) => founderOf(e.child) || founderOf(e.parent))]);
+  const one = lines.size === 1 && !lines.has(null) ? [...lines][0] : null;
+  const parts = [];
+  if (d) parts.push(`${word(d)} ${plural(d, "agent")} went broke and died`);
+  if (k) parts.push(d ? `${lower(word(k))} forked ${plural(k, "child", "children")}` : `${word(k)} mutated ${plural(k, "child was", "children were")} forked`);
+  const named = [...lines].filter(Boolean).length;
+  const where = one ? (d + k === 1 ? ` in ${lineName(one)}` : `, all in ${lineName(one)}`) : named > 1 ? `, across ${lower(word(named))} dynasties` : "";
+  return parts.join("; ") + where + ".";
+}
+
 function groupSentences(g) {
   const out = [];
   for (const e of g.shocks) {
@@ -1146,10 +1312,10 @@ function groupSentences(g) {
     out.push(mark("guard", `The guard stopped the rogue agent sending ${credits(e.amount)} credits to its accomplice. It tried ${ATTACKS[e.attack] || e.attack}${why.length ? ` and was flagged for ${list(why)}` : ""}.`));
   }
   for (const e of g.allow) out.push(`The guard let the rogue agent pay ${credits(e.amount)} credits, because the payment was inside its mandate.`);
-  if (g.kills.length) {
+  const nk = notableKills(g);
+  if (nk) {
     const k = g.kills.length;
-    const idx = S.metrics.findIndex((m) => m.tick === g.tick);
-    const ended = idx >= 0 ? S.derived[idx].ended : [];
+    const { idx, ended } = nk;
     let s = k === 1 ? "An agent went broke and died" : `${word(k)} agents went broke and died`;
     if (ended.length === 1) s += `. ${lineName(ended[0])} died out with ${k === 1 ? "it" : "them"}`;
     else if (ended.length > 1) s += `. ${word(ended.length)} dynasties died out`;
@@ -1159,12 +1325,7 @@ function groupSentences(g) {
       for (const f in lin) if (lin[f].n > bn) { bn = lin[f].n; best = f; }
       if (best) s += `; ${lineName(best)} is now the largest`;
     }
-    out.push(ended.length || k >= 4 ? mark("extinct", s + ".") : s + ".");
-  }
-  if (g.forks.length) {
-    const lines = [...new Set(g.forks.map((e) => founderOf(e.child) || founderOf(e.parent)).filter(Boolean))];
-    const where = lines.length === 1 ? ` in ${lineName(lines[0])}` : lines.length > 1 ? ` across ${lower(word(lines.length))} dynasties` : "";
-    out.push(g.forks.length === 1 ? `An agent earned enough to fork a mutated child${where}.` : `${word(g.forks.length)} agents earned enough to fork mutated children${where}.`);
+    out.push(mark("extinct", s + "."));
   }
   return out;
 }
@@ -1180,9 +1341,20 @@ function renderNotes() {
   const feed = $("#feed");
   const entries = [];
   const windows = new Map(); // subcontract deals, summarised per ten ticks
+  const routine = new Map(); // routine deaths and forks, summed per ROUTINE_TICKS ticks
   for (const [t, g] of S.notes) {
     const ss = groupSentences(g);
-    if (ss.length) entries.push({ t, from: t, to: t, ss, forks: g.forks.length });
+    if (ss.length) entries.push({ t, from: t, to: t, ss });
+    const deaths = notableKills(g) ? [] : g.kills;
+    if (deaths.length || g.forks.length) {
+      const w = Math.floor(t / ROUTINE_TICKS) * ROUTINE_TICKS;
+      if (!routine.has(w)) routine.set(w, { deaths: [], forks: [], from: t, to: t });
+      const r = routine.get(w);
+      r.deaths.push(...deaths);
+      r.forks.push(...g.forks);
+      r.from = Math.min(r.from, t);
+      r.to = Math.max(r.to, t);
+    }
     if (g.subs.length) {
       const w = Math.floor(t / 10) * 10;
       if (!windows.has(w)) windows.set(w, { subs: [], last: t });
@@ -1197,22 +1369,18 @@ function renderNotes() {
   for (const [w, win] of new Set([wins[0], wins.at(-1)].filter(Boolean))) {
     entries.push({ t: win.last + 0.5, from: w, to: win.last, ss: [subsSentence(win.subs)], quiet: true });
   }
+  // A routine window sorts at its last tick, below any notable note from that same tick.
+  for (const r of routine.values()) entries.push({ t: r.to - 0.25, from: r.from, to: r.to, ss: [routineSentence(r)], routine: true });
   entries.sort((a, b) => b.t - a.t);
   // Neighbouring entries that say the same thing become one entry over the whole range of ticks.
   const same = (en) => en.ss.map((x) => (typeof x === "string" ? x : `${x.mark}:${x.html}`)).join("\n");
   const merged = [];
   for (const en of entries) {
     const prev = merged.at(-1);
-    if (prev && prev.quiet === en.quiet && same(prev) === same(en)) {
+    if (prev && !en.routine && !prev.routine && prev.quiet === en.quiet && same(prev) === same(en)) {
       prev.from = Math.min(prev.from, en.from);
       prev.to = Math.max(prev.to, en.to);
-      if (en.forks) prev.forks = (prev.forks || 0) + en.forks;
     } else merged.push({ ...en });
-  }
-  // Merged fork notes carry the total, so the sentence keeps the count the range of ticks would hide.
-  for (const en of merged) {
-    if (!(en.forks > 1)) continue;
-    en.ss = en.ss.map((x) => (typeof x === "string" ? x.replace(/^.*? earned enough to fork (?:a mutated child|mutated children)/, `${word(en.forks)} agents earned enough to fork mutated children`) : x));
   }
   for (const en of merged) en.label = en.from === en.to ? `Tick ${en.from}.` : `Ticks ${en.from} to ${en.to}.`;
   const items = merged.slice(0, 90).map((en) => {

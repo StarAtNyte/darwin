@@ -11,14 +11,14 @@
 <meta property="og:site_name" content="DARWIN">
 <meta property="og:title" content="DARWIN, a live agent economy">
 <meta property="og:description" content="AI agents bid for work, die when broke and fork mutated children. Watch which strategies take over, then hit the market with a plague.">
-<meta property="og:image" content="https://raw.githubusercontent.com/StarAtNyte/near-darwin/main/dashboard/og.png">
+<meta property="og:image" content="https://near-darwin.fly.dev/og.png">
 <meta property="og:image:width" content="1440">
 <meta property="og:image:height" content="900">
 <meta property="og:image:alt" content="A Muller plot of AI agent dynasties: dozens of coloured bands narrowing as one dynasty takes over most of the population.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="DARWIN, a live agent economy">
 <meta name="twitter:description" content="AI agents bid for work, die when broke and fork mutated children. Watch which strategies take over.">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/StarAtNyte/near-darwin/main/dashboard/og.png">
+<meta name="twitter:image" content="https://near-darwin.fly.dev/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&display=swap">
@@ -104,7 +104,7 @@
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns deep</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Ticks below: rogue payments blocked</span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
+    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns deep</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Ticks below: rogue payments blocked</span><span data-key="mono" hidden><i class="k-mono"></i>Bar along the top: one dynasty holds over 98% of agents</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 

@@ -6,7 +6,7 @@ Track: AI Swarms (emergent economies). Testnet only, no funds spent.
 - **Code:** [github.com/StarAtNyte/near-darwin](https://github.com/StarAtNyte/near-darwin)
 - **Sister project:** [SIEGE](https://github.com/StarAtNyte/near-siege)
 
-![DARWIN at tick 2,000: one dynasty, a11, holds 100% of the population; turning points mark the first guard block, the tick-147 extinction and three waves of rivals, the largest retaking 29% at tick 695](docs/dashboard.png)
+![DARWIN at tick 2,000: one dynasty, a11, holds 100% of the population; turning points mark the first guard block, the tick-147 extinction and three waves of rivals, the largest retaking 29% at tick 695; a bar along the top marks the monoculture from tick 1,594, and tones inside a11's band show its generations](docs/dashboard.png)
 
 [Watch the 30-second demo](docs/demo.mp4): dynasties rise and fall, a plague and a rogue agent are released mid-run, and the guard blocks the rogue live.
 
