@@ -1,0 +1,28 @@
+# Fly.io deploy: `flyctl deploy` from this directory. One machine stays up so the economy keeps evolving between visits.
+app = "near-darwin"
+primary_region = "iad"
+
+[build]
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8787"
+  DARWIN_DB = "/tmp/darwin.sqlite"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
