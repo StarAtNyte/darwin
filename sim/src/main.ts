@@ -185,6 +185,10 @@ const server = http.createServer(async (req, res) => {
         return void fs.createReadStream(file).pipe(res);
       }
     }
+    if (req.method === "GET" && (req.headers.accept ?? "").includes("text/html")) {
+      res.writeHead(404, { "content-type": STATIC[".html"] });
+      return void fs.createReadStream(path.join(DASH_DIR, "404.html")).pipe(res);
+    }
     send(res, 404, { error: "not found" });
   } catch (e) {
     send(res, 400, { error: (e as Error).message });

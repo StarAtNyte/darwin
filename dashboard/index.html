@@ -5,7 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DARWIN, a live agent economy</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<meta name="description" content="Watch and steer an evolving economy of AI agents on NEAR.">
+<meta name="description" content="Watch and steer an evolving economy of AI agents on NEAR. Agents bid for work, die when broke and fork mutated children; see which strategies take over.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DARWIN">
+<meta property="og:title" content="DARWIN, a live agent economy">
+<meta property="og:description" content="AI agents bid for work, die when broke and fork mutated children. Watch which strategies take over, then hit the market with a plague.">
+<meta property="og:image" content="https://raw.githubusercontent.com/StarAtNyte/near-darwin/main/dashboard/og.png">
+<meta property="og:image:width" content="1440">
+<meta property="og:image:height" content="900">
+<meta property="og:image:alt" content="A Muller plot of AI agent dynasties: dozens of coloured bands narrowing as one dynasty takes over most of the population.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DARWIN, a live agent economy">
+<meta name="twitter:description" content="AI agents bid for work, die when broke and fork mutated children. Watch which strategies take over.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/StarAtNyte/near-darwin/main/dashboard/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&display=swap">
@@ -56,10 +69,10 @@
 <main class="container">
   <section class="record" aria-labelledby="record-h">
     <div class="record__head">
-      <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of" id="tick-of">ticks</span></p>
+      <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">ticks</span><small>a tick is one round of bidding</small></span></p>
       <div class="record__title">
         <h2 id="record-h">Lineages</h2>
-        <p class="record__sum" id="record-sum">Each band is a founding dynasty. Its thickness is its share of the living population.</p>
+        <p class="record__sum" id="record-sum">Each band is a dynasty: one founding agent and every child it forked. Its thickness is its share of the living population.</p>
       </div>
       <fieldset class="seg seg--small" id="mode">
         <legend class="visually-hidden">Band thickness</legend>
@@ -67,7 +80,8 @@
         <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w">Share of wealth</label>
       </fieldset>
     </div>
-    <p class="headline" id="headline" aria-live="polite"></p>
+    <p class="headline" id="headline"></p>
+    <p class="visually-hidden" id="headline-live" aria-live="polite" aria-atomic="true"></p>
 
     <div class="plot" id="plot" data-state="loading">
       <div class="lane lane--shock" aria-hidden="true"><canvas id="shock-lane"></canvas></div>
@@ -82,7 +96,13 @@
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction; the turning points are named just above the plot</span><span><i class="k-fork"></i>Faint hairlines in the leading dynasty: when its agents forked, merged where they crowd</span><span><i class="k-other"></i>Grey: small dynasties that never reached 3% of the population</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
+    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns deep</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Ticks below: rogue payments blocked</span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
+    <div class="try" id="try">
+      <p class="try__lede">Steer it. Hit the market and watch who survives:</p>
+      <button class="btn btn--primary" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
+      <button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought<span class="try__sub">work dries up</span></button>
+      <p class="try__msg" id="try-msg" aria-live="polite"></p>
+    </div>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 
@@ -108,11 +128,12 @@
     <section class="region pressures" aria-labelledby="press-h">
       <div class="region__head">
         <h2 id="press-h">Selection pressures</h2>
-        <p class="region__sub">Living parametric agents, over the whole run.</p>
+        <p class="region__sub">What the market rewards, over the whole run.</p>
       </div>
       <dl class="figs" id="figs"></dl>
       <div class="guard" id="guard">
         <h3>The guard</h3>
+        <p class="guard__what">Every agent payment passes SIEGE’s Mandate guard on NEAR. A rogue agent keeps trying to steal.</p>
         <p id="guard-text">No rogue has appeared yet.</p>
       </div>
     </section>
@@ -143,10 +164,10 @@
   <div class="sheet__head"><h2 id="shocks-h">Shocks</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
   <p class="sheet__lede">Each one starts now. Watch the plot for who survives it.</p>
   <ul class="shocks">
-    <li><button class="btn btn--quiet" type="button" data-shock="drought">Drought</button><p>Task emission falls to a third for 60 ticks.</p></li>
-    <li><button class="btn btn--quiet" type="button" data-shock="plague">Plague</button><p>Upkeep triples for 40 ticks.</p></li>
-    <li><button class="btn btn--quiet" type="button" data-shock="rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
-    <li><button class="btn btn--quiet" type="button" data-shock="immigration">Immigration</button><p>Six newcomers arrive with random genomes, each founding a dynasty.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought</button><p>Task emission falls to a third for 60 ticks.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="plague" data-label="Plague">Plague</button><p>Upkeep triples for 40 ticks.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="rogue" data-label="Release a rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
+    <li><button class="btn btn--quiet" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random genomes, each founding a dynasty.</p></li>
   </ul>
   <p class="form-msg" id="shock-msg" aria-live="polite"></p>
 </aside>

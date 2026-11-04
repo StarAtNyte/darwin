@@ -308,11 +308,12 @@ function renderChrome() {
 
   if (S.status === "disconnected") {
     status.hidden = false;
-    status.textContent = "Disconnected";
+    status.textContent = "Reconnecting to the run";
     toggle.disabled = true;
     step.hidden = true;
     notice.hidden = false;
-    noticeText.innerHTML = "The DARWIN server stopped. Run <code>make demo</code> to start it again; this page reconnects on its own.";
+    noticeText.innerHTML = "Lost the connection to the DARWIN server. Retrying every few seconds; if it stopped, run <code>make demo</code> to start it again.";
+    $("#try").hidden = true;
     noticeAction.hidden = true;
     $$("#speed input").forEach((i) => (i.disabled = true));
     $("#speed-select").disabled = true;
@@ -339,6 +340,7 @@ function renderChrome() {
   status.hidden = !html;
   // Nothing left to pause or speed up once the run is over.
   $(".transport").hidden = st.finished;
+  $("#try").hidden = st.finished;
 
   toggle.disabled = st.finished;
   toggle.textContent = st.paused ? "Resume" : "Pause";
@@ -519,7 +521,9 @@ function drawPlot() {
   gl.c.clearRect(0, 0, gl.w, gl.h);
   renderAxis(null);
   updateRecordSummary();
-  $("#headline").textContent = headline();
+  const hl = headline();
+  $("#headline").textContent = hl;
+  announce(hl);
   renderCaption();
   if (!n) { geo = null; return; }
 
@@ -640,6 +644,30 @@ function drawPlot() {
     }
   }
   renderAxis(geo);
+  renderKey(sc, D);
+}
+
+// The key lists only what the plot is showing right now.
+function renderKey(sc, D) {
+  const last = S.metrics[S.metrics.length - 1];
+  const show = {
+    other: !!geo?.minor.size,
+    scar: sc.length > 0,
+    shock: shockSpans().length > 0 || !!last?.rogueAttempts,
+    guard: D.some((d) => d.blocked > 0),
+  };
+  $$("#key [data-key]").forEach((el) => (el.hidden = !show[el.dataset.key]));
+}
+
+// Screen readers hear the headline when it changes, at most once every 12 seconds.
+let spoken = "", spokenAt = 0, spokenTimer = 0;
+// A direct answer to a key press is spoken at once and holds the region for those 12 seconds.
+function announce(text, now = false) {
+  if (!text || (text === spoken && !now)) return;
+  clearTimeout(spokenTimer);
+  const say = () => { spoken = text; spokenAt = Date.now(); $("#headline-live").textContent = text; };
+  if (now) return say();
+  spokenTimer = setTimeout(say, Math.max(0, spokenAt + 12000 - Date.now()));
 }
 
 function drawNotes(points, xt) {
@@ -791,10 +819,11 @@ function headline() {
     return openField(lead);
   }
   // 4. One dynasty holding most of the population.
-  if (lead && lead.share >= 0.7) return `One dynasty, ${short(lead.f)}, holds ${pct(lead.share)} of the population`;
+  const holds = (f, x) => { const st = strategyOf(f); return st ? `${short(f)}’s ${st.split(",")[0]} hold ${x} of the population` : `One dynasty, ${short(f)}, holds ${x} of the population`; };
+  if (lead && lead.share >= 0.7) return holds(lead.f, pct(lead.share));
   // 5. Middlemen taking a large cut of the work.
   if (m.middlemanShare >= 0.3) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
-  if (lead && lead.share >= 0.5) return `One dynasty, ${short(lead.f)}, holds ${pct(lead.share)} of the population`;
+  if (lead && lead.share >= 0.5) return holds(lead.f, pct(lead.share));
   if (m.middlemanShare >= 0.15) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
   // 6. Otherwise, how open the field still is.
   return openField(lead);
@@ -843,7 +872,7 @@ function renderAxis(g) {
   const axis = $("#axis");
   if (!g) { axis.innerHTML = ""; return; }
   const span = g.t1 - g.t0;
-  const raw = span / 8;
+  const raw = span / (axis.clientWidth < 560 ? 4 : 8);
   const mag = 10 ** Math.floor(Math.log10(raw));
   // Ticks are whole numbers: never step by less than one.
   const stepT = Math.max(1, Math.round([1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw) || raw));
@@ -858,7 +887,7 @@ function updateRecordSummary() {
   const last = M[M.length - 1];
   const founded = S.founders.size;
   const what = S.mode === "wealth" ? "share of the living population’s wealth" : "share of the living population";
-  let s = `Each band is a founding dynasty; its thickness is its ${what}.`;
+  let s = `Each band is a dynasty: a founding agent and every child it forked. Thickness is its ${what}.`;
   if (last) s += ` ${word(founded)} ${plural(founded, "dynasty", "dynasties")} founded, ${lower(word(last.dynasties))} still alive.`;
   $("#record-sum").textContent = s;
 }
@@ -878,6 +907,20 @@ function hitTest(px, py) {
     if (b.y1[si] > b.y0[si] && fy >= b.y0[si] && fy <= b.y1[si]) return { f, mi: samples[si] };
   }
   return null;
+}
+
+// A dynasty's strategy in a few plain words, from its living members' mean genome.
+const KIND_WORDS = { arith: "arithmetic", extract: "extraction", classify: "classification", reason: "reasoning" };
+function strategyOf(f) {
+  const living = [...S.agents.values()].filter((a) => a.founder === f && a.alive && a.role === "parametric");
+  if (!living.length) return null;
+  const mean = (k) => living.reduce((s, a) => s + a[k], 0) / living.length;
+  const markup = mean("markup"), sub = mean("subcontract");
+  const spec = KINDS.map((_, i) => living.reduce((s, a) => s + a.spec[i], 0) / living.length);
+  const top = spec.indexOf(Math.max(...spec));
+  const price = markup < 0.5 ? "cheap bids" : markup > 0.75 ? "pricey bids" : "mid-price bids";
+  const skill = spec[top] >= 0.4 ? `${KIND_WORDS[KINDS[top]]} specialists` : "generalists";
+  return `${skill}, ${price}${sub >= 0.45 ? ", resell work" : ""}`;
 }
 
 function dynastyFacts(f) {
@@ -905,8 +948,12 @@ canvas.addEventListener("mousemove", (e) => {
   const lin = m.lineages[hit.f];
   const { living, founder, gens } = dynastyFacts(hit.f);
   const nowAlive = living.length > 0;
-  tip.innerHTML = `<b>${esc(short(hit.f))}’s line</b>` +
-    `<span>At tick ${m.tick}: ${lin.n} living, ${credits(lin.wealth)} credits.</span><br>` +
+  const tot = Object.values(m.lineages).reduce((a, l) => a + (S.mode === "wealth" ? l.wealth : l.n), 0);
+  const share = tot ? Math.round(((S.mode === "wealth" ? lin.wealth : lin.n) / tot) * 100) : 0;
+  const strat = strategyOf(hit.f);
+  tip.innerHTML = `<b>${esc(short(hit.f))}’s dynasty</b>` +
+    (strat ? `<em>${esc(strat)}</em>` : "") +
+    `<span>At tick ${m.tick}: ${share}% of the ${S.mode === "wealth" ? "wealth" : "population"}, ${lin.n} living, ${credits(lin.wealth)} credits.</span><br>` +
     `<span>${nowAlive ? `Now ${living.length} living, ${gens + 1} ${plural(gens + 1, "generation")} deep` : "Extinct now"}. Founded at tick ${founder?.born ?? S.founders.get(hit.f)?.first ?? 0}.</span>`;
   }
   tip.hidden = false;
@@ -928,16 +975,22 @@ canvas.addEventListener("click", (e) => {
   select(hit && hit.f !== OTHER ? (hit.f === S.selected ? null : hit.f) : null);
 });
 canvas.addEventListener("keydown", (e) => {
-  if (e.key !== "ArrowUp" && e.key !== "ArrowDown" && e.key !== "Escape") return;
+  if (!["ArrowUp", "ArrowDown", "Escape", "Enter", " "].includes(e.key)) return;
   e.preventDefault();
-  if (e.key === "Escape") return select(null);
+  e.stopPropagation();
+  if (e.key === "Escape") { select(null); announce("Back to the richest dynasty", true); return; }
   const last = S.metrics[S.metrics.length - 1];
   if (!last) return;
   const alive = Object.keys(last.lineages).filter((f) => !geo?.minor.has(f)).sort((a, b) => S.founders.get(a).idx - S.founders.get(b).idx);
   if (!alive.length) return;
   const i = alive.indexOf(S.selected);
-  const next = e.key === "ArrowDown" ? (i + 1) % alive.length : (i <= 0 ? alive.length - 1 : i - 1);
-  select(alive[next]);
+  const pick = e.key === "Enter" || e.key === " "
+    ? (S.selected && i >= 0 ? S.selected : leader()?.f ?? alive[0])
+    : alive[e.key === "ArrowDown" ? (i + 1) % alive.length : (i <= 0 ? alive.length - 1 : i - 1)];
+  select(pick);
+  const n = last.lineages[pick]?.n ?? 0, tot = Object.values(last.lineages).reduce((a, l) => a + l.n, 0);
+  const st = strategyOf(pick);
+  announce(`${short(pick)}’s dynasty, ${tot ? Math.round((n / tot) * 100) : 0}% of the population${st ? `, ${st}` : ""}. Details in the specimen panel.`, true);
 });
 
 function setParam(k, v) {
@@ -1025,6 +1078,7 @@ function renderSpecimen() {
   }
   body.innerHTML =
     `<div class="spec__name"><span class="spec__swatch" style="background:${colour}"></span><h3>${esc(short(f))}’s line</h3></div>` +
+    (strategyOf(f) ? `<p class="spec__strategy">Strategy: ${esc(strategyOf(f))}</p>` : "") +
     `<dl class="spec__facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` +
     `<dl class="genes">` +
     gene("Markup", "bid as share of reward", mean("markup"), 1, mean("markup").toFixed(2)) +
@@ -1155,8 +1209,8 @@ function renderNotes() {
 const FIGS = [
   { key: "population", label: "Population", hint: "living parametric agents", fmt: (v) => fmt(v) },
   { key: "deaths", label: "Extinctions", hint: "agents dead so far", fmt: (v) => fmt(v) },
-  { key: "gini", label: "Gini", hint: "0 is equal, 1 is one agent holds all", fmt: (v) => v.toFixed(2) },
-  { key: "middlemanShare", label: "Middleman share", hint: "tasks resold, last 50 ticks", fmt: (v) => `${Math.round(v * 100)}%` },
+  { key: "gini", label: "Wealth gap", hint: "Gini: 0 is equal, 1 is one agent holds all", fmt: (v) => v.toFixed(2) },
+  { key: "middlemanShare", label: "Middleman share", hint: "work won, then resold to a cheaper solver", fmt: (v) => `${Math.round(v * 100)}%` },
   { key: "specialisation", label: "Specialisation", hint: "mean top skill weight, 0.25 is generalist", fmt: (v) => v.toFixed(2) },
   { key: "meanMarkup", label: "Mean markup", hint: "bid as share of reward", fmt: (v) => v.toFixed(2) },
 ];
@@ -1380,17 +1434,20 @@ $("#notice-action").addEventListener("click", () => doReset(undefined, null));
 
 // Shocks
 $$("[data-shock]").forEach((b) => b.addEventListener("click", async () => {
-  const msg = $("#shock-msg");
+  const msg = b.closest(".try") ? $("#try-msg") : $("#shock-msg");
+  if (b.getAttribute("aria-busy") === "true") return;
   b.setAttribute("aria-busy", "true");
   try {
     const st = await post("/api/shock", { kind: b.dataset.shock });
     S.state = st;
     msg.classList.remove("is-error");
-    msg.textContent = `${b.textContent} started at tick ${st.tick}.`;
+    const left = st.shocks?.[b.dataset.shock] ? st.shocks[b.dataset.shock] - st.tick : 0;
+    msg.textContent = `${b.dataset.label} started at tick ${st.tick}${left ? `, for ${left} ticks` : ""}. Watch the bands.`;
     schedule("chrome");
   } catch (err) {
     msg.classList.add("is-error");
-    msg.textContent = /already loose/.test(err.message) ? "A rogue is already loose. Wait for it to die first." : err.message;
+    msg.textContent = /already loose/.test(err.message) ? "A rogue is already loose. Wait for it to die first."
+      : err instanceof TypeError ? "The server did not answer. Check that the run is still going." : `Not started. ${err.message}`;
   } finally {
     b.removeAttribute("aria-busy");
   }
@@ -1401,10 +1458,16 @@ function renderExportPreview() {
   const p = $("#export-preview");
   const ex = S.exportInfo;
   if (!ex) { p.textContent = "Reading the champion."; return; }
-  if (ex.error) { p.textContent = `Nothing to export yet: ${ex.error}.`; return; }
+  const dl = $('a[href="/api/export/genome"]');
+  dl.toggleAttribute("aria-disabled", !!ex.error);
+  if (ex.error) { dl.setAttribute("aria-disabled", "true"); p.textContent = `Nothing to export yet: ${ex.error.replace(/\.$/, "")}.`; return; }
   const c = ex.champion;
   p.innerHTML = `The champion is ${idHtml(c.id)}, generation ${c.generation} of ${idHtml(c.founder)}’s line, with ${credits(c.earned)} credits earned. Markup ${c.genome.markup.toFixed(2)}, subcontract ${c.genome.subcontract.toFixed(2)}, at tick ${ex.tick} of the run with seed ${S.state?.seed ?? "unknown"}.`;
 }
+
+$$(".exports a").forEach((a) => a.addEventListener("click", (e) => {
+  if (a.getAttribute("aria-disabled") === "true" || S.status !== "live") { e.preventDefault(); $("#export-preview").textContent = S.status !== "live" ? "The server is not answering, so there is nothing to download right now." : $("#export-preview").textContent; }
+}));
 
 // ---------- transport and keyboard ----------
 $("#toggle").addEventListener("click", () => control(S.state?.paused ? "resume" : "pause"));
