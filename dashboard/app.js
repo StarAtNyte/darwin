@@ -54,14 +54,12 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const idHtml = (id) => `<span class="id">${esc(short(id))}</span>`;
 const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
 
-// The TOP_BANDS dynasties by peak share always get their own band; of the rest, those whose share
-// never passes MINOR_PEAK are pooled into one muted band on the plot.
+// Small dynasties share one muted band on the plot (see layout): at most TOP_BANDS are named while the founders
+// are still a flat field; after that the grey band may never hold more than OTHER_CAP of any sample.
 const OTHER = "__other";
-const MINOR_PEAK = 0.03;
-const TOP_BANDS = 12;
-// The pooled band may never hold more than this share at any tick: while many small founders together
-// are most of the field, the largest of them come back out as their own bands.
+const TOP_BANDS = 8;
 const OTHER_CAP = 0.2;
+const LEAD_SHARE_EARLY = 0.25;
 
 function colourOf(f, deep = false) {
   if (f === OTHER) return T.other;
@@ -239,7 +237,7 @@ async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   let data = {};
   try { data = await r.json(); } catch {}
-  if (!r.ok) throw new Error(data.error || `The server answered ${r.status}.`);
+  if (!r.ok) throw Object.assign(new Error(data.error || `The server answered ${r.status}.`), { status: r.status, data });
   return data;
 }
 
@@ -298,6 +296,20 @@ function setStatusError(msg) {
   renderChrome();
 }
 
+// Shocks on a shared run: one at a time across every visitor. The server says how long until the next.
+let seenState = null, shockReadyAt = 0, shockWaitTimer = 0;
+function renderShockWait() {
+  clearTimeout(shockWaitTimer);
+  const left = Math.ceil((shockReadyAt - Date.now()) / 1000);
+  const waiting = left > 0;
+  $$("[data-shock]").forEach((b) => (b.disabled = waiting));
+  $$(".shock-wait").forEach((p) => {
+    p.hidden = !waiting;
+    if (waiting) p.textContent = `Next shock in ${left} s`;
+  });
+  if (waiting) shockWaitTimer = setTimeout(renderShockWait, 1000);
+}
+
 function renderChrome() {
   const st = S.state;
   const status = $("#status");
@@ -339,8 +351,18 @@ function renderChrome() {
   if (statusErr) html += ` <span class="shock">${esc(statusErr)}</span>`;
   status.innerHTML = html;
   status.hidden = !html;
+  // A shared public run takes shocks from visitors, nothing else: no transport, no rules, no restart.
+  const shared = !!st.publicMode;
+  $("#shared").hidden = !shared;
+  $('[data-sheet="rules"]').hidden = shared;
+  if (shared && openSheet?.id === "sheet-rules") closeSheet(true);
+  if (st !== seenState) {
+    seenState = st;
+    shockReadyAt = Date.now() + (st.shockWaitSec || 0) * 1000;
+    renderShockWait();
+  }
   // Nothing left to pause or speed up once the run is over.
-  $(".transport").hidden = st.finished;
+  $(".transport").hidden = st.finished || shared;
   $("#try").hidden = st.finished;
 
   toggle.disabled = st.finished;
@@ -357,8 +379,10 @@ function renderChrome() {
     noticeAction.hidden = true;
   } else if (st.finished) {
     notice.hidden = false;
-    noticeText.textContent = `The run finished at tick ${fmt(st.tick)}. Export the champion, or start a new run with the same rules.`;
-    noticeAction.hidden = false;
+    noticeText.textContent = shared
+      ? `The run finished at tick ${fmt(st.tick)}. Export the champion${st.autoRestart ? "; a new run starts on its own shortly" : ""}.`
+      : `The run finished at tick ${fmt(st.tick)}. Export the champion, or start a new run with the same rules.`;
+    noticeAction.hidden = shared;
   } else notice.hidden = true;
 
   if ($("#sheet-rules").hidden === false) syncRules(false);
@@ -397,57 +421,61 @@ function layout(w) {
   const samples = [];
   for (let i = 0; i < n; i += step) samples.push(i);
   if (samples[samples.length - 1] !== n - 1) samples.push(n - 1);
-  // Peak share per dynasty over the whole run; the ones that never matter share the "other" band.
-  const peak = new Map();
-  for (const m of M) {
-    const lin = m.lineages || {};
-    let total = 0;
-    for (const f in lin) total += valueOf(lin[f], S.mode);
-    if (total) for (const f in lin) peak.set(f, Math.max(peak.get(f) || 0, valueOf(lin[f], S.mode) / total));
-  }
-  // Only group once some dynasty has pulled ahead: while every founder is still near its equal share,
-  // grouping by an absolute cut would hide the whole field.
-  const top = Math.max(0, ...peak.values());
-  const kept = new Set([...S.founders.keys()].sort((a, b) => (peak.get(b) || 0) - (peak.get(a) || 0)).slice(0, TOP_BANDS));
-  const minor = new Set([...S.founders.keys()].filter((f) => { const p = peak.get(f) || 0; return !kept.has(f) && p < MINOR_PEAK && p < top / 4; }));
-  // Per sample: the pooled share, and each pooled founder's own share, so promoting one is a subtraction.
-  const pooled = new Float64Array(samples.length);
-  const shareOf = new Map();
+  // Which dynasties get a band of their own, and from which sample. While the founders are still a flat field
+  // (no dynasty holds LEAD_SHARE_EARLY and most founding dynasties are alive), only the TOP_BANDS largest are
+  // named and the rest share the grey band. After that, each sample names its TOP_BANDS largest, then the largest
+  // still-grey dynasties until the grey band holds no more than OTHER_CAP. A dynasty once named stays named.
+  const namedFrom = new Map();
+  const earlyPeak = new Map();
+  const totals = new Float64Array(samples.length);
+  const founders = S.founders.size;
+  let early = true;
   samples.forEach((mi, si) => {
     const lin = M[mi].lineages || {};
+    const live = Object.keys(lin);
     let total = 0;
-    for (const f in lin) total += valueOf(lin[f], S.mode);
+    for (const f of live) total += valueOf(lin[f], S.mode);
+    totals[si] = total;
     if (!total) return;
-    for (const f in lin) if (minor.has(f)) {
-      const v = valueOf(lin[f], S.mode) / total;
-      pooled[si] += v;
-      if (!shareOf.has(f)) shareOf.set(f, new Float64Array(samples.length));
-      shareOf.get(f)[si] = v;
+    const share = (f) => valueOf(lin[f], S.mode) / total;
+    live.sort((a, b) => share(b) - share(a) || (S.founders.get(a)?.idx ?? 0) - (S.founders.get(b)?.idx ?? 0));
+    if (early && (share(live[0]) >= LEAD_SHARE_EARLY || live.length < founders * 0.75)) {
+      early = false;
+      [...earlyPeak].sort((a, b) => b[1] - a[1] || (S.founders.get(a[0])?.idx ?? 0) - (S.founders.get(b[0])?.idx ?? 0))
+        .slice(0, TOP_BANDS).forEach(([f]) => namedFrom.set(f, 0));
+    }
+    if (early) {
+      for (const f of live) earlyPeak.set(f, Math.max(earlyPeak.get(f) || 0, share(f)));
+      return;
+    }
+    for (const f of live.slice(0, TOP_BANDS)) if (!namedFrom.has(f)) namedFrom.set(f, si);
+    let grey = 0;
+    for (const f of live) if (!namedFrom.has(f)) grey += share(f);
+    for (const f of live) {
+      if (grey <= OTHER_CAP) break;
+      if (!namedFrom.has(f)) { namedFrom.set(f, si); grey -= share(f); }
     }
   });
-  const pooledPeak = () => pooled.reduce((a, v) => Math.max(a, v), 0);
-  const byPeak = [...minor].sort((a, b) => (peak.get(b) || 0) - (peak.get(a) || 0));
-  while (byPeak.length && pooledPeak() > OTHER_CAP) {
-    const f = byPeak.shift();
-    minor.delete(f);
-    shareOf.get(f)?.forEach((v, si) => (pooled[si] -= v));
-  }
-  const order = [...S.founders.entries()].filter(([f]) => !minor.has(f)).sort((a, b) => a[1].idx - b[1].idx).map(([f]) => f);
-  if (minor.size) order.push(OTHER);
+  // A run still in its flat phase names its early leaders from the start.
+  if (early) [...earlyPeak].sort((a, b) => b[1] - a[1] || (S.founders.get(a[0])?.idx ?? 0) - (S.founders.get(b[0])?.idx ?? 0))
+    .slice(0, TOP_BANDS).forEach(([f]) => namedFrom.set(f, 0));
+  const pooledAt = (f, si) => !(namedFrom.get(f) <= si);
+  // Founders that never get a band of their own.
+  const minor = new Set([...S.founders.keys()].filter((f) => !namedFrom.has(f)));
+  const order = [...S.founders.entries()].filter(([f]) => namedFrom.has(f)).sort((a, b) => a[1].idx - b[1].idx).map(([f]) => f);
+  const anyPooled = samples.some((mi, si) => Object.keys(M[mi].lineages || {}).some((f) => pooledAt(f, si)));
+  if (anyPooled) order.push(OTHER);
   const bands = new Map(order.map((f) => [f, { y0: new Float32Array(samples.length), y1: new Float32Array(samples.length), first: -1, last: -1 }]));
   const others = new Float64Array(samples.length);
   const otherCount = new Uint16Array(samples.length);
   samples.forEach((mi, si) => {
     const lin = M[mi].lineages || {};
-    let total = 0;
-    for (const f in lin) {
-      total += valueOf(lin[f], S.mode);
-      if (minor.has(f)) { others[si] += valueOf(lin[f], S.mode); otherCount[si]++; }
-    }
+    const total = totals[si];
+    for (const f in lin) if (pooledAt(f, si)) { others[si] += valueOf(lin[f], S.mode); otherCount[si]++; }
     let cum = 0;
     for (const f of order) {
       const b = bands.get(f);
-      const here = f === OTHER ? otherCount[si] > 0 : !!lin[f];
+      const here = f === OTHER ? otherCount[si] > 0 : !!lin[f] && !pooledAt(f, si);
       const v = f === OTHER ? others[si] : here ? valueOf(lin[f], S.mode) : 0;
       b.y0[si] = total ? cum / total : 0;
       cum += v;
@@ -463,7 +491,7 @@ function layout(w) {
   const t1 = Math.max(M[n - 1]?.tick ?? 1, t0 + 1);
   const x = (si) => ((M[samples[si]].tick - t0) / (t1 - t0)) * w;
   const xt = (tick) => ((tick - t0) / (t1 - t0)) * w;
-  return { samples, bands, order, minor, w, x, xt, t0, t1 };
+  return { samples, bands, order, minor, pooledAt, w, x, xt, t0, t1 };
 }
 
 function tracePath(c, b, from, to, x, h) {
@@ -787,7 +815,7 @@ function drawPlot() {
 function renderKey(sc, D) {
   const last = S.metrics[S.metrics.length - 1];
   const show = {
-    other: !!geo?.minor.size,
+    other: !!geo?.bands.has(OTHER),
     scar: sc.length > 0,
     shock: shockSpans().length > 0 || !!last?.rogueAttempts,
     guard: D.some((d) => d.blocked > 0),
@@ -1100,10 +1128,11 @@ canvas.addEventListener("mousemove", (e) => {
   if (!hit) { tip.hidden = true; if (prev) schedule("plot"); return; }
   const m = S.metrics[hit.mi];
   if (hit.f === OTHER) {
-    const small = Object.keys(m.lineages).filter((f) => geo.minor.has(f));
+    const si = geo.samples.indexOf(hit.mi);
+    const small = Object.keys(m.lineages).filter((f) => geo.pooledAt(f, si));
     const n = small.reduce((a, f) => a + m.lineages[f].n, 0);
     tip.innerHTML = `<b>Small dynasties</b><span>At tick ${m.tick}: ${word(small.length)} ${plural(small.length, "dynasty", "dynasties")}, ${n} living in all.</span><br>` +
-      `<span>None ever held ${Math.round(MINOR_PEAK * 100)}% of the ${S.mode === "wealth" ? "wealth" : "population"}, so they share one grey band.</span>`;
+      `<span>Each was too small to name at this point, so they share one grey band.</span>`;
   } else {
   const lin = m.lineages[hit.f];
   const { living, founder, gens } = dynastyFacts(hit.f);
@@ -1141,7 +1170,8 @@ canvas.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { select(null); announce("Back to the richest dynasty", true); return; }
   const last = S.metrics[S.metrics.length - 1];
   if (!last) return;
-  const alive = Object.keys(last.lineages).filter((f) => !geo?.minor.has(f)).sort((a, b) => S.founders.get(a).idx - S.founders.get(b).idx);
+  const lastSi = geo ? geo.samples.length - 1 : 0;
+  const alive = Object.keys(last.lineages).filter((f) => !geo || !geo.pooledAt(f, lastSi)).sort((a, b) => S.founders.get(a).idx - S.founders.get(b).idx);
   if (!alive.length) return;
   const i = alive.indexOf(S.selected);
   const pick = e.key === "Enter" || e.key === " "
@@ -1316,10 +1346,11 @@ function routineSentence(w) {
 function groupSentences(g) {
   const out = [];
   for (const e of g.shocks) {
-    if (e.shock === "drought") out.push(mark("shock", `A drought began. Only a third as many tasks are posted until tick ${e.until}.`));
-    else if (e.shock === "plague") out.push(mark("shock", `A plague began. Every agent pays triple rent until tick ${e.until}.`));
-    else if (e.shock === "rogue") out.push(mark("shock", "A rogue agent was released."));
-    else if (e.shock === "immigration") out.push(mark("shock", `${word(g.arrivals.length || 0)} ${plural(g.arrivals.length, "newcomer")} arrived, each starting a new dynasty.`));
+    const by = e.by === "visitor" ? ", fired by a visitor" : "";
+    if (e.shock === "drought") out.push(mark("shock", `A drought began${by}. Only a third as many tasks are posted until tick ${e.until}.`));
+    else if (e.shock === "plague") out.push(mark("shock", `A plague began${by}. Every agent pays triple rent until tick ${e.until}.`));
+    else if (e.shock === "rogue") out.push(mark("shock", `A rogue agent was released${by}.`));
+    else if (e.shock === "immigration") out.push(mark("shock", `${by ? "Immigration, fired by a visitor: " : ""}${(by ? lower : String)(word(g.arrivals.length || 0))} ${plural(g.arrivals.length, "newcomer")} arrived, each starting a new dynasty.`));
   }
   for (const e of g.rules) {
     const ch = Object.entries(e.changes || {}).map(([k, v]) => `${k} is now ${typeof v === "number" ? fmt(v, Number.isInteger(v) ? 0 : 2) : v}`);
@@ -1513,6 +1544,11 @@ function closeSheet(silent) {
   setParam("sheet", null);
   if (!silent) opener?.focus();
 }
+$("#tagline-more").addEventListener("click", (e) => {
+  const open = document.body.classList.toggle("intro-open");
+  e.currentTarget.setAttribute("aria-expanded", String(open));
+  e.currentTarget.textContent = open ? "Less" : "More";
+});
 $$("[data-sheet]").forEach((b) => b.addEventListener("click", () => toggleSheet(b.dataset.sheet, b)));
 $$("[data-close]").forEach((b) => b.addEventListener("click", () => closeSheet()));
 
@@ -1664,6 +1700,13 @@ $$("[data-shock]").forEach((b) => b.addEventListener("click", async () => {
     S.lastShock = { kind: b.dataset.shock, label: b.dataset.label, from: st.tick, until: st.shocks?.[b.dataset.shock] ?? null, el: msg };
     schedule("chrome");
   } catch (err) {
+    if (err.status === 429) {
+      shockReadyAt = Date.now() + (err.data?.retryAfter || 0) * 1000;
+      renderShockWait();
+      msg.classList.remove("is-error");
+      msg.textContent = "Another visitor just fired a shock. One at a time on the shared run.";
+      return;
+    }
     msg.classList.add("is-error");
     msg.textContent = /already loose/.test(err.message) ? "A rogue is already loose. Wait for it to die first."
       : err instanceof TypeError ? "The server did not answer. Check that the run is still going." : `Not started. ${err.message}`;
@@ -1732,7 +1775,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== " " || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   const t = e.target;
   if (t.closest("input, textarea, select, button, a, label, [contenteditable]")) return;
-  if (!S.state || S.state.finished || S.status !== "live") return;
+  if (!S.state || S.state.finished || S.state.publicMode || S.status !== "live") return;
   e.preventDefault();
   control(S.state.paused ? "resume" : "pause");
 });

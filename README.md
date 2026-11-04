@@ -90,6 +90,8 @@ NEAR_ACCOUNT=you.testnet NEAR_PRIVATE_KEY=ed25519:... make deploy checkpoint
 DARWIN_LLM=1 ANTHROPIC_API_KEY=... make demo   # real LLM solvers (capped at 60 calls)
 ```
 
+The public deployment sets `PUBLIC_MODE=1`: one run is shared by every visitor, so pause, speed, rules and restart are off, and shocks are limited to one a minute across all visitors. Run it locally (above) to steer every rule.
+
 Checked on 2026-11-04 with the real key: claude-haiku-5-5 solved 6/6 of the hardest arithmetic and sequence tasks, and the referee scored the answers. The run cost about $0.0001.
 
 ## Honest limits

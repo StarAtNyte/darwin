@@ -1,5 +1,5 @@
 // `make demo`: run the economy live, log every event to SQLite, stream to the dashboard over SSE,
-// and accept steering (pause, speed, rules, shocks, reset, export) over a small JSON API.
+// and accept steering (pause, speed, rules, shocks, reset, export) over a small JSON API. PUBLIC_MODE=1 locks it down.
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -15,6 +15,13 @@ const MAX_TICKS = Number(process.env.TICKS ?? 2000);
 // and resume a run someone paused and walked away from. 0 (the default) keeps both off.
 const AUTO_RESTART_MS = Number(process.env.AUTO_RESTART_SEC ?? 0) * 1000;
 const AUTO_RESUME_MS = Number(process.env.AUTO_RESUME_SEC ?? 0) * 1000;
+// PUBLIC_MODE=1: one shared run for every visitor. Nobody can pause, step, change speed or rules, or reset it;
+// shocks stay open but only one may fire per SHOCK_COOLDOWN_SEC across all visitors.
+const PUBLIC_MODE = process.env.PUBLIC_MODE === "1";
+const SHOCK_COOLDOWN_MS = Number(process.env.SHOCK_COOLDOWN_SEC ?? 60) * 1000;
+const SHARED_RUN = "This is a shared live run, so pause, speed, rules and restart are off. Run it locally to steer every rule.";
+let lastShockAt = 0;
+const shockWait = () => (PUBLIC_MODE && lastShockAt ? Math.max(0, Math.ceil((lastShockAt + SHOCK_COOLDOWN_MS - Date.now()) / 1000)) : 0);
 const DASH_DIR = path.resolve(here, "../../dashboard");
 const DB_PATH = process.env.DARWIN_DB ?? path.resolve(here, "../darwin.sqlite");
 const SPEEDS = [1000, 300, 120, 40]; // ms per tick: slow, normal, fast, fastest
@@ -79,6 +86,10 @@ class Run {
       seed: this.seed,
       rules: Object.fromEntries(TUNABLE.map((k) => [k, this.eco.cfg[k]])),
       shocks: Object.fromEntries(this.eco.shocks),
+      publicMode: PUBLIC_MODE,
+      autoRestart: AUTO_RESTART_MS > 0,
+      shockCooldownSec: PUBLIC_MODE ? SHOCK_COOLDOWN_MS / 1000 : 0,
+      shockWaitSec: shockWait(),
     };
   }
 
@@ -148,6 +159,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/api/export/metrics.csv") {
       return send(res, 200, run.metricsCsv(), { "content-type": "text/csv", "content-disposition": `attachment; filename="darwin-metrics-seed${run.seed}.csv"` });
     }
+    if (PUBLIC_MODE && req.method === "POST" && (p === "/api/control" || p === "/api/rules" || p === "/api/reset")) return send(res, 403, { error: SHARED_RUN });
     if (req.method === "POST" && p === "/api/control") {
       const b = await body(req);
       if (b.action === "pause") (run.paused = true), (pausedAt = Date.now());
@@ -171,7 +183,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && p === "/api/shock") {
       const kind = (await body(req)).kind as Shock;
       if (!["drought", "plague", "rogue", "immigration"].includes(kind)) return send(res, 400, { error: "kind must be drought, plague, rogue or immigration" });
-      run.eco.shock(kind);
+      const wait = shockWait();
+      if (wait > 0) return send(res, 429, { error: `The shared run takes one shock at a time. Next shock in ${wait} s.`, retryAfter: wait }, { "retry-after": String(wait) });
+      run.eco.shock(kind, PUBLIC_MODE ? "visitor" : undefined);
+      if (PUBLIC_MODE) lastShockAt = Date.now();
       broadcast("state", run.state());
       return send(res, 200, run.state());
     }
@@ -200,7 +215,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`DARWIN: http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}   seed ${run.seed}, ${MAX_TICKS} ticks, log ${DB_PATH}`);
+  console.log(`DARWIN: http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}   seed ${run.seed}, ${MAX_TICKS} ticks, log ${DB_PATH}${PUBLIC_MODE ? ", public mode" : ""}`);
 });
 
 let pausedAt = 0, finishedAt = 0;

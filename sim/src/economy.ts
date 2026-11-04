@@ -80,7 +80,7 @@ export type SimEvent =
   | { event: "guard_block"; agent: string; role: Role; to: string; amount: number; reasons: string[]; attack: string }
   | { event: "guard_allow_rogue"; agent: string; to: string; amount: number; attack: string }
   | { event: "subcontract"; middleman: string; solver: string; task: number; ask: number; price: number }
-  | { event: "shock"; shock: Shock; until: number }
+  | { event: "shock"; shock: Shock; until: number; by?: "visitor" }
   | { event: "rules"; changes: Partial<Config> };
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
@@ -170,7 +170,8 @@ export class Economy {
     return applied;
   }
 
-  shock(kind: Shock) {
+  /** `by: "visitor"` marks a shock fired by a visitor to a shared public run; the field notes say so. */
+  shock(kind: Shock, by?: "visitor") {
     const until = this.tick + (kind === "drought" ? 60 : kind === "plague" ? 40 : 0);
     if (kind === "rogue") {
       if (this.alive().some((a) => a.role === "rogue")) throw new Error("a rogue is already loose");
@@ -183,7 +184,7 @@ export class Economy {
     } else if (kind === "immigration") {
       for (let i = 0; i < 6 && this.market.pool > 20 * SEED; i++) this.spawn("parametric", randomGenome(this.r));
     } else this.shocks.set(kind, until);
-    this.emit({ event: "shock", shock: kind, until, tick: this.tick });
+    this.emit({ event: "shock", shock: kind, until, ...(by ? { by } : {}), tick: this.tick });
   }
 
   private active(kind: Shock) {

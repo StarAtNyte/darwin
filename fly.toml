@@ -10,6 +10,7 @@ primary_region = "iad"
   DARWIN_DB = "/tmp/darwin.sqlite"
   AUTO_RESTART_SEC = "120"
   AUTO_RESUME_SEC = "300"
+  PUBLIC_MODE = "1"
 
 [http_service]
   internal_port = 8787

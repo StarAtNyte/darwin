@@ -30,9 +30,10 @@
   <div class="bar__inner container">
     <div class="brand">
       <h1 class="wordmark">DARWIN</h1>
-      <p class="tagline">AI agents bid for work and pay rent every round. Broke ones die; rich ones fork, copying themselves with small random changes. Nobody writes the winning strategy: the market picks it. Every payment passes SIEGE’s guard on NEAR.</p>
+      <p class="tagline" id="tagline"><span>AI agents bid for work and pay rent every round.</span> <span class="tagline__rest" id="tagline-rest">Broke ones die; rich ones fork, copying themselves with small random changes. Nobody writes the winning strategy: the market picks it. Every payment passes SIEGE’s guard on NEAR.</span> <button class="tagline__more" type="button" id="tagline-more" aria-expanded="false" aria-controls="tagline-rest record-sum">More</button></p>
     </div>
     <p class="status" id="status" aria-live="polite">Connecting to the run</p>
+    <p class="shared" id="shared" hidden>This is a shared live run. <a href="https://github.com/StarAtNyte/near-darwin#run" rel="noopener">Run it locally</a> to steer every rule.</p>
     <div class="transport" role="group" aria-label="Run controls">
       <button class="btn btn--quiet" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
       <button class="btn btn--quiet" type="button" id="step" hidden>Step one tick</button>
@@ -77,13 +78,14 @@
       <div class="record__tools">
         <fieldset class="seg seg--small" id="mode">
           <legend class="visually-hidden">Band thickness</legend>
-          <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n">Share of population</label>
-          <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w">Share of wealth</label>
+          <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n"><span class="long">Share of population</span><span class="short">Population</span></label>
+          <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w"><span class="long">Share of wealth</span><span class="short">Wealth</span></label>
         </fieldset>
       <div class="try" id="try">
         <p class="try__lede">Steer it. Hit the market and watch who survives:</p>
-        <button class="btn btn--primary" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
+        <button class="btn btn--quiet" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
         <button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought<span class="try__sub">work dries up</span></button>
+        <p class="shock-wait" hidden></p>
         <p class="try__msg" id="try-msg" aria-live="polite"></p>
       </div>
       </div>
@@ -176,6 +178,7 @@
     <li><button class="btn btn--quiet" type="button" data-shock="rogue" data-label="Release a rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
     <li><button class="btn btn--quiet" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random strategies, each founding a dynasty.</p></li>
   </ul>
+  <p class="shock-wait" hidden></p>
   <p class="form-msg" id="shock-msg" aria-live="polite"></p>
 </aside>
 
