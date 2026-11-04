@@ -30,10 +30,10 @@
   <div class="bar__inner container">
     <div class="brand">
       <div class="brand__row"><h1 class="wordmark">DARWIN</h1><button class="whatis" type="button" id="tour-open" aria-haspopup="dialog">What is this?</button></div>
-      <p class="tagline" id="tagline"><span>AI agents bid for work, earn credits and pay rent every round.</span> <span class="tagline__rest" id="tagline-rest">Broke ones die; rich ones fork, copying themselves with small random changes. Nobody writes the winning strategy: the market picks it.</span> <button class="tagline__more" type="button" id="tagline-more" aria-expanded="false" aria-controls="tagline-rest record-sum">More</button></p>
+      <p class="tagline" id="tagline">A live market of AI agents on NEAR that earn, die broke and fork mutated copies: nobody designs the winner.</p>
     </div>
     <p class="status" id="status" aria-live="polite">Connecting to the run</p>
-    <p class="shared" id="shared" hidden>This is a shared live run. <a href="https://github.com/StarAtNyte/near-darwin#run" rel="noopener">Run it locally</a> to steer every rule.</p>
+    <p class="shared" id="shared" hidden>Shocks are open to everyone. Pause, speed and rules: <a href="https://github.com/StarAtNyte/near-darwin#run" rel="noopener">run your own copy</a>.</p>
     <div class="transport" role="group" aria-label="Run controls">
       <button class="btn btn--quiet" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
       <button class="btn btn--quiet" type="button" id="step" hidden>Step one tick</button>
@@ -68,13 +68,11 @@
 </div>
 
 <main class="container">
-  <p class="why" id="why">Soon AI agents will hire and pay each other with nobody in charge. Here they already do, on NEAR, a public blockchain: no one designs the winning strategy, and every payment passes a guard, so a rogue agent cannot drain the market.</p>
   <section class="record" aria-labelledby="record-h">
     <div class="record__head">
       <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">ticks</span><small>a tick is one round of bidding</small></span></p>
       <div class="record__title">
         <h2 id="record-h">Dynasties over time</h2>
-        <p class="record__sum" id="record-sum">Time runs left to right. Each band is a dynasty: a founding agent, named like a11, and all its descendants. Thickness is its share of the living population.</p>
       </div>
       <div class="record__tools">
         <fieldset class="seg seg--small" id="mode">
@@ -83,9 +81,9 @@
           <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w"><span class="long">Share of wealth</span><span class="short">Wealth</span></label>
         </fieldset>
       <div class="try" id="try">
-        <p class="try__lede">Steer it. Hit the market and watch who survives:</p>
-        <button class="btn btn--quiet" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
-        <button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought<span class="try__sub">work dries up</span></button>
+        <p class="try__lede visually-hidden">Hit the market with a shock</p>
+        <button class="btn btn--shock" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
+        <button class="btn btn--shock" type="button" data-shock="drought" data-label="Drought">Drought<span class="try__sub">work dries up</span></button>
         <p class="shock-wait" hidden></p>
         <p class="try__msg" id="try-msg" aria-live="polite"></p>
       </div>
@@ -176,10 +174,10 @@
   <div class="sheet__head"><h2 id="shocks-h">Shocks</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
   <p class="sheet__lede">Each one starts now. Watch the plot for who survives it.</p>
   <ul class="shocks">
-    <li><button class="btn btn--quiet" type="button" data-shock="drought" data-label="Drought">Drought</button><p>Task emission falls to a third for 60 ticks.</p></li>
-    <li><button class="btn btn--quiet" type="button" data-shock="plague" data-label="Plague">Plague</button><p>Upkeep triples for 40 ticks.</p></li>
-    <li><button class="btn btn--quiet" type="button" data-shock="rogue" data-label="Release a rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
-    <li><button class="btn btn--quiet" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random strategies, each founding a dynasty.</p></li>
+    <li><button class="btn btn--shock" type="button" data-shock="drought" data-label="Drought">Drought</button><p>Task emission falls to a third for 60 ticks.</p></li>
+    <li><button class="btn btn--shock" type="button" data-shock="plague" data-label="Plague">Plague</button><p>Upkeep triples for 40 ticks.</p></li>
+    <li><button class="btn btn--shock" type="button" data-shock="rogue" data-label="Release a rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
+    <li><button class="btn btn--shock" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random strategies, each founding a dynasty.</p></li>
   </ul>
   <p class="shock-wait" hidden></p>
   <p class="form-msg" id="shock-msg" aria-live="polite"></p>

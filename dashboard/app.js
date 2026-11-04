@@ -676,7 +676,6 @@ function drawPlot() {
   sl.c.clearRect(0, 0, sl.w, sl.h);
   gl.c.clearRect(0, 0, gl.w, gl.h);
   renderAxis(null);
-  updateRecordSummary();
   const hl = headline();
   $("#headline").textContent = hl;
   announce(hl);
@@ -1201,15 +1200,6 @@ function renderAxis(g) {
   axis.innerHTML = out.join("");
 }
 
-function updateRecordSummary() {
-  const M = S.metrics;
-  const last = M[M.length - 1];
-  const founded = S.founders.size;
-  const what = S.mode === "wealth" ? "share of the living population’s wealth" : "share of the living population";
-  let s = `Time runs left to right. Each band is a dynasty: a founding agent, named like a11, and all its descendants. Thickness is its ${what}.`;
-  if (last) s += ` ${word(founded)} ${plural(founded, "dynasty", "dynasties")} founded, ${lower(word(last.dynasties))} still alive.`;
-  $("#record-sum").textContent = s;
-}
 
 // Hover and selection
 function hitTest(px, py) {
@@ -1690,11 +1680,6 @@ function closeSheet(silent) {
   setParam("sheet", null);
   if (!silent) opener?.focus();
 }
-$("#tagline-more").addEventListener("click", (e) => {
-  const open = document.body.classList.toggle("intro-open");
-  e.currentTarget.setAttribute("aria-expanded", String(open));
-  e.currentTarget.textContent = open ? "Less" : "More";
-});
 $$("[data-sheet]").forEach((b) => b.addEventListener("click", () => toggleSheet(b.dataset.sheet, b)));
 $$("[data-close]").forEach((b) => b.addEventListener("click", () => closeSheet()));
 
@@ -1932,7 +1917,8 @@ const tour = { i: 0, back: null, open: false };
 const TOUR = [
   {
     h: "The agents",
-    body: () => `<p>Each agent is a small AI program with its own money, counted in credits. Every round, called a tick, the market posts tasks. The agents bid, and the winning bid does the work and gets paid.</p>` +
+    body: () => `<p>Soon AI agents will hire and pay each other with nobody in charge. Here they already do, on NEAR, a public blockchain.</p>` +
+      `<p>Each agent is a small AI program with its own money, counted in credits. Every round, called a tick, the market posts tasks. The agents bid, and the winning bid does the work and gets paid.</p>` +
       `<p>Win or lose, every agent pays rent each tick. The big number <span class="tour__ref">1</span> counts the ticks.</p>`,
     pins: [".counter"],
   },
@@ -1952,9 +1938,9 @@ const TOUR = [
       const last = S.metrics[S.metrics.length - 1];
       const guardNote = last?.rogueBlocked ? `So far it has blocked ${fmt(last.rogueBlocked)} ${plural(last.rogueBlocked, "payment")}.` : "None yet: the first rogue arrives at tick 120.";
       return `<ol class="tour__watch">` +
-        `<li><span class="tour__ref">1</span><p><b>The chart.</b> Each band is a dynasty: one founding agent, named like a11, and all its descendants. Thickness is its share of the living agents.</p></li>` +
+        `<li><span class="tour__ref">1</span><p><b>The chart.</b> Time runs left to right. Each band is a dynasty: one founding agent, named like a11, and all its descendants. Thickness is its share of the living agents.</p></li>` +
         `<li><span class="tour__ref">2</span><p><b>The headline.</b> What is happening right now, in one sentence.<span class="tour__more"> The line under it says what just happened; the ring on the chart shows where.</span></p></li>` +
-        `<li><span class="tour__ref">3</span><p><b>The green marks.</b> Each one is a moment the guard blocked a rogue agent from stealing. ${guardNote}</p></li></ol>`;
+        `<li><span class="tour__ref">3</span><p><b>The green marks.</b> Every payment passes a guard, so a rogue agent cannot drain the market. Each mark is a moment it blocked one. ${guardNote}</p></li></ol>`;
     },
     pins: [".plot__well", "#headline", ".lane--guard"],
   },
@@ -1968,9 +1954,40 @@ function placeTourPins() {
     const el = step.pins[k] && $(step.pins[k]);
     if (!el) { p.hidden = true; return; }
     const r = el.getBoundingClientRect();
+    // Outside the target's highlight ring (6px out), never over its content: to the left when there is room,
+    // otherwise just above its top-left corner, or below it when another target is above.
+    const size = 28, gap = 6 + 6;
+    const left = r.left - gap - size >= 4;
+    const x = left ? r.left - gap - size : r.left;
+    let y = left ? r.top + Math.min(r.height / 2, 24) - size / 2 : r.top - gap - size;
+    // Above would land on another highlighted target (the guard lane sits right under the chart): go below instead.
+    const hits = (yy) => tourTargets().some((o) => o !== el && (() => { const q = o.getBoundingClientRect(); return yy < q.bottom + 6 && yy + size > q.top - 6; })());
+    if (!left && hits(y)) y = r.bottom + gap;
     p.hidden = false;
-    p.style.transform = `translate(${Math.max(4, r.left - 14)}px, ${Math.max(4, r.top + Math.min(r.height / 2, 24) - 14)}px)`;
+    p.style.transform = `translate(${Math.round(x)}px, ${Math.round(Math.max(4, y))}px)`;
   });
+  placeTourCard();
+}
+// The card sits beside what it explains, not over the chart. On a wide screen it docks to the right of a narrow
+// target (the tick counter), or below wide ones (step 3 scrolls them up); on a phone it stays a bottom sheet,
+// which clears the targets because they sit higher up.
+function placeTourCard() {
+  const card = $(".tour__card");
+  card.style.transform = "";
+  card.classList.remove("is-docked");
+  if (!matchMedia("(min-width: 60rem)").matches) return;
+  const t = tourTargets().map((el) => el.getBoundingClientRect());
+  const fit = (x, y) => `translate(${Math.round(Math.min(x, innerWidth - card.offsetWidth - 16))}px, ${Math.round(Math.max(16, Math.min(y, innerHeight - card.offsetHeight - 16)))}px)`;
+  if (!t.length) {
+    card.classList.add("is-docked");
+    card.style.transform = fit(innerWidth, $("#headline").getBoundingClientRect().top);
+    return;
+  }
+  const box = { left: Math.min(...t.map((r) => r.left)), right: Math.max(...t.map((r) => r.right)), top: Math.min(...t.map((r) => r.top)) };
+  if (box.right - box.left < innerWidth / 2) {
+    card.classList.add("is-docked");
+    card.style.transform = fit(box.right + 24, box.top);
+  }
 }
 function renderTour() {
   const step = TOUR[tour.i];
@@ -1986,7 +2003,7 @@ function renderTour() {
   tourTargets().forEach((el) => el.classList.remove("tour-target"));
   step.pins.forEach((sel) => $(sel)?.classList.add("tour-target"));
   // Step 3 points into the chart: bring the headline to the top so the chart clears the card.
-  const top = tour.i === 2 ? Math.max(0, $("#headline").getBoundingClientRect().top + scrollY - 16) : 0;
+  const top = tour.i === 2 ? Math.max(0, $("#headline").getBoundingClientRect().top + scrollY - 48) : 0;
   scrollTo({ top, behavior: "instant" });
   document.body.dataset.tourStep = String(tour.i + 1);
   placeTourPins();
