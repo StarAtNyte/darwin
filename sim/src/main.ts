@@ -94,7 +94,7 @@ class Run {
   }
 
   metricsCsv() {
-    const cols = ["tick", "population", "deaths", "maxGeneration", "dynasties", "gini", "middlemanShare", "specialisation", "meanMarkup", "meanSubcontract", "pool", "rogueAttempts", "rogueBlocked", "rogueLeaked"];
+    const cols = ["tick", "population", "deaths", "maxGeneration", "dynasties", "gini", "middlemanShare", "specialisation", "meanMarkup", "meanSubcontract", "pool", "rogueAttempts", "rogueBlocked", "rogueLeaked", "rogueAllowedLegit"];
     const rows = (this.metrics as Record<string, unknown>[]).map((m) => cols.map((c) => m[c]).join(","));
     return [cols.join(","), ...rows].join("\n") + "\n";
   }

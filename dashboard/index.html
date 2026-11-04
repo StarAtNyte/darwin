@@ -21,7 +21,7 @@
     </div>
     <p class="status" id="status" aria-live="polite">Connecting to the run</p>
     <div class="transport" role="group" aria-label="Run controls">
-      <button class="btn btn--primary" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
+      <button class="btn btn--quiet" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
       <button class="btn btn--quiet" type="button" id="step" hidden>Step one tick</button>
       <fieldset class="seg" id="speed">
         <legend class="visually-hidden">Speed</legend>
@@ -67,11 +67,13 @@
         <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w">Share of wealth</label>
       </fieldset>
     </div>
+    <p class="headline" id="headline" aria-live="polite"></p>
 
     <div class="plot" id="plot" data-state="loading">
       <div class="lane lane--shock" aria-hidden="true"><canvas id="shock-lane"></canvas></div>
       <div class="plot__well">
         <canvas id="muller" tabindex="0" role="img" aria-label="Muller plot of dynasties over time. Use the up and down arrow keys to select a dynasty."></canvas>
+        <p class="plot__caption" id="plot-caption"></p>
         <div class="skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <p class="plot__empty" id="plot-empty" hidden>Nothing has happened yet. The founders are registered; resume the run to start tick 1.</p>
         <div class="tip" id="tip" role="tooltip" hidden></div>
@@ -79,7 +81,7 @@
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction</span><span><i class="k-other"></i>Grey: small dynasties that never reached 3% of the population</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
+    <p class="key"><span><i class="k-shock"></i>Above: drought and plague spans, and when a rogue or immigrants were released</span><span><i class="k-scar"></i>A mass extinction</span><span><i class="k-fork"></i>Dark hairlines in the leading dynasty: ticks when one of its agents forked</span><span><i class="k-other"></i>Grey: small dynasties that never reached 3% of the population</span><span><i class="k-guard"></i>Below: ticks where the guard blocked a rogue payment</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 

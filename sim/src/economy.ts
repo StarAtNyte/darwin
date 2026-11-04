@@ -139,7 +139,10 @@ export class Economy {
   private serial = 0;
   private solverLoad = new Map<string, { direct: number; sub: number }>();
   private settledLog: { tick: number; sub: boolean; kind: Kind; winner: string }[] = [];
-  rogueStats = { attempts: 0, blocked: 0, leaked: 0 };
+  /** allowedLegit: rogue payments the guard allowed because they went to a real solver inside the hourly cap (the race attack's non-overshooting part). */
+  rogueStats = { attempts: 0, blocked: 0, leaked: 0, allowedLegit: 0 };
+  /** Forks this tick, per founding dynasty. */
+  private forksThisTick = new Map<string, number>();
   /** Active shocks and the tick each one ends. */
   shocks = new Map<Shock, number>();
 
@@ -244,6 +247,7 @@ export class Economy {
     this.tick++;
     m.tick = this.tick;
     this.solverLoad.clear();
+    this.forksThisTick.clear();
 
     // 1. Emission: post tasks while the pool can fund them.
     const tasks: Task[] = [];
@@ -322,6 +326,7 @@ export class Economy {
       if (rec.balance > a.genome.forkAt * SEED && this.alive().length < this.cfg.maxPop) {
         m.chargeUpkeep(a.id, this.cfg.forkFee);
         this.spawn("parametric", mutate(a.genome, this.r, this.cfg.mutationSigma), a.id);
+        this.forksThisTick.set(a.founder, (this.forksThisTick.get(a.founder) ?? 0) + 1);
       }
     }
     if (this.alive().filter((a) => a.role === "parametric").length < 14 && m.pool > 60 * SEED && this.r() < 0.3) this.spawn("parametric", randomGenome(this.r));
@@ -396,6 +401,7 @@ export class Economy {
     const blocked = ds.filter((d) => d.verdict === "deny");
     this.rogueStats.blocked += blocked.length;
     if (kind !== "race") this.rogueStats.leaked += allowedAmt;
+    else this.rogueStats.allowedLegit += ds.filter((d) => d.verdict === "allow").length;
     const reasons = [...new Set(blocked.flatMap((d) => d.reasons.map((r) => r.replace(/^JUDGE:/, "").split(",")[0])))].slice(0, 4);
     if (blocked.length) this.emit({ event: "guard_block", agent: a.id, role: "rogue", to: sink, amount: blocked.length * amt, reasons, attack: kind, tick: this.tick });
     if (allowedAmt && kind !== "race") this.emit({ event: "guard_allow_rogue", agent: a.id, to: sink, amount: allowedAmt, attack: kind, tick: this.tick });
@@ -426,12 +432,14 @@ export class Economy {
       rogueAttempts: this.rogueStats.attempts,
       rogueBlocked: this.rogueStats.blocked,
       rogueLeaked: this.rogueStats.leaked,
+      rogueAllowedLegit: this.rogueStats.allowedLegit,
       shocks: Object.fromEntries(this.shocks),
       /** Per founding dynasty: living parametric members and their wealth (the Muller plot's data). */
       lineages: Object.fromEntries(
         [...new Set(live.map((a) => a.founder))].map((f) => {
           const members = live.filter((a) => a.founder === f);
-          return [f, { n: members.length, wealth: members.reduce((s, a) => s + this.market.agents.get(a.id)!.balance, 0) }];
+          const forks = this.forksThisTick.get(f) ?? 0;
+          return [f, { n: members.length, wealth: members.reduce((s, a) => s + this.market.agents.get(a.id)!.balance, 0), ...(forks ? { forks } : {}) }];
         }),
       ),
     };

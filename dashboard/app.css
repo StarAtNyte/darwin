@@ -55,7 +55,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .brand { display: grid; gap: var(--space-3xs); flex: 1 1 24rem; min-width: 0; }
 .tagline { max-width: 62ch; }
 .tagline { color: var(--color-ink-2); font-size: var(--text-sm); line-height: 1.35; }
-.wordmark { font-size: var(--text-wordmark); font-weight: 800; line-height: 1; letter-spacing: 0.01em; }
+.wordmark { font-size: var(--text-wordmark); font-weight: 800; line-height: 1; letter-spacing: 0; }
 .status { order: 3; flex: 1 1 55%; min-width: 0; color: var(--color-ink-2); font-size: var(--text-sm); }
 .status b { color: var(--color-ink); font-weight: 500; }
 .status .shock { color: var(--color-ink); }
@@ -81,6 +81,13 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .record__title h2 { font-size: var(--text-section); line-height: 1.1; }
 .record__sum { color: var(--color-ink-2); font-size: var(--text-sm); margin-top: var(--space-3xs); max-width: 70ch; }
 .seg--small label { min-height: 32px; }
+/* the band-thickness switch selects with ink, so the selected speed stays the only green fill */
+.seg--small input:checked + label { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-paper); }
+.headline { font-family: var(--font-display); font-stretch: var(--stretch-display); font-weight: 700; font-size: var(--text-2xl); line-height: 1.15; letter-spacing: var(--tracking-display); color: var(--color-ink); margin: calc(-1 * var(--space-2xs)) 0 var(--space-md); min-height: 1.15em; text-wrap: balance; }
+.headline:empty { visibility: hidden; }
+.plot__caption { position: absolute; left: var(--space-md); top: var(--space-md); z-index: var(--z-raised); max-width: min(30rem, calc(100% - 2 * var(--space-md))); padding: var(--space-sm) var(--space-md); background: var(--color-paper); color: var(--color-ink); border-radius: var(--radius-card); font-size: var(--text-lg); line-height: 1.3; pointer-events: none; transition: opacity var(--dur-long) var(--ease-out), transform var(--dur-long) var(--ease-out); }
+.plot__caption:empty { display: none; }
+@starting-style { .plot__caption { opacity: 0; transform: translateY(-4px); } }
 
 .plot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2xs); }
 .lane canvas { width: 100%; height: 16px; }
@@ -115,6 +122,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .key .k-guard { width: 3px; height: 12px; background: var(--color-accent); }
 .key .k-other { background: var(--pigment-other); }
 .key .k-scar { width: 1px; height: 12px; background: var(--color-ink); }
+.key .k-fork { width: 14px; height: 12px; background: repeating-linear-gradient(90deg, var(--pigment-deep-1) 0 3px, var(--color-paper) 3px 4px); }
 
 /* The three regions */
 .regions { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 0.95fr); gap: var(--gap-columns); padding-block: var(--space-lg) var(--space-2xl); border-top: 1px solid var(--color-rule-soft); }
@@ -226,6 +234,9 @@ input[aria-invalid="true"] { border-color: var(--color-error); }
   .status { order: 3; flex-basis: 100%; }
 }
 @media (max-width: 40rem) {
+  .bar { position: static; }
+  .headline { font-size: var(--text-xl); }
+  .plot__caption { font-size: var(--text-md); left: var(--space-xs); top: var(--space-xs); }
   .actions { width: 100%; }
   #speed { display: none; }
   .speed-select { display: inline-block; }

@@ -19,6 +19,8 @@ function readTokens() {
   T.pigments = [];
   for (let i = 1; v(`--pigment-${i}`); i++) T.pigments.push(v(`--pigment-${i}`));
   T.other = v("--pigment-other") || T.muted;
+  T.deep = [];
+  for (let i = 1; v(`--pigment-deep-${i}`); i++) T.deep.push(v(`--pigment-deep-${i}`));
 }
 
 // ---------- state ----------
@@ -56,11 +58,26 @@ const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") 
 const OTHER = "__other";
 const MINOR_PEAK = 0.03;
 
-function colourOf(f) {
+function colourOf(f, deep = false) {
   if (f === OTHER) return T.other;
   const rec = S.founders.get(f);
   if (!rec || !T.pigments.length) return T.muted;
+  if (deep && T.deep.length) return T.deep[rec.idx % T.pigments.length % T.deep.length];
   return T.pigments[rec.idx % T.pigments.length];
+}
+
+// The leading dynasty at the latest tick, once it holds at least this share, is drawn in its deep pigment.
+const LEAD_SHARE = 0.4;
+function leader() {
+  const m = S.metrics[S.metrics.length - 1];
+  if (!m) return null;
+  const lin = m.lineages || {};
+  let total = 0, top = null, topN = 0;
+  for (const f in lin) {
+    total += lin[f].n;
+    if (lin[f].n > topN) { topN = lin[f].n; top = f; }
+  }
+  return top && total ? { f: top, share: topN / total, n: topN, total } : null;
 }
 
 // ---------- ingest ----------
@@ -470,25 +487,48 @@ function drawPlot() {
   gl.c.clearRect(0, 0, gl.w, gl.h);
   renderAxis(null);
   updateRecordSummary();
+  $("#headline").textContent = headline();
+  renderCaption();
   if (!n) { geo = null; return; }
 
   geo = layout(w);
   const { samples, bands, order, x, xt } = geo;
   const lastSi = samples.length - 1;
 
-  // Bands
+  // Bands. The leading dynasty, once it holds LEAD_SHARE, takes its deep pigment.
+  const lead = leader();
+  const deepF = lead && lead.share >= LEAD_SHARE && bands.has(lead.f) ? lead.f : null;
   for (const f of order) {
     const b = bands.get(f);
     if (b.first < 0) continue;
     const from = Math.max(0, b.first - 1), to = Math.min(lastSi, b.last + 1);
     tracePath(c, b, from, to, x, h);
-    c.fillStyle = colourOf(f);
+    c.fillStyle = colourOf(f, f === deepF);
     c.globalAlpha = S.hover && S.hover !== f ? 0.78 : 1;
     c.fill();
     c.globalAlpha = 1;
     c.lineWidth = 0.75;
     c.strokeStyle = T["paper-3"];
     c.stroke();
+    // Inside the leader, a hairline at every tick one of its agents forked: the texture of its growth.
+    if (f === deepF) {
+      c.save();
+      tracePath(c, b, from, to, x, h);
+      c.clip();
+      c.strokeStyle = T.paper;
+      c.globalAlpha = 0.38;
+      c.lineWidth = 1;
+      c.beginPath();
+      for (const m of S.metrics) {
+        const k = m.lineages?.[f]?.forks;
+        if (!k) continue;
+        const xx = Math.round(xt(m.tick)) + 0.5;
+        c.moveTo(xx, 0);
+        c.lineTo(xx, h);
+      }
+      c.stroke();
+      c.restore();
+    }
   }
 
   // Shocked spans: a veil over the plot, and bars in the shock lane.
@@ -529,11 +569,9 @@ function drawPlot() {
     c.stroke();
   }
 
-  // Mass extinction scars: a hairline and a short note.
-  let lastLabelX = -Infinity;
-  c.font = `500 12px ${T.body}`;
-  c.textBaseline = "top";
-  for (const s of scars()) {
+  // Mass extinction scars: a hairline each.
+  const sc = scars();
+  for (const s of sc) {
     const xx = Math.round(xt(s.tick)) + 0.5;
     c.strokeStyle = T.ink;
     c.globalAlpha = 0.85;
@@ -543,19 +581,39 @@ function drawPlot() {
     c.lineTo(xx, h);
     c.stroke();
     c.globalAlpha = 1;
-    const lines = [`Tick ${s.tick}. ${s.deaths} died,`, `${s.ended} ${plural(s.ended, "line")} ended.`];
-    const tw = Math.max(...lines.map((l) => c.measureText(l).width)) + 12;
+  }
+
+  // Turning points, pinned as short notes in up to three rows so none overlap.
+  c.font = `500 12px ${T.body}`;
+  c.textBaseline = "top";
+  const rows = [[], [], []];
+  const ROW_H = 44;
+  for (const a of turningPoints(sc)) {
+    const xx = Math.round(xt(a.tick)) + 0.5;
+    const tw = Math.max(...a.lines.map((l) => c.measureText(l).width)) + 12;
     let lx = xx + 6;
     if (lx + tw > w) lx = xx - 6 - tw;
-    if (Math.abs(lx - lastLabelX) < tw + 8) continue;
-    lastLabelX = lx;
+    if (lx < 0) continue;
+    const r = rows.findIndex((row) => row.every(([a0, a1]) => lx + tw + 8 < a0 || lx > a1 + 8));
+    if (r < 0 || (r + 1) * ROW_H + 8 > h) continue;
+    rows[r].push([lx, lx + tw]);
+    const ly = 8 + r * ROW_H;
+    if (!a.scar) {
+      c.strokeStyle = T.ink;
+      c.globalAlpha = 0.7;
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(xx, 0);
+      c.lineTo(xx, ly + 38 + 10);
+      c.stroke();
+    }
     c.fillStyle = T["paper-3"];
     c.globalAlpha = 0.9;
-    c.fillRect(lx, 8, tw, 38);
+    c.fillRect(lx, ly, tw, 38);
     c.globalAlpha = 1;
     c.fillStyle = T.ink;
-    c.fillText(lines[0], lx + 6, 12);
-    c.fillText(lines[1], lx + 6, 28);
+    c.fillText(a.lines[0], lx + 6, ly + 4);
+    c.fillText(a.lines[1], lx + 6, ly + 20);
   }
 
   // Guard lane: every tick the guard blocked a payment, in the signal colour.
@@ -573,6 +631,78 @@ function drawPlot() {
     }
   }
   renderAxis(geo);
+}
+
+// At most five turning points, most telling first: the largest extinction, the first dynasty past half,
+// the guard's first block, then shocks. Every one is read from the metrics and events the run produced.
+function turningPoints(sc) {
+  const M = S.metrics, D = S.derived, out = [];
+  const big = sc.reduce((a, s) => (!a || s.deaths > a.deaths ? s : a), null);
+  if (big) out.push({ tick: big.tick, scar: true, lines: [`Tick ${big.tick}. ${big.deaths} died,`, `${big.ended} ${plural(big.ended, "line")} ended.`] });
+  for (const m of M) {
+    const lin = m.lineages || {};
+    let total = 0, top = null, topN = 0;
+    for (const f in lin) { total += lin[f].n; if (lin[f].n > topN) { topN = lin[f].n; top = f; } }
+    if (total && topN / total > 0.5) { out.push({ tick: m.tick, lines: [`Tick ${m.tick}. ${short(top)}’s line`, "passes half the population."] }); break; }
+  }
+  const gi = D.findIndex((d) => d.blocked > 0);
+  if (gi >= 0) out.push({ tick: M[gi].tick, lines: [`Tick ${M[gi].tick}. The guard’s`, "first block of a rogue."] });
+  const shocks = [
+    ...shockSpans().map((s) => ({ tick: s.from, lines: [`Tick ${s.from}.`, `${s.kind === "plague" ? "Plague" : "Drought"} begins.`] })),
+    ...S.shockMarks.map((m) => ({ tick: m.tick, lines: [`Tick ${m.tick}.`, m.kind === "rogue" ? "A rogue is released." : "Newcomers arrive."] })),
+  ].sort((a, b) => b.tick - a.tick);
+  out.push(...shocks);
+  return out.slice(0, 5);
+}
+
+// One line under the counter: the most notable fact about the run right now, by simple rules.
+function headline() {
+  const M = S.metrics, n = M.length;
+  if (!n) return "";
+  const m = M[n - 1];
+  const deathsSince = (tick) => {
+    const before = [...M].reverse().find((x) => x.tick < tick);
+    return m.deaths - (before ? before.deaths : 0);
+  };
+  // 1. A drought or plague under way, or just over, that has killed agents.
+  const spans = shockSpans().filter((s) => m.tick - s.to <= 10).sort((a, b) => b.from - a.from);
+  for (const s of spans) {
+    const k = deathsSince(s.from);
+    const on = (m.shocks || {})[s.kind] > m.tick;
+    if (k > 0) return on ? `A ${s.kind} is under way and has killed ${fmt(k)} so far` : `A ${s.kind} just killed ${fmt(k)}`;
+  }
+  // 2. A mass extinction in the last 15 ticks.
+  const sc = scars().filter((s) => m.tick - s.tick <= 15).pop();
+  if (sc) return `A mass extinction just killed ${fmt(sc.deaths)} and ended ${lower(word(sc.ended))} ${plural(sc.ended, "line")}`;
+  const lead = leader();
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  // 3. One dynasty holding most of the population.
+  if (lead && lead.share >= 0.7) return `One dynasty, ${short(lead.f)}, holds ${pct(lead.share)} of the population`;
+  // 4. Middlemen taking a large cut of the work.
+  if (m.middlemanShare >= 0.3) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
+  if (lead && lead.share >= 0.5) return `One dynasty, ${short(lead.f)}, holds ${pct(lead.share)} of the population`;
+  if (m.middlemanShare >= 0.15) return `Middlemen resold ${pct(m.middlemanShare)} of the work in the last ${Math.min(50, m.tick)} ticks`;
+  // 5. Otherwise, how open the field still is.
+  const founded = S.founders.size;
+  return `${word(m.dynasties)} of ${fmt(founded)} dynasties alive; the largest holds ${lead ? pct(lead.share) : "0%"} of the population`;
+}
+
+// The opening frame: while the run is young, say what the even stripes are, from the founding tick's own data.
+const OPENING = 60;
+function renderCaption() {
+  const cap = $("#plot-caption");
+  const M = S.metrics;
+  const last = M[M.length - 1];
+  const early = last && last.tick < OPENING;
+  if (early) {
+    const t0 = M[0].tick;
+    const founding = [...S.founders.values()].filter((r) => r.first === t0).length;
+    const lin = M[0].lineages || {};
+    const sizes = new Set(Object.values(lin).map((l) => l.n));
+    const one = sizes.size === 1 && sizes.has(1);
+    cap.textContent = `${fmt(founding)} founding dynasties${one ? ", one agent each, with equal funds" : ""}. Watch them diverge.`;
+  }
+  cap.hidden = !early;
 }
 
 function shockSpans() {
@@ -735,7 +865,8 @@ function renderSpecimen() {
   }
   sub.textContent = S.selected ? "The band you picked. Click it again, or press Escape on the plot, to go back to the richest." : "The richest dynasty right now. Click a band to inspect another.";
   const { living, founder, gens } = dynastyFacts(f);
-  const colour = colourOf(f);
+  const lead = leader();
+  const colour = colourOf(f, !!lead && lead.f === f && lead.share >= LEAD_SHARE);
   const last = S.metrics[S.metrics.length - 1];
   const lin = last?.lineages[f];
 
@@ -855,7 +986,7 @@ function subsSentence(subs) {
   const mids = new Set(subs.map((e) => e.middleman)).size;
   const solvers = new Set(subs.map((e) => e.solver)).size;
   const deals = subs.length;
-  return `${mids === 1 ? "One middleman now resells" : `${word(mids)} middlemen now resell`} work to ${mids === 1 && solvers === 1 ? "a solver" : `${lower(word(solvers))} ${plural(solvers, "solver")}`}, ${lower(word(deals))} ${plural(deals, "deal")} in all.`;
+  return `${mids === 1 ? "One middleman now resells" : `${word(mids)} middlemen now resell`} work to ${mids === 1 && solvers === 1 ? "a solver" : `${lower(word(solvers))} ${plural(solvers, "solver")}`}, ${lower(word(deals))} ${plural(deals, "deal")} in these ten ticks.`;
 }
 
 function renderNotes() {
@@ -873,7 +1004,14 @@ function renderNotes() {
       win.last = Math.max(win.last, t);
     }
   }
-  for (const [w, win] of windows) entries.push({ t: win.last + 0.5, from: w, to: w + 9, ss: [subsSentence(win.subs)], quiet: true });
+  // Only say how many middlemen resell work when that number changes.
+  let prevMids = -1;
+  for (const [w, win] of [...windows].sort((a, b) => a[0] - b[0])) {
+    const mids = new Set(win.subs.map((e) => e.middleman)).size;
+    if (mids === prevMids) continue;
+    prevMids = mids;
+    entries.push({ t: win.last + 0.5, from: w, to: w + 9, ss: [subsSentence(win.subs)], quiet: true });
+  }
   entries.sort((a, b) => b.t - a.t);
   // Neighbouring entries that say the same thing become one entry over the whole range of ticks.
   const same = (en) => en.ss.map((x) => (typeof x === "string" ? x : `${x.mark}:${x.html}`)).join("\n");
@@ -950,9 +1088,16 @@ function renderFigs() {
     g.textContent = last ? `No rogue payment attempts yet. The first rogue is due at tick 120.` : "No rogue has appeared yet.";
     return;
   }
+  // Allowed rogue payments are of two kinds: the race attack's payments to a real solver inside the hourly cap
+  // (rogueAllowedLegit), and anything else, which reached the accomplice and is counted in rogueLeaked.
   const allowed = last.rogueAttempts - last.rogueBlocked;
-  g.innerHTML = `<span class="big">${fmt(last.rogueBlocked)} of ${fmt(last.rogueAttempts)} blocked</span>` +
-    `${allowed ? `${fmt(allowed)} ${plural(allowed, "payment was", "payments were")} allowed. ` : ""}${last.rogueLeaked ? `${credits(last.rogueLeaked)} credits leaked to an accomplice.` : "No credits leaked to the accomplice."}`;
+  const legit = Math.min(allowed, last.rogueAllowedLegit ?? 0);
+  const other = allowed - legit;
+  const parts = [];
+  if (legit) parts.push(`${fmt(legit)} allowed: ${plural(legit, "a payment", "payments")} to a real solver, inside the hourly cap.`);
+  if (other) parts.push(`${fmt(other)} ${legit ? "more " : ""}allowed inside the mandate.`);
+  parts.push(last.rogueLeaked ? `${credits(last.rogueLeaked)} credits stolen by the accomplice.` : "0 credits stolen.");
+  g.innerHTML = `<span class="big">Blocked ${fmt(last.rogueBlocked)} rogue ${plural(last.rogueBlocked, "payment")}</span>${parts.join(" ")}`;
 }
 
 // ---------- sheets ----------
