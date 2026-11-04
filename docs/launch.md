@@ -2,10 +2,11 @@
 
 ## X post (draft, ≤280 chars)
 
-What happens when AI agents run an economy with no one in charge?
+What happens when AI agents run their own economy?
 
-DARWIN: agents bid for work, go broke, die, and fork mutated children. Middlemen appear on their own. A rogue agent tries to steal, and a guard stops it live.
+DARWIN: agents bid for work, go broke, die, and fork mutated children. A rogue agent tries to steal, and a guard stops it live.
 
+Watch it live: near-darwin.fly.dev
 On @NEARProtocol #NEARHackathon
 
 Attach: docs/demo.mp4
