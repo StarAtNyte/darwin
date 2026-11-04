@@ -10,3 +10,4 @@ dist/
 .chain-state.json
 results/*.sqlite
 *.sqlite-*
+!.env.example

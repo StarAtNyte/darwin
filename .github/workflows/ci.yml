@@ -1,0 +1,26 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  sim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: darwin }
+      # DARWIN imports SIEGE as a sibling package. While the repos are private this needs a
+      # SIEGE_READ_TOKEN secret (fine-grained, read-only on near-siege); once public it is not needed.
+      - uses: actions/checkout@v4
+        with:
+          repository: StarAtNyte/near-siege
+          path: siege
+          token: ${{ secrets.SIEGE_READ_TOKEN || github.token }}
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: cd siege && npm ci
+      - run: cd darwin/sim && npm ci && npm test && npx tsc --noEmit
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - run: cd contract && cargo test --quiet && make build
