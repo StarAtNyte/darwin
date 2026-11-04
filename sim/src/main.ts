@@ -11,6 +11,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? "127.0.0.1";
 const MAX_TICKS = Number(process.env.TICKS ?? 2000);
+// Public deployments share one run between all visitors. Opt-in: start a fresh seed this long after a run finishes,
+// and resume a run someone paused and walked away from. 0 (the default) keeps both off.
+const AUTO_RESTART_MS = Number(process.env.AUTO_RESTART_SEC ?? 0) * 1000;
+const AUTO_RESUME_MS = Number(process.env.AUTO_RESUME_SEC ?? 0) * 1000;
 const DASH_DIR = path.resolve(here, "../../dashboard");
 const DB_PATH = process.env.DARWIN_DB ?? path.resolve(here, "../darwin.sqlite");
 const SPEEDS = [1000, 300, 120, 40]; // ms per tick: slow, normal, fast, fastest
@@ -146,7 +150,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && p === "/api/control") {
       const b = await body(req);
-      if (b.action === "pause") run.paused = true;
+      if (b.action === "pause") (run.paused = true), (pausedAt = Date.now());
       else if (b.action === "resume") run.paused = false;
       else if (b.action === "speed") {
         const s = Number(b.value);
@@ -199,9 +203,22 @@ server.listen(PORT, HOST, () => {
   console.log(`DARWIN: http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}   seed ${run.seed}, ${MAX_TICKS} ticks, log ${DB_PATH}`);
 });
 
+let pausedAt = 0, finishedAt = 0;
 async function loop() {
   for (;;) {
     const t0 = Date.now();
+    if (AUTO_RESUME_MS && run.paused && pausedAt && t0 - pausedAt > AUTO_RESUME_MS) {
+      run.paused = false;
+      pausedAt = 0;
+      broadcast("state", run.state());
+    }
+    if (run.eco.tick >= MAX_TICKS) {
+      finishedAt ||= t0;
+      if (AUTO_RESTART_MS && t0 - finishedAt > AUTO_RESTART_MS) {
+        finishedAt = 0;
+        run.reset((run.seed + 1) >>> 0);
+      }
+    } else finishedAt = 0;
     if (!run.paused && run.eco.tick < MAX_TICKS) {
       try {
         await run.step();
