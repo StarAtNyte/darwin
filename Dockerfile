@@ -1,7 +1,7 @@
 FROM node:22-slim
 WORKDIR /app
 COPY vendor ./vendor
-COPY sim/package.json sim/package-lock.json ./sim/
+COPY sim/package.json sim/package-lock.json sim/.npmrc ./sim/
 RUN cd sim && npm ci && npm cache clean --force
 COPY sim/tsconfig.json ./sim/
 COPY sim/src ./sim/src
