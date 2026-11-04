@@ -1,0 +1,22 @@
+{
+  "name": "darwin-sim",
+  "version": "0.1.0",
+  "description": "DARWIN economy runtime: agents bid, subcontract, die and fork; payments guarded by SIEGE; live SSE dashboard and NEAR testnet checkpoints.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "demo": "tsx src/main.ts",
+    "headless": "tsx src/headless.ts",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
+    "near-api-js": "^7.4.0",
+    "siege": "file:../../siege"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
