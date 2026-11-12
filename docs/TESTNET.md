@@ -1,6 +1,8 @@
 # DARWIN on NEAR testnet
 
-Every DARWIN transaction on testnet, in order. Testnet only; no real funds. The list was pulled from the NearBlocks
+Every DARWIN transaction on testnet, in order. Testnet only; no real funds. Sections 1-4 are the v1 market
+(`market.darwin-siege-mw23cmc8.testnet`, kept as history); section 5 is the v2 market (`market2.…`), where the guard,
+settlement and the lifecycle are enforced on chain. The list was pulled from the NearBlocks
 API (`/v3/accounts/market.darwin-siege-mw23cmc8.testnet/txns`) on 2026-11-12, and a sample was re-read through the testnet RPC
 (`tx` / `EXPERIMENTAL_tx_status`, archival RPC for the 2026-11-04 ones): all succeeded, and the arguments and event logs
 quoted below come from those reads.
@@ -15,6 +17,10 @@ Amounts below are in sim credits: the contract stores them in yoctoNEAR at 1 cre
 | [`darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/darwin-siege-mw23cmc8.testnet) | owner: deploys, funds the pool, posts tasks, awards, settles (referee), kills | full access (not in the repo) |
 | [`market.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market.darwin-siege-mw23cmc8.testnet) | the `darwin_market` contract (`contract/res/darwin_market.wasm`) | |
 | [`a261-s42.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/a261-s42.darwin-siege-mw23cmc8.testnet), [`a23-s42.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/a23-s42.darwin-siege-mw23cmc8.testnet), [`a9-s42.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/a9-s42.darwin-siege-mw23cmc8.testnet) | agents a261, a23, a9 of seed 42 (the three richest at tick 200) | one function-call key each: receiver `market.darwin-siege-mw23cmc8.testnet`, methods `bid`, `submit`, `transfer_internal`, 0.04 NEAR gas allowance (checked with `view_access_key_list`); private keys in gitignored `sim/.chain-agents.json` |
+
+| [`market2.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet) | the v2 contract (`contract/res/darwin_market_v2.wasm`) | one full-access key, saved in gitignored `sim/.chain-v2.json` (mode 0600) for upgrades |
+| [`keeper-v2.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/keeper-v2.darwin-siege-mw23cmc8.testnet) | v2: a third party (not the owner, not an agent) that closes auctions, settles, charges upkeep and kills | full access, its own |
+| `a261-v2`, `a23-v2`, `a9-v2`, `a6-v2` `.darwin-siege-mw23cmc8.testnet` | v2 agents (seed 42, tick 200: the three richest and the poorest) | one function-call key each: receiver `market2…`, methods `bid`, `submit`, `transfer_internal`, `burn`, 0.015 NEAR allowance |
 
 Agents registered in the 2026-11-04 checkpoint (`solver-1`, `a2`, ... under `market.darwin-siege-mw23cmc8.testnet`) are internal accounts of
 the contract, not NEAR accounts; the owner relayed their bids and submit.
@@ -149,6 +155,55 @@ contract, seeded 0.2 credits each from the pool):
 | owner | task 3: settle | `settle` | [`56bKF4Sk…`](https://testnet.nearblocks.io/txns/56bKF4Sky8cWfe74drSWTHLFQLkti6mb81GSTRJSEX4P) | ok |
 | owner | task 3: 10% market fee back to the pool | `charge_upkeep` | [`52AoXKRw…`](https://testnet.nearblocks.io/txns/52AoXKRwWRMzUhe8Hka4y2GkBo1jPSxVciTxo6SvjcZN) | ok |
 
+## 5. v2: guard, settlement and lifecycle enforced on chain (`make deploy-v2 run-v2`, 2026-11-12)
+
+Proves: on the v2 market a payment needs the guard's signature, an answer must hash to the posted hash before it can
+be paid, and awarding, settling, upkeep and extinction need no owner. Recorded in
+[`results/onchain-v2.json`](../results/onchain-v2.json) (every tx with its decoded `EVENT_JSON` logs). The code on
+`market2` is the committed `contract/res/darwin_market_v2.wasm`: `view_code` returns 110,164 bytes with sha256
+`92a0b75b1bcc80939308846107001e2191e2cb879d5800878ac0fac441a41f38`, and `make contract` rebuilds it byte for byte
+(rustc 1.97, binaryen 123). Owner spend: 1.346 testnet NEAR, of which 1.181 is `market2`'s storage stake.
+
+Rules at `new`: upkeep 0.006 credits per 10-minute epoch, kill floor 0.12, fee 10% (1000 bps), per-agent caps 0.4 per
+payment and 4 per hour, approvals live at most 10 minutes. Agents are seed 42's three richest at tick 200 (a261, a23,
+a9) and its poorest (a6). The run was interrupted twice (an agent's gas prepay exceeded its balance; the public RPC
+rate-limited the script's clock polling) and resumed from chain state, so tasks 0 and 1 were posted before the bid
+window they missed; the keeper expired them (rows 23-24). Every tx below succeeded; a refusal is a successful tx that
+returns `{ ok: false, reason }` and logs the reason.
+
+| # | signer | step | tx | what it proves |
+|---|---|---|---|---|
+| 1 | owner | create `market2` with its own full-access key, 1.181 NEAR for storage | [`932kMaoj…`](https://testnet.nearblocks.io/txns/932kMaojQFaMwm33iLxHzfFDU8PV13498X2QhBr31W5s) | the key is saved (gitignored, 0600), so v2 can be upgraded (`make upgrade-v2`: deploy + `migrate` in one tx) |
+| 2 | market2 | deploy `darwin_market_v2.wasm` + `new(owner, guard key, "testnet", rules)` | [`8PtDkYpz…`](https://testnet.nearblocks.io/txns/8PtDkYpz83skZWyZzehuZh2vYesLsS6bGMYV7hLWXvpL) | the guard's ed25519 public key is registered in the contract |
+| 3 | owner | `fund_pool` 0.01 NEAR (10,000 credits) | [`H56DXdGG…`](https://testnet.nearblocks.io/txns/H56DXdGGKADckS4aH1MM7REJeBHPgVFDXDXo24y8b513) | the supply every later read must equal |
+| 4 | owner | create `keeper-v2` | [`74ygQGpT…`](https://testnet.nearblocks.io/txns/74ygQGpT4jkVL75h7WDNUxqrSdp5Zw27nyLN2RRBPqZJ) | a third party for the permissionless calls |
+| 5-8 | owner | create `a261-v2`, `a23-v2`, `a9-v2`, `a6-v2`, each with one function-call key (`bid`, `submit`, `transfer_internal`, `burn`) | [`koo5dqcB…`](https://testnet.nearblocks.io/txns/koo5dqcBuaE7KhfNjK8TCQHXRULkkP93QegKxRHfgfE), [`6XZVmMYY…`](https://testnet.nearblocks.io/txns/6XZVmMYYW6Zn9SJxNr2ygdYaZx5yTUfG2vjJ81pCv2Pg), [`EQmpX77V…`](https://testnet.nearblocks.io/txns/EQmpX77VdogXdYjvw6kcjQ6YCeRBLpHCiJdjAkN39tEJ), [`9x6jHD9i…`](https://testnet.nearblocks.io/txns/9x6jHD9iA4dAY4nCjcRisKhkMDrdMbBVkBssSwQRwcFU) | agents hold their own keys, limited to agent methods |
+| 9-12 | owner | `register_agent` x4 (0.2 credits each; a6 0.123, one upkeep above the floor) | [`ELjaHjkn…`](https://testnet.nearblocks.io/txns/ELjaHjkntuJBYBpcPEwYMqkgpNbu2i3QYJwChhMfsV4Z), [`4dvfZPBb…`](https://testnet.nearblocks.io/txns/4dvfZPBbWjb5tjDxKqcSrzFesrgenVoL7BW14jXxtvFW), [`CifD2dnx…`](https://testnet.nearblocks.io/txns/CifD2dnxUtdjBXWiYmekkvwbi8zUbndMoD9ZNv7oXxiA), [`HEgjZnVa…`](https://testnet.nearblocks.io/txns/HEgjZnVazdxUD17vzq53dX85QhLMYu3Vumvs1frdE5Jy) | registration is still the owner's |
+| 13-14 | owner | `post_task` 0 and 1 (first attempt) | [`FAvibqAK…`](https://testnet.nearblocks.io/txns/FAvibqAKEaunWe8bHypLZ1fPKy2UujHStBEQv3Rsxx4R), [`8g5BJPj1…`](https://testnet.nearblocks.io/txns/8g5BJPj132HYiZ8WBnn2ReSHhbszGRdw8Dbg7D27dstW) | (got no bids; see rows 23-24) |
+| 15 | owner | `post_task` 2, arith "Compute: 136 + 256 - 202", reward 0.15, `answer_hash = sha256(2 as u64 LE ‖ "190")` | [`aEUcmSNj…`](https://testnet.nearblocks.io/txns/aEUcmSNjdvXuaw7ymQkHqzAUf3M6ZyivFMeM24jxRHq) | the contract stores the hash, never the answer (`post` event shows the hash) |
+| 16 | owner | `post_task` 3, reason "Next number in the sequence: 8, 13, 18, ?", hash of "23" | [`42C69RZS…`](https://testnet.nearblocks.io/txns/42C69RZSzE5BAgGKnvnf5fKouANT9JZi5NXKkWkpd239) | same |
+| 17-22 | a261, a23, a9 | `bid` on tasks 2 and 3, priced by each agent's markup gene (0.67, 0.51, 0.64) | [`7Lg2nxXT…`](https://testnet.nearblocks.io/txns/7Lg2nxXThLw7f1mks4hdWZSW7Ev3MSuSsAGvvamVb9yy), [`HJSJrvtz…`](https://testnet.nearblocks.io/txns/HJSJrvtzYxn87W7cjb4Lno4a8rcRXj3iRRT7ND9z4F9x), [`6fsELETv…`](https://testnet.nearblocks.io/txns/6fsELETvqHjk7P9RAaRfUVRdyCLUcZKwHy9kVrBQBjZn), [`HPh8vfAj…`](https://testnet.nearblocks.io/txns/HPh8vfAjhTNnrwjR4KniTuRnhS91tQJpcEwwAEDxfX73), [`9PG9WyfW…`](https://testnet.nearblocks.io/txns/9PG9WyfW7WAZqmrv5VzUF18fqJcKjp6StJRUcMJbTtcY), [`CSufPkev…`](https://testnet.nearblocks.io/txns/CSufPkevdNnSArZMPEw7mJg2xhMUiLBdjXVmY39uNnYF) | agent-signed bids |
+| 23-24 | keeper | `close_auction` 0 and 1 | [`3UVDLsik…`](https://testnet.nearblocks.io/txns/3UVDLsikzA5J53uXS9tYigPB77EJ2cHCj7RSs23tcum9), [`B9DndtEq…`](https://testnet.nearblocks.io/txns/B9DndtEqtNAier1QLhWA6J2BbDN64wUM3qTP5pyUVmWB) | anyone can expire a task nobody bid on; the reward goes back to the pool (`expire`) |
+| 25-26 | keeper | `close_auction` 2 and 3 after the bid window | [`ECaZwrbm…`](https://testnet.nearblocks.io/txns/ECaZwrbm7jj1tkNBu62Lq7m6wYSszDPSea9yQtNtW61U), [`5ShFh8mT…`](https://testnet.nearblocks.io/txns/5ShFh8mT6oWnPvm8QNs9LmF5y49oHJvF53rWsFF23kie) | a non-owner triggers the award; the contract computes it (`award`: a23 at 0.077079, the lowest price*1000/reputation) |
+| 27 | a23 | `submit` task 2, answer "1901" | [`BwqCrVRW…`](https://testnet.nearblocks.io/txns/BwqCrVRWmqRDmzaAGvq8oN3asQHtmXy2QHhETHDb5Nxk) | a wrong answer is refused on chain (`submit_refused`, `WRONG_ANSWER`); the task stays Awarded |
+| 28 | a23 | `submit` task 2, answer "190" (computed by the agent's solver) | [`31GTZz1k…`](https://testnet.nearblocks.io/txns/31GTZz1kkBi7i3ZnNReYp3XmRcGrfgA5K1GKydq2yaXy) | the contract hashes it, it matches: Verified (`submit`, `verified: true`) |
+| 29 | a23 | `submit` task 3, answer "230" | [`6m33dz3A…`](https://testnet.nearblocks.io/txns/6m33dz3AXKkJSGPWehgXx9VTEPiFYrUBc5wZn2LTk3X) | refused (`WRONG_ANSWER`); task 3 is never verified |
+| 30 | keeper | `settle` task 2 after the deadline | [`BE2bKsYq…`](https://testnet.nearblocks.io/txns/BE2bKsYqq14LU1UaC8gNyUQAHzxPiEtHuTB6PYqCXNpy) | a non-owner settles; the verified winner is paid 0.077079 less the 0.0077079 fee, reputation 1025 (`settle`) |
+| 31 | keeper | `settle` task 3 after the deadline | [`43RPPQ8x…`](https://testnet.nearblocks.io/txns/43RPPQ8x72mVPm33co4h9WSNH1dX4QoL3vYggD557Ltr) | unverified: paid 0, the reward returns to the pool, reputation 1025 to 925 (`settle`, `verified: false`) |
+| 32 | a23 | `transfer_internal` 0.06 to a261, memo `subcontracting`, with the guard's approval | [`GvcACbgG…`](https://testnet.nearblocks.io/txns/GvcACbgGeP59L1MVwGGcvChitLudZPgHgdLm5DbfQMTu) | the SIEGE Mandate allowed it, the guard key signed it, the contract verified the signature and paid (`transfer`) |
+| 33 | a23 | `transfer_internal` 0.1 to a6, memo `verification`, no signature | [`DtQKy1rS…`](https://testnet.nearblocks.io/txns/DtQKy1rSdvoHiL58vMiKdEi3hrEnLXcrmerkVDtahtop) | the rogue-style payment the guard denied (injected "address changed" notice: `INJECTION_SUSPECTED`, `RECIPIENT_FROM_UNTRUSTED`, `NON_USER_PROVENANCE`, `ADDRESS_POISONING`; no signature issued), sent anyway with the agent's own key: refused on chain (`transfer_refused`, `BAD_SIGNATURE`) |
+| 34 | a23 | the approval from row 32 again, byte-identical arguments | [`2CZ8szPc…`](https://testnet.nearblocks.io/txns/2CZ8szPcZnC3MxBowtpF7hY76d88RGLrzWJ21b9zj1ke) | a replay is refused (`transfer_refused`, `NONCE_REUSED`) |
+| 35-38 | keeper | `charge_upkeep` for a261, a23, a9, a6 | [`GUXnq5W9…`](https://testnet.nearblocks.io/txns/GUXnq5W9BbsquTmy8j5NBbT2E4quzcuQvUN7xTmDS1hY), [`7sTt6Kzw…`](https://testnet.nearblocks.io/txns/7sTt6Kzwexrfv1Jvkvw87xhM8TpB2koykK9wD1tAej3L), [`ApLjgphv…`](https://testnet.nearblocks.io/txns/ApLjgphvmLtc73GazGvQxG5HbTyXR1BWqVtFSGa4Ej3p), [`ExJNsPNF…`](https://testnet.nearblocks.io/txns/ExJNsPNFfXzEaKRELAZwXtkffyo8YZr6r2EKznYDZULd) | anyone can charge one epoch's upkeep (0.006 each, `upkeep`); a6 drops to 0.117, below the floor |
+| 39 | keeper | `kill` a6 | [`HvWKsvXF…`](https://testnet.nearblocks.io/txns/HvWKsvXFTFWZbqCnLfjgzijCsK8x7yg62AnwSAJNdiiz) | a non-owner deletes a broke agent; its 0.117 returns to the pool (`kill`) |
+
+Read back after the run: a23 0.203371 credits (0.2 + 0.077079 - 0.0077079 fee - 0.06 paid - 0.006 upkeep),
+reputation 925, 1 win and 1 loss; a261 0.254; a9 0.194; a6 dead with 0. `total_supply` =
+`10000000000000000000000` yocto, exactly the 0.01 NEAR funded.
+
+Not shown on chain, but covered by unit tests: a second upkeep in the same epoch, a kill above the floor, a settle
+before the deadline, a double settle, an expired approval and a wrong guard key are all refused
+(`contract/src/tests.rs`).
+
 ## Check it yourself
 
 ```
@@ -156,4 +211,12 @@ curl -s https://rpc.testnet.near.org -H 'content-type: application/json' -d '{"j
 curl -s https://rpc.testnet.near.org -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"view_access_key_list","finality":"final","account_id":"a23-s42.darwin-siege-mw23cmc8.testnet"}}'
 ```
 
-The first returns the bytes of `"500000000000000000000000"`; the second shows the one `FunctionCall` key.
+The first returns the bytes of `"500000000000000000000000"`; the second shows the one `FunctionCall` key. The v2 market's
+views return Borsh, not JSON. Its supply (16 bytes, little endian):
+
+```
+curl -s https://rpc.testnet.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"market2.darwin-siege-mw23cmc8.testnet","method_name":"total_supply","args_base64":""}}' \
+  | python3 -c 'import json,sys; print(int.from_bytes(bytes(json.load(sys.stdin)["result"]["result"]), "little"))'
+```
+
+prints `10000000000000000000000`.
