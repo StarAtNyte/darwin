@@ -13,12 +13,13 @@ jobs:
       # The same command the README gives: sim tests, typecheck, contract tests.
       - run: make test
       - run: make contract
-      # No key on the runner: seeds are Gaussian and the ablation replays the committed Claude answers,
-      # so both must regenerate the committed results byte for byte.
+      # No key on the runner: seeds and the wind tunnel are Gaussian and the ablation replays the committed Claude
+      # answers, so all three must regenerate the committed results byte for byte.
       - name: results reproduce without a key
         run: |
           make seeds > /dev/null
           make ablation > /dev/null
+          make windtunnel > /dev/null
           git diff --exit-code results/
       - name: server boots and answers
         run: |
