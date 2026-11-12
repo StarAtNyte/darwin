@@ -1,5 +1,5 @@
 
-.PHONY: sync-siege install demo headless seeds ablation windtunnel test contract deploy checkpoint agents windtunnel-onchain
+.PHONY: sync-siege install demo headless seeds ablation windtunnel test contract deploy checkpoint agents windtunnel-onchain deploy-v2 run-v2 upgrade-v2
 install:
 	cd sim && npm install
 sync-siege:      ## refresh vendor/siege from a SIEGE checkout (default ../siege)
@@ -17,9 +17,16 @@ windtunnel:      ## 6 market rule sets x 10 seeds, no LLM: outcomes and paired t
 test:
 	cd sim && node --import tsx --test test/*.test.ts && npx tsc --noEmit
 	cd contract && cargo test --quiet
-contract:
+contract:        ## builds contract/res/darwin_market_v2.wasm
 	cd contract && $(MAKE) build
-deploy:          ## needs NEAR_ACCOUNT + NEAR_PRIVATE_KEY (testnet)
+deploy-v2:       ## v2 market at market2.<NEAR_ACCOUNT>; keys to sim/.chain-v2.json (gitignored, 0600)
+	cd sim && node --import tsx src/chain2.ts deploy
+run-v2:          ## one autonomous lifecycle on the v2 market -> results/onchain-v2.json
+	cd sim && node --import tsx src/chain2.ts run
+upgrade-v2:      ## redeploy contract/res/darwin_market_v2.wasm and call migrate() with the saved market key
+	cd sim && node --import tsx src/chain2.ts upgrade
+# v1 targets below run against the v1 market (market.<NEAR_ACCOUNT>), kept as history.
+deploy:          ## v1; needs NEAR_ACCOUNT + NEAR_PRIVATE_KEY (testnet)
 	cd sim && node --import tsx src/chain.ts deploy
 checkpoint:
 	cd sim && node --import tsx src/chain.ts checkpoint 300

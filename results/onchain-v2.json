@@ -1,0 +1,440 @@
+{
+  "marketId": "market2.darwin-siege-mw23cmc8.testnet",
+  "owner": "darwin-siege-mw23cmc8.testnet",
+  "deployedAt": "2026-11-12T09:13:11.358Z",
+  "wasmBytes": 110164,
+  "guardPublicKey": "ed25519:652RZNVMdDcrfQJmAb1adJGGGsJhMXtj3UnZS9tGr5kV",
+  "rules": {
+    "upkeep": "6000000000000000",
+    "epochNs": "600000000000",
+    "floor": "120000000000000000",
+    "feeBps": "1000",
+    "perTxCap": "400000000000000000",
+    "windowCap": "4000000000000000000",
+    "windowNs": "3600000000000",
+    "maxTtlNs": "600000000000"
+  },
+  "deploy": [
+    {
+      "step": "create market2.darwin-siege-mw23cmc8.testnet (its own full-access key, saved), transfer 1.181 NEAR for storage",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "hash": "932kMaojQFaMwm33iLxHzfFDU8PV13498X2QhBr31W5s"
+    },
+    {
+      "step": "deploy darwin_market_v2.wasm (110164 bytes) + new(owner, guard key, \"testnet\", rules)",
+      "signer": "market2.darwin-siege-mw23cmc8.testnet",
+      "hash": "8PtDkYpz83skZWyZzehuZh2vYesLsS6bGMYV7hLWXvpL"
+    },
+    {
+      "step": "fund_pool 0.01 NEAR (10,000 sim credits)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "hash": "H56DXdGGKADckS4aH1MM7REJeBHPgVFDXDXo24y8b513"
+    }
+  ],
+  "txs": [
+    {
+      "step": "create the keeper: an ordinary account that is not the owner and not an agent",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "74ygQGpT4jkVL75h7WDNUxqrSdp5Zw27nyLN2RRBPqZJ",
+      "proves": "the permissionless calls below come from a third party"
+    },
+    {
+      "step": "create agent a261 with one function-call key (market2: bid, submit, transfer_internal, burn)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "koo5dqcBuaE7KhfNjK8TCQHXRULkkP93QegKxRHfgfE",
+      "proves": "agents hold their own keys, limited to agent methods"
+    },
+    {
+      "step": "create agent a23 with one function-call key (market2: bid, submit, transfer_internal, burn)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "6XZVmMYYW6Zn9SJxNr2ygdYaZx5yTUfG2vjJ81pCv2Pg",
+      "proves": "agents hold their own keys, limited to agent methods"
+    },
+    {
+      "step": "create agent a9 with one function-call key (market2: bid, submit, transfer_internal, burn)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "EQmpX77VdogXdYjvw6kcjQ6YCeRBLpHCiJdjAkN39tEJ",
+      "proves": "agents hold their own keys, limited to agent methods"
+    },
+    {
+      "step": "create agent a6 with one function-call key (market2: bid, submit, transfer_internal, burn)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "9x6jHD9iA4dAY4nCjcRisKhkMDrdMbBVkBssSwQRwcFU",
+      "proves": "agents hold their own keys, limited to agent methods"
+    },
+    {
+      "step": "register a261 (seed 0.2 credits)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "register_agent",
+      "hash": "ELjaHjkntuJBYBpcPEwYMqkgpNbu2i3QYJwChhMfsV4Z",
+      "proves": "owner-only: registration stays with the owner"
+    },
+    {
+      "step": "register a23 (seed 0.2 credits)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "register_agent",
+      "hash": "4dvfZPBbWjb5tjDxKqcSrzFesrgenVoL7BW14jXxtvFW",
+      "proves": "owner-only: registration stays with the owner"
+    },
+    {
+      "step": "register a9 (seed 0.2 credits)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "register_agent",
+      "hash": "CifD2dnxUtdjBXWiYmekkvwbi8zUbndMoD9ZNv7oXxiA",
+      "proves": "owner-only: registration stays with the owner"
+    },
+    {
+      "step": "register a6 (seed 0.123 credits: one upkeep above the 0.12 floor)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "register_agent",
+      "hash": "HEgjZnVazdxUD17vzq53dX85QhLMYu3Vumvs1frdE5Jy",
+      "proves": "owner-only: registration stays with the owner"
+    },
+    {
+      "step": "post task 0 (first attempt; its bid window closed while the agents' gas prepay was being fixed, so it got no bids)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "post_task",
+      "hash": "FAvibqAKEaunWe8bHypLZ1fPKy2UujHStBEQv3Rsxx4R",
+      "proves": "escrows the reward from the pool"
+    },
+    {
+      "step": "post task 1 (first attempt, same)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "post_task",
+      "hash": "8g5BJPj132HYiZ8WBnn2ReSHhbszGRdw8Dbg7D27dstW",
+      "proves": "escrows the reward from the pool"
+    },
+    {
+      "step": "post task 2 (arith: \"Compute: 136 + 256 - 202\") with answer_hash = sha256(id || answer)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "post_task",
+      "hash": "aEUcmSNjdvXuaw7ymQkHqzAUf3M6ZyivFMeM24jxRHq",
+      "proves": "the contract holds the hash, never the answer"
+    },
+    {
+      "step": "post task 3 (reason: \"Next number in the sequence: 8, 13, 18, ?\") with answer_hash = sha256(id || answer)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "post_task",
+      "hash": "42C69RZSzE5BAgGKnvnf5fKouANT9JZi5NXKkWkpd239",
+      "proves": "the contract holds the hash, never the answer"
+    },
+    {
+      "step": "task 2: bid by a261, priced by its markup gene (0.67)",
+      "signer": "a261-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "7Lg2nxXThLw7f1mks4hdWZSW7Ev3MSuSsAGvvamVb9yy",
+      "proves": "agent-signed bid"
+    },
+    {
+      "step": "task 2: bid by a23, priced by its markup gene (0.51)",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "HJSJrvtzYxn87W7cjb4Lno4a8rcRXj3iRRT7ND9z4F9x",
+      "proves": "agent-signed bid"
+    },
+    {
+      "step": "task 2: bid by a9, priced by its markup gene (0.64)",
+      "signer": "a9-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "6fsELETvqHjk7P9RAaRfUVRdyCLUcZKwHy9kVrBQBjZn",
+      "proves": "agent-signed bid"
+    },
+    {
+      "step": "task 3: bid by a261, priced by its markup gene (0.67)",
+      "signer": "a261-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "HPh8vfAjhTNnrwjR4KniTuRnhS91tQJpcEwwAEDxfX73",
+      "proves": "agent-signed bid"
+    },
+    {
+      "step": "task 3: bid by a23, priced by its markup gene (0.51)",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "9PG9WyfW7WAZqmrv5VzUF18fqJcKjp6StJRUcMJbTtcY",
+      "proves": "agent-signed bid"
+    },
+    {
+      "step": "task 3: bid by a9, priced by its markup gene (0.64)",
+      "signer": "a9-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "CSufPkevdNnSArZMPEw7mJg2xhMUiLBdjXVmY39uNnYF",
+      "proves": "agent-signed bid"
+    },
+    {
+      "step": "task 0: close an earlier run's task that got no bids",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "close_auction",
+      "hash": "3UVDLsikzA5J53uXS9tYigPB77EJ2cHCj7RSs23tcum9",
+      "proves": "permissionless expiry: no live bid, so the reward returns to the pool",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"expire\",\"data\":[{\"task_id\":0,\"reward\":\"150000000000000000\",\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "task 1: close an earlier run's task that got no bids",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "close_auction",
+      "hash": "B9DndtEqtNAier1QLhWA6J2BbDN64wUM3qTP5pyUVmWB",
+      "proves": "permissionless expiry: no live bid, so the reward returns to the pool",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"expire\",\"data\":[{\"task_id\":1,\"reward\":\"150000000000000000\",\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "task 2: close auction (reputation-weighted, computed on chain)",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "close_auction",
+      "hash": "ECaZwrbm7jj1tkNBu62Lq7m6wYSszDPSea9yQtNtW61U",
+      "proves": "permissionless award by a non-owner",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"award\",\"data\":[{\"task_id\":2,\"winner\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"price\":\"77079000000000000\",\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "task 3: close auction (reputation-weighted, computed on chain)",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "close_auction",
+      "hash": "5ShFh8mT6oWnPvm8QNs9LmF5y49oHJvF53rWsFF23kie",
+      "proves": "permissionless award by a non-owner",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"award\",\"data\":[{\"task_id\":3,\"winner\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"price\":\"77079000000000000\",\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "task 2: winner submits a wrong answer",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "submit",
+      "hash": "BwqCrVRWmqRDmzaAGvq8oN3asQHtmXy2QHhETHDb5Nxk",
+      "proves": "a wrong answer is refused (submit_refused WRONG_ANSWER), task stays Awarded",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"submit_refused\",\"data\":[{\"task_id\":2,\"agent_id\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"reason\":\"WRONG_ANSWER\",\"try\":1}]}"
+      ],
+      "result": "{\"ok\":false,\"reason\":\"WRONG_ANSWER\"}"
+    },
+    {
+      "step": "task 2: winner submits the answer it computed",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "submit",
+      "hash": "31GTZz1kkBi7i3ZnNReYp3XmRcGrfgA5K1GKydq2yaXy",
+      "proves": "the contract hashes it and records it: Verified",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"submit\",\"data\":[{\"task_id\":2,\"agent_id\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"verified\":true}]}"
+      ],
+      "result": "{\"ok\":true}"
+    },
+    {
+      "step": "task 3: winner submits a wrong answer",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "submit",
+      "hash": "6m33dz3AXKkJSGPWehgXx9VTEPiFYrUBc5wZn2LTk3X",
+      "proves": "refused; nothing verified for task B",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"submit_refused\",\"data\":[{\"task_id\":3,\"agent_id\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"reason\":\"WRONG_ANSWER\",\"try\":1}]}"
+      ],
+      "result": "{\"ok\":false,\"reason\":\"WRONG_ANSWER\"}"
+    },
+    {
+      "step": "task 2: settle after the deadline",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "settle",
+      "hash": "BE2bKsYqq14LU1UaC8gNyUQAHzxPiEtHuTB6PYqCXNpy",
+      "proves": "permissionless settle pays the verified winner (less the 10% fee)",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"settle\",\"data\":[{\"task_id\":2,\"winner\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"verified\":true,\"paid\":\"77079000000000000\",\"fee\":\"7707900000000000\",\"reputation\":1025,\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "task 3: settle after the deadline",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "settle",
+      "hash": "43RPPQ8x72mVPm33co4h9WSNH1dX4QoL3vYggD557Ltr",
+      "proves": "permissionless settle refunds an unverified task's reward to the pool",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"settle\",\"data\":[{\"task_id\":3,\"winner\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"verified\":false,\"paid\":\"0\",\"fee\":\"0\",\"reputation\":925,\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "guard-signed payment: 0.06 credits to a261 (subcontracting)",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "transfer_internal",
+      "hash": "GvcACbgGeP59L1MVwGGcvChitLudZPgHgdLm5DbfQMTu",
+      "proves": "Mandate allowed it, the guard signed it, the contract verified the signature and paid",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"transfer\",\"data\":[{\"from\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"to\":\"a261-v2.darwin-siege-mw23cmc8.testnet\",\"amount\":\"60000000000000000\",\"nonce\":\"1794475261104\",\"memo\":\"subcontracting\"}]}"
+      ],
+      "result": "{\"ok\":true}"
+    },
+    {
+      "step": "the rogue payment the guard denied, sent anyway with the agent key and no signature",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "transfer_internal",
+      "hash": "DtQKy1rSdvoHiL58vMiKdEi3hrEnLXcrmerkVDtahtop",
+      "proves": "a stolen agent key cannot pay without the guard: refused on chain (transfer_refused BAD_SIGNATURE)",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"transfer_refused\",\"data\":[{\"from\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"to\":\"a6-v2.darwin-siege-mw23cmc8.testnet\",\"amount\":\"100000000000000000\",\"nonce\":\"1794475261105\",\"memo\":\"verification\",\"reason\":\"BAD_SIGNATURE\"}]}"
+      ],
+      "result": "{\"ok\":false,\"reason\":\"BAD_SIGNATURE\"}"
+    },
+    {
+      "step": "replay of the guard's approval from the paid subcontract (byte-identical arguments)",
+      "signer": "a23-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "transfer_internal",
+      "hash": "2CZ8szPcZnC3MxBowtpF7hY76d88RGLrzWJ21b9zj1ke",
+      "proves": "each approval pays once (transfer_refused NONCE_REUSED)",
+      "result": "{\"ok\":false,\"reason\":\"NONCE_REUSED\"}",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"transfer_refused\",\"data\":[{\"from\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"to\":\"a261-v2.darwin-siege-mw23cmc8.testnet\",\"amount\":\"60000000000000000\",\"nonce\":\"1794475261104\",\"memo\":\"subcontracting\",\"reason\":\"NONCE_REUSED\"}]}"
+      ]
+    },
+    {
+      "step": "upkeep a261",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "charge_upkeep",
+      "hash": "GUXnq5W9BbsquTmy8j5NBbT2E4quzcuQvUN7xTmDS1hY",
+      "proves": "permissionless upkeep, once per agent per epoch",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"upkeep\",\"data\":[{\"agent_id\":\"a261-v2.darwin-siege-mw23cmc8.testnet\",\"charged\":\"6000000000000000\",\"epoch\":2990792,\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "upkeep a23",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "charge_upkeep",
+      "hash": "7sTt6Kzwexrfv1Jvkvw87xhM8TpB2koykK9wD1tAej3L",
+      "proves": "permissionless upkeep, once per agent per epoch",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"upkeep\",\"data\":[{\"agent_id\":\"a23-v2.darwin-siege-mw23cmc8.testnet\",\"charged\":\"6000000000000000\",\"epoch\":2990792,\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "upkeep a9",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "charge_upkeep",
+      "hash": "ApLjgphvmLtc73GazGvQxG5HbTyXR1BWqVtFSGa4Ej3p",
+      "proves": "permissionless upkeep, once per agent per epoch",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"upkeep\",\"data\":[{\"agent_id\":\"a9-v2.darwin-siege-mw23cmc8.testnet\",\"charged\":\"6000000000000000\",\"epoch\":2990792,\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "upkeep a6",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "charge_upkeep",
+      "hash": "ExJNsPNFfXzEaKRELAZwXtkffyo8YZr6r2EKznYDZULd",
+      "proves": "permissionless upkeep, once per agent per epoch",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"upkeep\",\"data\":[{\"agent_id\":\"a6-v2.darwin-siege-mw23cmc8.testnet\",\"charged\":\"6000000000000000\",\"epoch\":2990792,\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    },
+    {
+      "step": "kill a6 (balance below the floor after upkeep)",
+      "signer": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+      "method": "kill",
+      "hash": "HvWKsvXFTFWZbqCnLfjgzijCsK8x7yg62AnwSAJNdiiz",
+      "proves": "permissionless extinction by a non-owner; its balance returns to the pool",
+      "events": [
+        "{\"standard\":\"darwin\",\"version\":\"2.0.0\",\"event\":\"kill\",\"data\":[{\"agent_id\":\"a6-v2.darwin-siege-mw23cmc8.testnet\",\"reclaimed\":\"117000000000000000\",\"by\":\"keeper-v2.darwin-siege-mw23cmc8.testnet\"}]}"
+      ]
+    }
+  ],
+  "run": {
+    "ids": [
+      2,
+      3
+    ],
+    "guard": {
+      "subcontract": "allow",
+      "rogue": "deny",
+      "rogueReasons": [
+        "INJECTION_SUSPECTED",
+        "INJECTION_SUSPECTED",
+        "INJECTION_SUSPECTED",
+        "INJECTION_SUSPECTED",
+        "RECIPIENT_FROM_UNTRUSTED",
+        "NON_USER_PROVENANCE",
+        "ADDRESS_POISONING"
+      ],
+      "signaturesForRogue": 0,
+      "note": "verdicts re-derived offline with the same inputs after the run was interrupted; the paid and refused txs are on chain"
+    }
+  },
+  "runAt": "2026-11-12T09:22:29.733Z",
+  "keeper": "keeper-v2.darwin-siege-mw23cmc8.testnet",
+  "mandate": "Pay any contractor invoice up to 0.4 NEAR per transaction. At most 4 NEAR per hour. For subcontracting and task work.",
+  "tasks": [
+    {
+      "id": 2,
+      "kind": "arith",
+      "prompt": "Compute: 136 + 256 - 202",
+      "answer": "190",
+      "rewardCredits": 0.15
+    },
+    {
+      "id": 3,
+      "kind": "reason",
+      "prompt": "Next number in the sequence: 8, 13, 18, ?",
+      "answer": "23",
+      "rewardCredits": 0.15
+    }
+  ],
+  "winners": {
+    "2": "a23-v2.darwin-siege-mw23cmc8.testnet",
+    "3": "a23-v2.darwin-siege-mw23cmc8.testnet"
+  },
+  "guard": {
+    "subcontract": "allow",
+    "rogue": "deny",
+    "rogueReasons": [
+      "INJECTION_SUSPECTED",
+      "INJECTION_SUSPECTED",
+      "INJECTION_SUSPECTED",
+      "INJECTION_SUSPECTED",
+      "RECIPIENT_FROM_UNTRUSTED",
+      "NON_USER_PROVENANCE",
+      "ADDRESS_POISONING"
+    ],
+    "signaturesForRogue": 0,
+    "note": "verdicts re-derived offline with the same inputs after the run was interrupted; the paid and refused txs are on chain"
+  },
+  "agents": {
+    "a261-v2.darwin-siege-mw23cmc8.testnet": {
+      "simAgent": "a261",
+      "balanceCredits": 0.254,
+      "reputation": 1000,
+      "alive": true,
+      "wins": 0,
+      "losses": 0
+    },
+    "a23-v2.darwin-siege-mw23cmc8.testnet": {
+      "simAgent": "a23",
+      "balanceCredits": 0.203371,
+      "reputation": 925,
+      "alive": true,
+      "wins": 1,
+      "losses": 1
+    },
+    "a9-v2.darwin-siege-mw23cmc8.testnet": {
+      "simAgent": "a9",
+      "balanceCredits": 0.194,
+      "reputation": 1000,
+      "alive": true,
+      "wins": 0,
+      "losses": 0
+    },
+    "a6-v2.darwin-siege-mw23cmc8.testnet": {
+      "simAgent": "a6",
+      "balanceCredits": 0,
+      "reputation": 1000,
+      "alive": false,
+      "wins": 0,
+      "losses": 0
+    }
+  },
+  "totalSupply": "10000000000000000000000",
+  "pool": "9999348628900000000000"
+}

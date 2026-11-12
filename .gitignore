@@ -14,3 +14,4 @@ results/*.sqlite
 **/.hallmark/shots/
 .mutations-live/
 .chain-agents.json
+.chain-v2.json
