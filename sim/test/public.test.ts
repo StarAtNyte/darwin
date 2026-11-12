@@ -62,3 +62,12 @@ test("public mode: one shock per minute across visitors, then 429 with the wait"
   const ev = h.events.find((e: { event: string }) => e.event === "shock");
   assert.equal(ev?.by, "visitor");
 });
+
+test("public mode: the wind tunnel results are readable, without per-seed runs", async () => {
+  const r = await fetch(`${base}/api/windtunnel`);
+  assert.equal(r.status, 200);
+  const w = await r.json();
+  assert.equal(w.ruleSets[0].id, "baseline");
+  assert.ok(w.vsBaseline["price-auction"].taskSuccess.p < 0.05);
+  assert.equal(w.runs, undefined);
+});

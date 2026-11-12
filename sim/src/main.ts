@@ -37,7 +37,16 @@ const MUTATION_CALLS = PUBLIC_MODE
   : Number(process.env.DARWIN_MUTATION_MAX_CALLS ?? 400);
 const MUTATION_DIR = path.resolve(here, "../../results/mutations");
 const LIVE_CACHE_DIR = path.resolve(here, "../.mutations-live");
-const SPEEDS = [1000, 300, 120, 40]; // ms per tick: slow, normal, fast, fastest
+const SPEEDS = [1000, 300, 120, 40];
+// The wind tunnel's committed results (make windtunnel), served read-only to the dashboard. Per-seed runs are left out.
+const WINDTUNNEL = (() => {
+  try {
+    const { runs: _runs, ...w } = JSON.parse(fs.readFileSync(path.resolve(here, "../../results/windtunnel.json"), "utf8"));
+    return w;
+  } catch {
+    return null;
+  }
+})(); // ms per tick: slow, normal, fast, fastest
 
 const notable = new Set(["born", "fork", "kill", "guard_block", "guard_allow_rogue", "subcontract", "shock", "rules"]);
 const clients = new Set<http.ServerResponse>();
@@ -163,6 +172,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/healthz") return send(res, 200, { ok: true, tick: run.eco.tick });
     if (req.method === "GET" && p === "/api/state") return send(res, 200, run.state());
     if (req.method === "GET" && p === "/history") return send(res, 200, { state: run.state(), metrics: run.metrics, events: run.recent });
+    if (req.method === "GET" && p === "/api/windtunnel") return WINDTUNNEL ? send(res, 200, WINDTUNNEL) : send(res, 404, { error: "no wind tunnel results: run make windtunnel" });
     if (req.method === "GET" && p === "/snapshot") return send(res, 200, run.eco.snapshot());
     if (req.method === "GET" && p === "/stream") {
       res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
