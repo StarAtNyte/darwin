@@ -1,0 +1,20 @@
+# Render blueprint: dashboard.render.com -> New -> Blueprint -> pick this repo -> Apply.
+# Free plan: sleeps after ~15 min idle and the in-memory run restarts on wake; the public run is shared,
+# so steering is locked (PUBLIC_MODE) and finished runs restart on their own.
+services:
+  - type: web
+    name: near-darwin
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: DARWIN_DB
+        value: /tmp/darwin.sqlite
+      - key: PUBLIC_MODE
+        value: "1"
+      - key: AUTO_RESTART_SEC
+        value: "120"
+      - key: AUTO_RESUME_SEC
+        value: "300"
