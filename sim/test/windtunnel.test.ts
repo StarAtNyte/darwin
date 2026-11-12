@@ -20,13 +20,13 @@ test("bootstrap CI brackets the mean and is reproducible", () => {
   assert.deepEqual(bootstrapCI([2, 2, 2]), [2, 2]);
 });
 
-test("market fee: each paid settle is followed by a fee of floor(price * fee) back to the pool; supply conserved", async () => {
+test("market fee: each paid settle takes floor(price * fee) back to the pool inside settle (as the v2 contract does); supply conserved", async () => {
   const evs: { event: string; [k: string]: unknown }[] = [];
   const fee = new Economy({ seed: 5, marketFee: 0.2 }, (ev) => evs.push(ev));
   for (let i = 0; i < 100; i++) await fee.step();
-  const paid = evs.map((ev, i) => [ev, evs[i + 1]] as const).filter(([ev]) => ev.event === "settle" && (ev.paid as number) > 0);
+  const paid = evs.filter((ev) => ev.event === "settle" && (ev.paid as number) > 0);
   assert.ok(paid.length > 50);
-  for (const [s, next] of paid) assert.deepEqual([next.event, next.agent, next.amount], ["upkeep", s.winner, Math.floor((s.paid as number) * 0.2)]);
+  for (const s of paid) assert.equal(s.fee, Math.floor((s.paid as number) * 0.2));
   assert.equal(fee.market.totalSupply(), fee.cfg.poolCredits * SEED);
   // With no fee (the default) the economy is unchanged: CI checks that `make seeds` reproduces the committed results.
 });

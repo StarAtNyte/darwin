@@ -1,13 +1,21 @@
 // The DARWIN economy: agents bid, work or subcontract, pay upkeep, die when broke, fork when rich.
-// Every agent-to-agent payment goes through a SIEGE MandateGuard first.
+// Every agent-to-agent payment goes through a SIEGE MandateGuard first: the guard signs an approval only for a payment
+// it allows, and the market (like the v2 contract) pays only against a valid guard signature.
+import crypto from "node:crypto";
 import { MandateGuard, compileMandate, toMicro, type Tx, type Decision, type WalletAdapter } from "siege";
-import { Market, MarketError, type MarketEvent } from "./market.ts";
-import { KINDS, type Kind, makeTask, referee, rng, sloppySolve, type Rng, type Task } from "./tasks.ts";
+import { Market, type MarketEvent } from "./market.ts";
+import { GuardSigner, answerHash } from "./v2.ts";
+import { KINDS, type Kind, makeTask, rng, sloppySolve, type Rng, type Task } from "./tasks.ts";
 import { llmSolve, llmSolverEnabled } from "./llm.ts";
 import { Mutator, MUTATION_MODES, type MutationContext, type MutationMode, type MutationResult } from "./mutator.ts";
 
 export const SEED = 1_000_000; // 1 credit
 export const TICK_MS = 60_000; // one tick = one simulated minute
+/** Block time of tick 0 (ms). Guard approvals and the market's windows use it. */
+export const EPOCH0_MS = Date.UTC(2026, 10, 10);
+/** The sim's guard key: fixed, so runs replay exactly. It signs approvals only after the Mandate guard allows a payment. */
+export const SIM_GUARD = new GuardSigner(crypto.createHash("sha256").update("darwin-sim-guard").digest());
+const APPROVAL_TTL_MS = 60_000;
 
 export interface Genome {
   markup: number; // bid = markup * reward
@@ -171,8 +179,13 @@ export class Economy {
    */
   deferLiveBirths = false;
   private gestating: { parent: string; gaussian: Genome; done?: MutationResult }[] = [];
-  /** allowedLegit: rogue payments the guard allowed because they went to a real solver inside the hourly cap (the race attack's non-overshooting part). */
-  rogueStats = { attempts: 0, blocked: 0, leaked: 0, allowedLegit: 0 };
+  /**
+   * allowedLegit: rogue payments the guard allowed because they went to a real solver inside the hourly cap (the race
+   * attack's non-overshooting part). bypassRefused: the rogue's direct calls with its own key and no guard signature
+   * (a stolen function-call key skipping the guard), refused by the market with BAD_SIGNATURE.
+   */
+  rogueStats = { attempts: 0, blocked: 0, leaked: 0, allowedLegit: 0, bypassRefused: 0 };
+  private nonce = 0;
   /** Forks this tick, per founding dynasty. */
   private forksThisTick = new Map<string, number>();
   /** Active shocks and the tick each one ends. */
@@ -239,23 +252,24 @@ export class Economy {
     this.cfg = { ...DEFAULTS, ...cfg };
     this.mutator = mutator ?? new Mutator({ maxCalls: 0 });
     this.r = rng(this.cfg.seed);
-    this.market = new Market((e) => this.emit({ ...e, tick: this.tick }));
+    this.market = new Market((e) => this.emit({ ...e, tick: this.tick }), SIM_GUARD.publicKeyBytes);
     this.market.fundPool(this.cfg.poolCredits * SEED);
     for (let i = 0; i < this.cfg.solvers; i++) this.spawn("solver", { ...randomGenome(this.r), markup: 0.55, subcontract: 0, forkAt: 1e9 }, undefined, `solver-${i + 1}.darwin.testnet`);
     for (let i = 0; i < this.cfg.agents; i++) this.spawn("parametric", randomGenome(this.r));
   }
 
+  /** The guard's adapter runs only for payments the Mandate allowed: it signs the approval, then the agent sends it. */
   private guardFor(id: string): MandateGuard {
     const market = this.market;
+    const next = () => ++this.nonce;
     const adapter: WalletAdapter = {
       name: "darwin-market",
       async execute(tx: Tx) {
-        try {
-          market.transfer(id, tx.recipient, tx.amount, tx.memo);
-          return { ok: true, ref: "market" };
-        } catch (e) {
-          return { ok: false, error: (e as MarketError).message };
-        }
+        const approval = SIM_GUARD.approve(market.network, market.marketId, {
+          from: id, to: tx.recipient, amount: String(tx.amount), nonce: String(next()), expires_at: String(BigInt(market.now + APPROVAL_TTL_MS) * 1_000_000n),
+        });
+        const o = market.transfer(id, tx.recipient, tx.amount, tx.memo ?? "", approval);
+        return o.ok ? { ok: true, ref: "market" } : { ok: false, error: o.reason };
       },
     };
     return new MandateGuard(compileMandate(MANDATE), { adapter });
@@ -285,6 +299,12 @@ export class Economy {
     const m = this.market;
     this.tick++;
     m.tick = this.tick;
+    // Block time inside a tick: post and bid at t0; task i closes its auction at t0+1+2i and settles at t0+2+2i (the
+    // contract's windows, compressed into the tick); the rogue acts at +20 s, upkeep and selection at +30 s.
+    const t0 = EPOCH0_MS + this.tick * TICK_MS;
+    m.now = t0;
+    m.rules.fee = this.cfg.marketFee;
+    m.rules.floor = this.cfg.deathFloor * SEED;
     this.solverLoad.clear();
     this.forksThisTick.clear();
 
@@ -294,7 +314,8 @@ export class Economy {
     for (let i = 0; i < emission; i++) {
       const t = makeTask(this.r, -1, this.tick);
       if (t.reward > m.pool) break;
-      t.id = m.postTask(t.kind, t.reward);
+      const id = m.peekTaskId();
+      t.id = m.postTask(t.kind, t.reward, answerHash(id, t.answer), t0 + 1, t0 + 2 + 2 * tasks.length);
       tasks.push(t);
     }
 
@@ -323,7 +344,8 @@ export class Economy {
     }
 
     // 3. Award, work (or subcontract), submit, settle.
-    for (const t of tasks) {
+    for (const [i, t] of tasks.entries()) {
+      m.now = t0 + 1 + 2 * i;
       const winner = m.closeAuction(t.id, this.cfg.auction);
       if (!winner) continue;
       const a = this.agents.get(winner)!;
@@ -340,10 +362,9 @@ export class Economy {
         } else answer = sloppySolve(t, skill(a.genome, t), this.r);
       } else answer = sloppySolve(t, skill(a.genome, t), this.r);
       m.submit(winner, t.id, answer);
-      const ok = referee(t, answer);
-      m.settle(t.id, ok);
-      // Market fee: same call the owner makes on chain (charge_upkeep) after a paid settle.
-      if (ok && this.cfg.marketFee > 0) m.chargeUpkeep(winner, Math.floor(price * this.cfg.marketFee));
+      m.now = t0 + 2 + 2 * i;
+      // Verified on the answer hash, the same check as the referee (trimmed, lower case); the fee is taken in settle.
+      const ok = m.settle(t.id).verified;
       if (ok) a.earned += price;
       const bk = a.byKind[t.kind];
       bk.won++;
@@ -354,13 +375,17 @@ export class Economy {
     }
 
     // 4. Rogue agent.
+    m.now = t0 + 20_000;
     if (this.tick === this.cfg.rogueAtTick) this.spawnRogue();
     for (const a of this.alive()) if (a.role === "rogue") await this.rogueAct(a);
 
-    // 5. Selection: upkeep, extinction, reproduction, immigration.
+    // 5. Selection: upkeep, extinction, reproduction, immigration. The contract's upkeep is a rule (set_rules); plague
+    // triples it while it lasts. The keeper skips the accomplice and never kills a solver (sim policy, not a contract rule).
+    m.now = t0 + 30_000;
     for (const a of this.alive()) {
       if (a.role === "accomplice") continue;
-      m.chargeUpkeep(a.id, this.active("plague") ? this.cfg.upkeep * 3 : this.cfg.upkeep);
+      m.rules.upkeep = this.active("plague") ? this.cfg.upkeep * 3 : this.cfg.upkeep;
+      m.chargeUpkeep(a.id);
       const rec = m.agents.get(a.id)!;
       if (rec.balance < this.cfg.deathFloor * SEED && a.role !== "solver") m.kill(a.id);
     }
@@ -378,7 +403,7 @@ export class Economy {
       if (this.gestating.some((g) => g.parent === a.id)) continue;
       if (rec.balance > a.genome.forkAt * SEED && pop < this.cfg.maxPop) {
         pop++;
-        m.chargeUpkeep(a.id, this.cfg.forkFee);
+        m.burn(a.id, this.cfg.forkFee);
         const gaussian = mutate(a.genome, this.r, this.cfg.mutationSigma);
         const useLlm = this.cfg.mutation === "llm" || (this.cfg.mutation === "mixed" && this.r() < 0.5);
         forking.push({ a, gaussian, useLlm });
@@ -475,7 +500,7 @@ export class Economy {
   private async solverAnswer(a: AgentState, t: Task): Promise<string> {
     // Compute cost: solvers burn part of each job back to the pool, so they cannot hoard the supply.
     const cost = Math.min(this.market.agents.get(a.id)!.balance, Math.round(t.reward * 0.22));
-    if (cost > 0) this.market.chargeUpkeep(a.id, cost);
+    if (cost > 0) this.market.burn(a.id, cost);
     if (llmSolverEnabled() && t.kind === "reason" && t.difficulty === 3) {
       const ans = await llmSolve(t);
       if (ans !== undefined) {
@@ -531,6 +556,8 @@ export class Economy {
     else if (kind === "drip") for (let i = 0; i < 6; i++) attempts.push(this.pay(a, sink, 50_000, ctxs.drip, "subcontracting", this.tick * TICK_MS + i * 1000));
     else attempts.push(this.pay(a, sink, amt, ctxs[kind], kind === "poisoning" ? "subcontracting" : "verification"));
     const ds = await Promise.all(attempts);
+    // The same rogue with a stolen key skipping the guard: no approval, so the market refuses it (BAD_SIGNATURE).
+    if (!this.market.transfer(a.id, sink, amt, "verification").ok) this.rogueStats.bypassRefused++;
     // Race: legit-looking payments within the hourly cap are allowed; only the overshoot is the attack.
     const allowedAmt = ds.filter((d) => d.verdict === "allow").length * (kind === "drip" ? 50_000 : amt);
     this.rogueStats.attempts += ds.length;
