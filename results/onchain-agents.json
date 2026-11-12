@@ -1,0 +1,133 @@
+{
+  "at": "2026-11-12T06:10:28.636Z",
+  "marketId": "market.darwin-siege-mw23cmc8.testnet",
+  "seed": 42,
+  "ticks": 200,
+  "taskId": 1,
+  "winner": "a23-s42.darwin-siege-mw23cmc8.testnet",
+  "agents": [
+    {
+      "account": "a261-s42.darwin-siege-mw23cmc8.testnet",
+      "simAgent": "a261",
+      "markup": 0.666,
+      "key": "function-call only: market.darwin-siege-mw23cmc8.testnet [bid, submit, transfer_internal]"
+    },
+    {
+      "account": "a23-s42.darwin-siege-mw23cmc8.testnet",
+      "simAgent": "a23",
+      "markup": 0.514,
+      "key": "function-call only: market.darwin-siege-mw23cmc8.testnet [bid, submit, transfer_internal]"
+    },
+    {
+      "account": "a9-s42.darwin-siege-mw23cmc8.testnet",
+      "simAgent": "a9",
+      "markup": 0.635,
+      "key": "function-call only: market.darwin-siege-mw23cmc8.testnet [bid, submit, transfer_internal]"
+    }
+  ],
+  "guard": {
+    "subcontract": "allow",
+    "rogue": "deny",
+    "rogueReasons": [
+      "INJECTION_SUSPECTED",
+      "INJECTION_SUSPECTED",
+      "INJECTION_SUSPECTED",
+      "INJECTION_SUSPECTED",
+      "RECIPIENT_FROM_UNTRUSTED",
+      "NON_USER_PROVENANCE"
+    ]
+  },
+  "keyScopeCheck": "Access key does not allow method settle",
+  "balances": {
+    "a261-s42.darwin-siege-mw23cmc8.testnet": "260000000000000000",
+    "a23-s42.darwin-siege-mw23cmc8.testnet": "217079000000000000",
+    "a9-s42.darwin-siege-mw23cmc8.testnet": "200000000000000000"
+  },
+  "totalSupply": "500000000000000000000000",
+  "txs": [
+    {
+      "step": "create agent account with a function-call key (market: bid, submit, transfer_internal)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "GijqLfGSb6VxMdrHtzypLD14YBX2AemHjtTt2hgcdY7y"
+    },
+    {
+      "step": "create agent account with a function-call key (market: bid, submit, transfer_internal)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "5DiDNdxrM4JW8QypvKLePEiANC55TvUoeYVw3u7RQgLb"
+    },
+    {
+      "step": "create agent account with a function-call key (market: bid, submit, transfer_internal)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "CreateAccount+Transfer+AddKey",
+      "hash": "7iWvHvWpHDh4P2pKoEbh97aSRqAiGG4G9ZsEUkhzoT5T"
+    },
+    {
+      "step": "register agent",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "register_agent",
+      "hash": "FMoBiztEA6fc4R2jhZw3e7THsvhh2wh3Y2qpC3n4HxQh"
+    },
+    {
+      "step": "register agent",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "register_agent",
+      "hash": "5iNMQibbKeLiu1AakSFjWG7oURh6RmVyZZf5sD3GkWu8"
+    },
+    {
+      "step": "register agent",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "register_agent",
+      "hash": "vXkCDsmyYpEvCgWKw1pJ5KkpHsoxwqqXcTANBVatg8E"
+    },
+    {
+      "step": "post task",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "post_task",
+      "hash": "HwB7ZZ84nrG8cxcMtpCuJUaNtVxRPeotgace6pCxXetE"
+    },
+    {
+      "step": "agent-signed bid (markup 0.67)",
+      "signer": "a261-s42.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "uJYXXHZUjD6B6PCQZzCDHDv7rNgFCzJWBcpitKZ15nP"
+    },
+    {
+      "step": "agent-signed bid (markup 0.51)",
+      "signer": "a23-s42.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "8UBJ8e9p2ok7wLxAXKPkq8YJFc2bkd9MmYoEiTZSKD7f"
+    },
+    {
+      "step": "agent-signed bid (markup 0.64)",
+      "signer": "a9-s42.darwin-siege-mw23cmc8.testnet",
+      "method": "bid",
+      "hash": "BGmQYZCvx6SnYz6p5ScPaKXjmcUQphb9DhfapHwfFxG6"
+    },
+    {
+      "step": "close auction",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "close_auction",
+      "hash": "qukNRUXnKQpjzK1dv1QgnTs6a6eYLnHX9dkqUGArjZW"
+    },
+    {
+      "step": "agent-signed submit by the winner",
+      "signer": "a23-s42.darwin-siege-mw23cmc8.testnet",
+      "method": "submit",
+      "hash": "133NgsbWsDWWYuidp7LrmiNXH14wCdEtMqa53ToDBRuG"
+    },
+    {
+      "step": "settle (referee)",
+      "signer": "darwin-siege-mw23cmc8.testnet",
+      "method": "settle",
+      "hash": "2LSbGiqY4xWfSV2oBaPR9Jj3HGqPt5RnMQhJCUj8Rc2x"
+    },
+    {
+      "step": "agent-signed payment after the SIEGE guard allowed it",
+      "signer": "a23-s42.darwin-siege-mw23cmc8.testnet",
+      "method": "transfer_internal",
+      "hash": "Cd1FsHyNcpTmD2svJhQXiCbLNgM5RtuTonkzDYieLjfo"
+    }
+  ]
+}

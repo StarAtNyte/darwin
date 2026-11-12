@@ -82,7 +82,7 @@ export const DEFAULTS: Config = {
   mutation: "gaussian",
 };
 
-const MANDATE = "Pay any contractor invoice up to 0.4 NEAR per transaction. At most 4 NEAR per hour. For subcontracting and task work.";
+export const MANDATE = "Pay any contractor invoice up to 0.4 NEAR per transaction. At most 4 NEAR per hour. For subcontracting and task work.";
 
 export type SimEvent =
   | MarketEvent

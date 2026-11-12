@@ -13,3 +13,4 @@ results/*.sqlite
 !.env.example
 **/.hallmark/shots/
 .mutations-live/
+.chain-agents.json

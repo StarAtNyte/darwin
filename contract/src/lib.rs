@@ -531,6 +531,55 @@ mod tests {
         m.settle(0, true);
     }
 
+    /// Agent-signed path used by `make agents`: each agent account signs its own bid, submit and payment.
+    /// The predecessor is the agent; nobody else can bid, submit or pay as it.
+    #[test]
+    fn agent_signed_lifecycle_and_payment() {
+        let mut m = setup();
+        m.register_agent(acc("a1.owner.near"), None, U128(1000));
+        m.register_agent(acc("a2.owner.near"), None, U128(1000));
+        let id = m.post_task("arith".into(), U128(500), 99);
+        ctx("a1.owner.near", 0);
+        m.bid(id, U128(200));
+        ctx("a2.owner.near", 0);
+        m.bid(id, U128(300));
+        ctx("owner.near", 0);
+        m.close_auction(id);
+        assert_eq!(m.get_task(id).unwrap().winner, Some(acc("a1.owner.near")));
+        // The loser cannot submit for the winner.
+        ctx("a2.owner.near", 0);
+        let r = catch_unwind(AssertUnwindSafe(|| m.submit(id, "h".into())));
+        assert!(r.is_err());
+        ctx("a1.owner.near", 0);
+        m.submit(id, "h".into());
+        ctx("owner.near", 0);
+        m.settle(id, true);
+        ctx("a1.owner.near", 0);
+        m.transfer_internal(acc("a2.owner.near"), U128(150), "subcontracting".into());
+        assert_eq!(m.get_agent(acc("a1.owner.near")).unwrap().balance.0, 1000 + 200 - 150);
+        assert_eq!(m.get_agent(acc("a2.owner.near")).unwrap().balance.0, 1150);
+        assert_eq!(sup(&m), 1_000_000);
+    }
+
+    #[test]
+    #[should_panic(expected = "agent not alive")]
+    fn unregistered_account_cannot_bid() {
+        let mut m = setup();
+        let id = m.post_task("arith".into(), U128(500), 99);
+        ctx("stranger.near", 0);
+        m.bid(id, U128(100));
+    }
+
+    #[test]
+    #[should_panic(expected = "owner only")]
+    fn agent_cannot_use_relayed_methods() {
+        let mut m = setup();
+        m.register_agent(acc("a1.owner.near"), None, U128(1000));
+        m.register_agent(acc("a2.owner.near"), None, U128(1000));
+        ctx("a1.owner.near", 0);
+        m.transfer_for(acc("a2.owner.near"), acc("a1.owner.near"), U128(500), "steal".into());
+    }
+
     #[test]
     fn conservation_random() {
         let mut m = setup();

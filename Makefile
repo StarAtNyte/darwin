@@ -21,3 +21,5 @@ deploy:          ## needs NEAR_ACCOUNT + NEAR_PRIVATE_KEY (testnet)
 	cd sim && npx tsx src/chain.ts deploy
 checkpoint:
 	cd sim && npx tsx src/chain.ts checkpoint 300
+agents:          ## agent-signed txs: per-agent testnet accounts with function-call keys (needs NEAR_ACCOUNT + NEAR_PRIVATE_KEY)
+	cd sim && npx tsx src/chain.ts agents 200 3
