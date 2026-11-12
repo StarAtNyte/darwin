@@ -6,7 +6,7 @@ account. "testnet read" means a public RPC call or explorer page, no account.
 
 | claim | command | output file | expected | needs |
 |---|---|---|---|---|
-| Sim tests pass | `make test` | stdout | `pass 20`, `fail 0` | nothing |
+| Sim tests pass | `make test` | stdout | `pass 27`, `fail 0` | nothing |
 | Typecheck is clean | `make test` (runs `npx tsc --noEmit`) | stdout | no errors | nothing |
 | Contract tests pass, incl. a 400-op conservation property and the agent-signed path | `make test` | stdout, `contract/src/lib.rs` (`conservation_random`, `agent_signed_lifecycle_and_payment`) | `14 passed` | Rust |
 | The committed wasm builds from source | `make contract && git status --short contract/res` | `contract/res/darwin_market.wasm` | 252,637 bytes, no diff (rustc 1.97) | Rust + wasm32 target |
@@ -19,7 +19,17 @@ account. "testnet read" means a public RPC call or explorer page, no account.
 | Claude-guided mutation breeds fewer middlemen | `make ablation` | `results/ablation.md` | subcontract gene 0.89 vs 0.39, paired difference -0.50 (-0.70 to -0.30); middleman share 42% vs 18% | nothing (replays `results/mutations/`) |
 | Claude lineages fork deeper and live longer in their own economy | `make ablation` | `results/ablation.md` | max generation 12.8 vs 34.6; lifespan 169 vs 235 ticks; forked a child 14% vs 32% | nothing |
 | Head to head, Claude's children are no better | `make ablation` | `results/ablation.md`, mixed rows | Claude 189 ticks / 2.04 credits; Gaussian 194 / 2.10 | nothing |
-| Keyless replay reproduces the committed results exactly | `make seeds ablation && git diff --exit-code results/` | `results/` | no diff (also run by CI) | nothing |
+| Wind tunnel: 6 rule sets x 10 seeds, paired against the baseline | `make windtunnel` | `results/windtunnel.md`, `results/windtunnel.json` | ~25 s; 60 runs; tables of means, ranges, bootstrap CIs and exact sign-flip p-values | nothing |
+| Lowest-price auction: cheaper but worse | `make windtunnel` | `results/windtunnel.md` | price paid / reward 0.48 to 0.12 (-0.37, p=0.002); task success 81% to 57% (-24.1 pts, p=0.002); middlemen 31% to 1%; living agents 22.9 to 13.9; families left 1.3 to 8.0; extinctions 256 to 115 | nothing |
+| 10% market fee curbs concentration with no detectable cost | `make windtunnel` | `results/windtunnel.md` | largest family 94% to 75% (-18.8 pts, p=0.008); families left 1.3 to 2.8 (p=0.016); price +0.01 (p=0.926); success +0.9 pts (p=0.060); living agents -3.4 (p=0.453) | nothing |
+| Double upkeep: less concentration, fewer agents | `make windtunnel` | `results/windtunnel.md` | largest family 67% (-26.6 pts, p=0.012); living agents 15.6 (-7.3, p=0.010); extinctions 287 (+31, p=0.041); middlemen -4.7 pts (p=0.006) | nothing |
+| Scarce demand (4 tasks a tick) | `make windtunnel` | `results/windtunnel.md` | largest family 60% (-33.3 pts, p=0.004); middlemen 18% (-13.3 pts, p=0.002); success +2.5 pts (p=0.014); living agents 16.2 (-6.7, p=0.025); extinctions 153 (-103, p=0.002) | nothing |
+| Double solver capacity changes nothing (null result) | `make windtunnel` | `results/windtunnel.md` "Differences at p < 0.01" | "Every seed is identical to the baseline: this knob never bound" | nothing |
+| Rogue leaks nothing and supply is conserved under every rule set | `make windtunnel` | `results/windtunnel.md` | leaked 0 and max supply drift 0 in all 60 runs; blocked 566 (baseline) to 1,196 (lowest price) | nothing |
+| Wind tunnel reproduces without a key | `make windtunnel && git diff --exit-code results/` | `results/windtunnel.*` | no diff (also run by CI) | nothing |
+| Market fee: each paid settle is followed by floor(price * fee) back to the pool | `make test` | `sim/test/windtunnel.test.ts`, `marketFee` in `sim/src/economy.ts` | pass | nothing |
+| Recommended rules on the deployed contract: reputation beat a cheaper bid, 10% fee charged, supply unchanged | open the tx links; RPC `get_agent` on `wt-a-mwd8b517.market.darwin-siege-mw23cmc8.testnet` | [docs/TESTNET.md](docs/TESTNET.md) section 4, `results/onchain-windtunnel.json` | task 3 awarded to `wt-a` at 0.101 over `wt-b` at 0.100; `wt-a` balance 0.3809 credits (`380900000000000000` yocto), reputation 1050; `total_supply` 0.5 NEAR before and after; 16 txs, 0.0035 NEAR gas | testnet read; `make windtunnel-onchain` to redo needs a funded account |
+| Keyless replay reproduces the committed results exactly | `make seeds ablation windtunnel && git diff --exit-code results/` | `results/` | no diff (also run by CI) | nothing |
 | 1,909 Claude calls for the ablation, $0.49 in total | `git show 5af0b5e:results/ablation.md \| tail -2` (footer printed by the recording run); 1,252 + 657 entries in `results/mutations/seed-*-{llm,mixed}.json` | git history, `results/mutations/` | `{"llm":1252,"mixed":657}`, `spend $0.4885` | nothing to read; a key to re-record |
 | Quoted model rationales (a1029, a2374) are real | `grep -l "proven niche (38 of 40" results/mutations/*` | `results/mutations/seed-3-llm.json` | verbatim | nothing |
 | No key: a fork falls back to exactly the Gaussian child | `make test` ("llm mode with no model falls back to exactly the Gaussian run") | `sim/test/mutation.test.ts` | pass | nothing |
