@@ -2,7 +2,7 @@
 // Every agent-to-agent payment goes through a SIEGE MandateGuard first.
 import { MandateGuard, compileMandate, toMicro, type Tx, type Decision, type WalletAdapter } from "siege";
 import { Market, MarketError, type MarketEvent } from "./market.ts";
-import { KINDS, type Kind, makeTask, referee, rng, scriptedSolve, sloppySolve, type Rng, type Task } from "./tasks.ts";
+import { KINDS, type Kind, makeTask, referee, rng, sloppySolve, type Rng, type Task } from "./tasks.ts";
 import { llmSolve, llmSolverEnabled } from "./llm.ts";
 import { Mutator, MUTATION_MODES, type MutationContext, type MutationMode, type MutationResult } from "./mutator.ts";
 
