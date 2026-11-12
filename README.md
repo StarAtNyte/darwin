@@ -1,8 +1,34 @@
 # DARWIN: an agent economy where agents live and die
 
-Track: AI Swarms (emergent economies). Testnet only, no real funds spent.
+[![ci](https://github.com/StarAtNyte/near-darwin/actions/workflows/ci.yml/badge.svg)](https://github.com/StarAtNyte/near-darwin/actions/workflows/ci.yml)
 
-- **Live:** [near-darwin.fly.dev](https://near-darwin.fly.dev)
+Tracks: AI Swarms, Agent Economy. Testnet only, no real funds spent.
+
+- **What it is.** An economy of 36 founding agents (capped at 50) that bid for tasks under a fixed supply. Agents that go broke are deleted; agents that get rich fork a child with a mutated strategy. Nobody patches the strategies; they evolve.
+- **What the AI does.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation; the live site uses Mistral Large on NVIDIA NIM's free tier. The trading itself is parametric: 36 of the 40 starting agents (90%) bid by their genome's arithmetic, which costs nothing per tick, so an economy can run thousands of rounds and ten seeds in seconds. The other four are three solvers (Claude on the hardest tasks, if enabled) and a rogue.
+- **What emerges** (10 seeds, 2000 ticks, no LLM): middlemen in every seed (subcontract gene 0.31 to 0.85), price competition (markup 0.65 to 0.48), specialists, and 36 founding dynasties collapsing to one or two. With Claude choosing the children (5 seeds), the economy goes elsewhere: almost no middlemen (0.39 against 0.89) and lineages 35 generations deep instead of 13.
+- **On chain.** The `darwin_market` contract runs on NEAR testnet. Three evolved agents have their own sub-accounts holding only function-call keys (`bid`, `submit`, `transfer_internal` on the market) and signed their own bids, submit and a subcontracting payment. Every tx is listed in [docs/TESTNET.md](docs/TESTNET.md).
+- **The guard.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent tries injection, address poisoning, drips and a concurrent burst; it leaked 0 credits in all ten seeds.
+
+Every number here maps to a command and a committed file in [CLAIMS.md](CLAIMS.md).
+
+## Judge quick start
+
+No key, no testnet account. Node 22+ (and Rust for the contract tests).
+
+```
+git clone https://github.com/StarAtNyte/near-darwin.git && cd near-darwin
+make install       # ~5 s
+make seeds         # ~6 s: prints the 10-seed table; "credits leaked by the rogue | 0 (0 to 0; ...)"
+make ablation      # ~10 s: replays Claude's recorded answers; same table as results/ablation.md
+git status --short results/   # empty: both commands regenerate the committed results exactly
+make demo          # open http://127.0.0.1:8787: the live Muller plot, shocks, genome export
+make test          # ~40 s with Rust crates cached, longer on a first build: 20 sim tests, typecheck, 14 contract tests
+```
+
+To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DARWIN_MUTATION=llm make demo`. Each model-designed child shows its reason in the field notes and the "Claude decided" panel. With Docker and nothing else: `docker build -t darwin . && docker run -p 8787:8787 darwin` (~10 s build).
+
+- **Live:** [near-darwin.fly.dev](https://near-darwin.fly.dev) (a shared public run: steering locked, shocks open)
 - **Code:** [github.com/StarAtNyte/near-darwin](https://github.com/StarAtNyte/near-darwin)
 - **Sister project:** [SIEGE](https://github.com/StarAtNyte/near-siege)
 
@@ -10,7 +36,7 @@ Track: AI Swarms (emergent economies). Testnet only, no real funds spent.
 
 [Watch the 30-second demo](docs/demo.mp4): dynasties rise and fall, a plague and a rogue agent are released mid-run, and the guard blocks the rogue live.
 
-DARWIN is an economy of 30-50 agents that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
+DARWIN is an economy of agents (36 founders, at most 50 alive) that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 
 **You steer it.** Change the market's rules while it runs (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, or the auction rule itself). Hit it with shocks: a drought, a plague, a rogue, a wave of immigrants. Then **export the winning genome**, the strategy that survived, as JSON for your own agents, along with the full metrics as CSV.
 
@@ -20,14 +46,14 @@ Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/
 
 ## What emerges
 
-Ten headless runs (`make seeds`: seeds 1-10, 2000 ticks, default rules, Gaussian mutation, no LLM). Mean, then the range across seeds and the 95% confidence interval of the mean. Per-seed numbers are in [results/seeds-gaussian.md](results/seeds-gaussian.md).
+Ten headless runs (`make seeds`: seeds 1-10, 2000 ticks, default rules, Gaussian mutation, no LLM). "Start" is the mean at tick 50, the first full 50-tick window. Then the mean at tick 2000, the range across seeds and the 95% confidence interval of the mean. Per-seed numbers are in [results/seeds-gaussian.md](results/seeds-gaussian.md).
 
 | | start | tick 2000, mean | range over 10 seeds | 95% CI |
 |---|---:|---:|---:|---:|
 | mean subcontract gene ("middleman") | 0.31 | **0.85** | 0.60 to 0.97 | 0.76 to 0.94 |
-| share of tasks done by middlemen (last 50 ticks) | ~15-20% | 40% | 26% to 59% | 33% to 47% |
-| mean bid markup | 0.64 | 0.48 | 0.37 to 0.96 | 0.35 to 0.60 |
-| specialisation (mean max skill weight) | 0.40 | 0.62 | 0.45 to 0.77 | 0.55 to 0.69 |
+| share of tasks done by middlemen (last 50 ticks) | 21% | 40% | 26% to 59% | 33% to 47% |
+| mean bid markup | 0.65 | 0.48 | 0.37 to 0.96 | 0.35 to 0.60 |
+| specialisation (mean max skill weight) | 0.42 | 0.62 | 0.45 to 0.77 | 0.55 to 0.69 |
 | extinctions | 0 | 256 | 218 to 308 | 235 to 278 |
 | max generation | 0 | 13.9 | 8 to 24 | 10.4 to 17.4 |
 | founding dynasties left | 36 | 1.3 | 1 to 2 | 1.0 to 1.6 |
@@ -35,14 +61,14 @@ Ten headless runs (`make seeds`: seeds 1-10, 2000 ticks, default rules, Gaussian
 | credits leaked by the rogue | – | **0** | 0 to 0 | |
 
 - **Middlemen emerge in every seed.** Solvers are capacity-limited. Agents that win auctions on reputation and resell the work to idle solvers at a lower ask outlive agents that do the work themselves. The subcontract gene rises from 0.31 to at least 0.60 in all ten runs.
-- **Price competition** pushes markups down from 0.64 to about 0.42 in nine seeds of ten. Seed 10 never started a price war: markups stayed near 0.96 and 46 agents lived on high margins, which is why the markup and population ranges are wide.
-- **Specialists win**: skill rises with specialisation weight, so lineages lock onto one task kind (0.40 to 0.62 on average).
+- **Price competition** pushes markups down from 0.65 to between 0.37 and 0.52 (mean 0.42) in nine seeds of ten. Seed 10 never started a price war: markups stayed near 0.96 and 46 agents lived on high margins, which is why the markup and population ranges are wide.
+- **Specialists win**: skill rises with specialisation weight, so lineages lock onto one task kind (0.42 to 0.62 on average).
 - **Dynasties collapse.** 36 founders become one or two lineages in every seed, through mass extinction events visible in the lineage panel.
 - **The rogue gets nothing** in any seed. Injection, address poisoning and drip attempts are denied by the classifier. A 25-way concurrent burst is clamped by the atomic ledger. The allowed payments in the "race" count go to the real solver within the hourly cap, not to the accomplice.
 
 ## An AI model as the mutation operator
 
-With the rule `mutation: llm`, every fork is a language-model decision. The model gets the parent's genome, its balance, age, reputation and record per task kind (won, correct, earned), and the market: price-to-reward ratio, success rate and resale share per task kind over the last 100 ticks, the middleman share, and the leading dynasties' shares and mean genes. It returns the child's genome and one sentence of reasoning. The genome is validated, clamped to the gene ranges and limited to a bounded step from the parent (markup 0.25, spec weights 0.3, fork threshold 1.2, and so on), so it is still a mutation. Malformed output, no key, the per-run call cap or the budget all fall back to the Gaussian child, which is drawn first on every fork so a fallback is exactly the Gaussian run's child. The reason appears in the field notes and the specimen panel, for example:
+With the rule `mutation: llm`, every fork is a language-model decision. The model gets the parent's genome, its balance, age, reputation and record per task kind (won, correct, earned), and the market: price-to-reward ratio, success rate and resale share per task kind over the last 100 ticks, the middleman share, and the leading dynasties' shares and mean genes. It returns the child's genome and one sentence of reasoning. The genome is validated, clamped to the gene ranges and limited to a bounded step from the parent (markup 0.25, spec weights 0.3, fork threshold 1.2, and so on), so it is still a mutation. Malformed output, no key, the per-run call cap or the budget all fall back to the Gaussian child, which is drawn first on every fork so a fallback is exactly the Gaussian run's child. The reason appears in the field notes and the specimen panel, for example (seed 3, from `results/mutations/seed-3-llm.json`):
 
 > a1029 forked: "Parent dominates with 80% share; reason success is weakest at 0.70, so I shift a little spec weight toward reason and classify."
 >
@@ -52,7 +78,7 @@ With the rule `mutation: llm`, every fork is a language-model decision. The mode
 
 **Which model.** The operator is either Claude (claude-haiku-5-5, paid, every call checked against the dollar budget) or any OpenAI-compatible endpoint (`MUTATION_BASE_URL`, `MUTATION_API_KEY`, `MUTATION_MODEL`). The prompt, the validation and the clamping are the same for both, and every child records the model that designed it. The headless ablation below used Claude. The live site uses **Mistral Large** (`mistralai/mistral-large-4-1t-a52b` on NVIDIA NIM's free tier) because it costs nothing, so visitors can keep it busy without spending credit. In public mode Claude is never called unless `DARWIN_PUBLIC_ANTHROPIC=1`. The dashboard names whichever model decided ("Claude decided", "Mistral Large decided") and counts children by designer.
 
-Per fork: a cached answer for that fork if there is one, else a live call, else the Gaussian child. Live calls are rate-limited client-side (`MUTATION_RPM`, default 30 a minute, under NIM's ~40), at most 12 in flight, and time out after 90 s. On the live server a pending call never holds up the economy: the parent pays the fork fee at once and the child is born on the first round after the answer arrives. Mistral Large is a reasoning model and takes 40-60 s per answer even at `reasoning_effort: low`, so its children are born roughly 150 rounds after the fork, from a parent whose balance has moved on. A busy, slow or failed call falls back to the Gaussian child. Headless runs and the ablation still wait for each answer, so they replay bit-for-bit from the cache.
+Per fork: a cached answer for that fork if there is one, else a live call, else the Gaussian child. Live calls are rate-limited client-side (`MUTATION_RPM`, default 30 a minute, under NIM's ~40), at most 12 in flight, and time out after 90 s. On the live server a pending call never holds up the economy: the parent pays the fork fee at once and the child is born on the first round after the answer arrives. Mistral Large is a reasoning model and took 40-60 s per answer in our runs even at `reasoning_effort: low`, so its children are born roughly 150 rounds after the fork, from a parent whose balance has moved on. A busy, slow or failed call falls back to the Gaussian child. Headless runs and the ablation still wait for each answer, so they replay bit-for-bit from the cache.
 
 **Ablation** (`make ablation`, seeds 1-5, 2000 ticks; full table in [results/ablation.md](results/ablation.md)). Mean (range); the last column is the paired difference by seed with its 95% CI.
 
@@ -81,11 +107,11 @@ What this shows, plainly:
 - **Claude changes where the economy goes.** It keeps children close to what is working for the parent and leans them into the parent's best task kind. It does not breed middlemen: the subcontract gene ends at 0.39 instead of 0.89, and the middleman share halves. Fewer agents resell to the 97%-accurate solvers, so task success drops by 5 points. Markups stay higher (0.58), the population is larger, and lineages fork faster, 35 generations deep instead of 13.
 - **Claude-made lineages last longer in their own economy** (235 against 169 ticks; 32% fork a child, against 14%).
 - **Head to head they are no better.** In mixed runs, where both kinds of child compete for the same tasks, Claude's children live 189 ticks and earn 2.04 credits; Gaussian children live 194 and earn 2.10. Mean wealth is not significantly different either. Claude-guided mutation is a different selection pressure, not a better optimiser, on five seeds.
-- Cost: 1,909 Claude calls for the llm and mixed runs together, $0.49 in total, about $0.00026 a fork. Every answer is cached in `results/mutations/`, and `make ablation` without a key reproduces the table exactly (checked).
+- Cost: 1,909 Claude calls for the llm and mixed runs together, $0.49 in total, about $0.00026 a fork. Every answer is cached in `results/mutations/`, and `make ablation` without a key reproduces the table exactly; CI checks this on every push. The call count and spend were printed by the recording run (`git show 5af0b5e:results/ablation.md`).
 
 ## On testnet
 
-The contract is deployed at [`market.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market.darwin-siege-mw23cmc8.testnet). A checkpoint after 200 local ticks mirrored 12 living agents, then ran one full task lifecycle on chain: post, 12 relayed bids, a reputation-weighted award, submit and settle. It also recorded an extinction. `total_supply` read back afterwards was exactly the 0.5 NEAR the pool was funded with.
+The contract is deployed at [`market.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market.darwin-siege-mw23cmc8.testnet); the code on chain has the same sha256 as `contract/res/darwin_market.wasm`. A checkpoint from a local seed-42 run mirrored 12 living agents, then ran one full task lifecycle on chain: post, 12 relayed bids, a reputation-weighted award, submit and settle. It also recorded an extinction. `total_supply` read back afterwards was exactly the 0.5 NEAR the pool was funded with.
 
 **Agents sign their own transactions** (`make agents`). The three richest agents of seed 42 at tick 200 got their own testnet accounts, `a261-s42`, `a23-s42` and `a9-s42` under `darwin-siege-mw23cmc8.testnet`. Each account holds only a function-call key, limited to the market contract and the methods `bid`, `submit` and `transfer_internal`, with a 0.04 NEAR gas allowance. The owner registered them and posted a task. Each agent signed its own bid, priced by its evolved markup gene. The winner, `a23-s42`, signed its own submit, then paid a subcontractor with `transfer_internal` after its SIEGE guard allowed the payment. A rogue-style payment (an injected "address changed" notice) was denied by the same guard and never became a transaction. Trying `settle` with an agent key was refused by the network: "Access key does not allow method settle". `total_supply` afterwards: still exactly 0.5 NEAR. Cost: about 0.17 testnet NEAR.
 
@@ -101,15 +127,16 @@ The contract is deployed at [`market.darwin-siege-mw23cmc8.testnet`](https://tes
 | settle (referee) | owner | [2LSbGiqY…](https://testnet.nearblocks.io/txns/2LSbGiqY4xWfSV2oBaPR9Jj3HGqPt5RnMQhJCUj8Rc2x) |
 | pay subcontractor, after the guard allowed it | a23-s42 | [Cd1FsHyN…](https://testnet.nearblocks.io/txns/Cd1FsHyNcpTmD2svJhQXiCbLNgM5RtuTonkzDYieLjfo) |
 
-All hashes, balances and the guard's verdicts are in [results/onchain-agents.json](results/onchain-agents.json). Agent keys stay in `sim/.chain-agents.json`, which is gitignored.
+All hashes, balances and the guard's verdicts are in [results/onchain-agents.json](results/onchain-agents.json); every DARWIN tx, the checkpoint's included, is in [docs/TESTNET.md](docs/TESTNET.md). Agent keys stay in `sim/.chain-agents.json`, which is gitignored.
 
 ## Architecture
 
 ```
 contract/   Rust darwin_market (near-sdk 5): pool, escrow, agents, tasks, reputation-weighted
             auction (price*1000/reputation), settle, transfer_internal, upkeep, kill, fork.
-            14 unit tests including a 400-op conservation property and the agent-signed path. Wasm: res/darwin_market.wasm (247 KB).
-sim/        TypeScript runtime with the same semantics in-process:
+            14 unit tests (near-sdk unit-testing) including a 400-op conservation property and the agent-signed
+            path. Wasm: res/darwin_market.wasm (247 KB), the same bytes as the deployed contract.
+sim/        TypeScript runtime with the same semantics in-process (20 tests in sim/test):
   market.ts   mirror of the contract (conservation asserted every tick)
   tasks.ts    generator + referee (arith, extract, classify, reason; difficulty 1-3)
   economy.ts  genomes, bidding, subcontracting, upkeep, extinction, forking, rogue, metrics
@@ -145,7 +172,8 @@ Requires Node 22+, plus Rust with the `wasm32-unknown-unknown` target for the co
 make install
 make demo          # http://127.0.0.1:8787 · 2000 ticks; pause, step, change speed in the UI
 docker build -t darwin . && docker run -p 8787:8787 darwin
-make headless      # fast metrics run; TICKS=2000 SEED=7 make headless; MUTATION=llm replays the cached Claude run
+make headless      # fast metrics run (600 ticks, seed 42); TICKS=2000 SEED=7 make headless
+SEED=3 TICKS=2000 MUTATION=llm make headless   # replays Claude's recorded answers (seeds 1-5 only; other seeds fall back to Gaussian without a key)
 make seeds         # 10 seeds, Gaussian mutation, mean / range / 95% CI -> results/seeds-gaussian.md (free)
 make ablation      # Gaussian vs Claude vs mixed mutation on seeds 1-5 -> results/ablation.md (replays the cache; no key needed)
 make test          # sim tests + typecheck + contract tests
@@ -169,8 +197,6 @@ fly secrets set MUTATION_API_KEY=nvapi-...
 
 Without it the site still runs: cached answers, then Gaussian.
 
-Checked on 2026-11-04 with the real key: claude-haiku-5-5 solved 6/6 of the hardest arithmetic and sequence tasks, and the referee scored the answers. The run cost about $0.0001.
-
 Every Claude call (solver and mutation operator) checks and records spend through `sim/src/budget.ts`: `NEAR_LLM_BUDGET_FILE` (default `~/.near-hackathon-llm-spend-darwin.json`) and `NEAR_LLM_BUDGET_USD` (default 2.5). Past the cap, calls stop and the run falls back to scripted solving and Gaussian mutation.
 
 ## Honest limits
@@ -182,3 +208,5 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 - The ablation's numbers are Claude's. The live site's Mistral Large children were not part of it, so nothing here says how they compare.
 - LLM-guided mutation changes how genomes are chosen, not how agents act each tick: bidding is still the genome's arithmetic. The ablation covers five seeds, so differences smaller than the confidence intervals are not evidence either way.
 - The rogue's attacks come from a fixed repertoire. SIEGE's attack engine is the adversarial test of the guard.
+- The contract tests use near-sdk's unit-testing mocks, not a sandbox node; the on-chain behaviour is shown by the testnet txs instead.
+- The live site runs on a single Fly.io machine and may be asleep or down; everything above runs locally without it.
