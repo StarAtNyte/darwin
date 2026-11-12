@@ -16,7 +16,7 @@ let srv: ChildProcess;
 before(async () => {
   srv = spawn(process.execPath, ["--import", "tsx", path.join(here, "../src/main.ts")], {
     cwd: path.join(here, ".."),
-    env: { ...process.env, PUBLIC_MODE: "1", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "50" },
+    env: { ...process.env, MUTATION_BASE_URL: "", ANTHROPIC_API_KEY: "", PUBLIC_MODE: "1", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "50" },
     stdio: "ignore",
   });
   for (let i = 0; i < 100; i++) {

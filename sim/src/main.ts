@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { Economy, TUNABLE, type Shock, type SimEvent } from "./economy.ts";
-import { Mutator } from "./mutator.ts";
+import { Mutator, providerFromEnv } from "./mutator.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -26,10 +26,15 @@ const shockWait = () => (PUBLIC_MODE && lastShockAt ? Math.max(0, Math.ceil((las
 const DASH_DIR = path.resolve(here, "../../dashboard");
 const DB_PATH = process.env.DARWIN_DB ?? path.resolve(here, "../darwin.sqlite");
 // LLM mutation: the starting operator (gaussian | llm | mixed; a rule, so it can change live), and a per-run
-// call cap. A public run makes no live calls by default; it replays a committed cache from results/mutations/
-// when one exists for the seed, and falls back to Gaussian where the shared run has diverged from it.
+// call cap. Each fork first replays a committed cache from results/mutations/ when one exists for the seed, then
+// asks the live model (providerFromEnv: a free OpenAI-compatible endpoint via MUTATION_BASE_URL, or Claude, which
+// a public run never calls unless DARWIN_PUBLIC_ANTHROPIC=1), then falls back to Gaussian. A live call never holds
+// up the tick: the child is born when the answer arrives. A public run makes live calls only to a free provider.
 const MUTATION = process.env.DARWIN_MUTATION ?? "gaussian";
-const MUTATION_CALLS = PUBLIC_MODE ? Number(process.env.DARWIN_PUBLIC_MUTATION_CALLS ?? 0) : Number(process.env.DARWIN_MUTATION_MAX_CALLS ?? 400);
+const PROVIDER = providerFromEnv(process.env, PUBLIC_MODE);
+const MUTATION_CALLS = PUBLIC_MODE
+  ? Number(process.env.DARWIN_PUBLIC_MUTATION_CALLS ?? (PROVIDER && !PROVIDER.billed ? 1000 : 0))
+  : Number(process.env.DARWIN_MUTATION_MAX_CALLS ?? 400);
 const MUTATION_DIR = path.resolve(here, "../../results/mutations");
 const LIVE_CACHE_DIR = path.resolve(here, "../.mutations-live");
 const SPEEDS = [1000, 300, 120, 40]; // ms per tick: slow, normal, fast, fastest
@@ -69,12 +74,13 @@ class Run {
     this.metrics = [];
     this.recent = [];
     this.seed = seed;
-    this.eco?.mutator.save({ seed: this.seed });
+    if (!PUBLIC_MODE) this.eco?.mutator.save({ seed: this.seed });
     this.eco = new Economy({ seed }, (e) => this.onEvent(e));
     if (MUTATION !== "gaussian" && rules.mutation === undefined) rules = { ...rules, mutation: MUTATION };
     if (Object.keys(rules).length) this.eco.setRules(rules);
     const mode = this.eco.cfg.mutation === "gaussian" ? "llm" : this.eco.cfg.mutation;
-    this.eco.mutator = new Mutator({ maxCalls: MUTATION_CALLS, cachePath: path.join(MUTATION_DIR, `seed-${seed}-${mode}.json`), savePath: path.join(LIVE_CACHE_DIR, `seed-${seed}-${mode}.json`) });
+    this.eco.deferLiveBirths = true;
+    this.eco.mutator = new Mutator({ provider: PROVIDER, maxCalls: MUTATION_CALLS, cachePath: path.join(MUTATION_DIR, `seed-${seed}-${mode}.json`), savePath: path.join(LIVE_CACHE_DIR, `seed-${seed}-${mode}.json`) });
     broadcast("reset", this.state());
   }
 
@@ -99,7 +105,7 @@ class Run {
       rules: Object.fromEntries(TUNABLE.map((k) => [k, this.eco.cfg[k]])),
       shocks: Object.fromEntries(this.eco.shocks),
       publicMode: PUBLIC_MODE,
-      mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats },
+      mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats, designers: this.eco.designers, liveModel: MUTATION_CALLS > 0 ? (PROVIDER?.model ?? null) : null },
       autoRestart: AUTO_RESTART_MS > 0,
       shockCooldownSec: PUBLIC_MODE ? SHOCK_COOLDOWN_MS / 1000 : 0,
       shockWaitSec: shockWait(),
@@ -228,7 +234,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`DARWIN: http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}   seed ${run.seed}, ${MAX_TICKS} ticks, log ${DB_PATH}${PUBLIC_MODE ? ", public mode" : ""}`);
+  console.log(`DARWIN: http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}   seed ${run.seed}, ${MAX_TICKS} ticks, log ${DB_PATH}${PUBLIC_MODE ? ", public mode" : ""}, mutation ${MUTATION}, live model ${MUTATION_CALLS > 0 && PROVIDER ? PROVIDER.model : "none (cache, then Gaussian)"}`);
 });
 
 let pausedAt = 0, finishedAt = 0;

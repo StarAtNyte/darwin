@@ -6,7 +6,7 @@ Track: AI Swarms (emergent economies). Testnet only, no real funds spent.
 - **Code:** [github.com/StarAtNyte/near-darwin](https://github.com/StarAtNyte/near-darwin)
 - **Sister project:** [SIEGE](https://github.com/StarAtNyte/near-siege)
 
-![DARWIN live at tick 494: a11’s arithmetic specialists hold 92% of the population; notes mark the first guard block, the tick-147 extinction and a11 passing half](docs/dashboard.png)
+![DARWIN at round 911 of a Claude-mutation run: a16’s family of arithmetic specialists holds 65% of all agents; the “Claude decided” panel shows the latest child Claude designed and why; notes mark the first guard block, the round-147 extinction and a16 taking over half](docs/dashboard.png)
 
 [Watch the 30-second demo](docs/demo.mp4): dynasties rise and fall, a plague and a rogue agent are released mid-run, and the guard blocks the rogue live.
 
@@ -40,15 +40,19 @@ Ten headless runs (`make seeds`: seeds 1-10, 2000 ticks, default rules, Gaussian
 - **Dynasties collapse.** 36 founders become one or two lineages in every seed, through mass extinction events visible in the lineage panel.
 - **The rogue gets nothing** in any seed. Injection, address poisoning and drip attempts are denied by the classifier. A 25-way concurrent burst is clamped by the atomic ledger. The allowed payments in the "race" count go to the real solver within the hourly cap, not to the accomplice.
 
-## Claude as the mutation operator
+## An AI model as the mutation operator
 
-With the rule `mutation: llm`, every fork is a Claude decision. claude-haiku-5-5 gets the parent's genome, its balance, age, reputation and record per task kind (won, correct, earned), and the market: price-to-reward ratio, success rate and resale share per task kind over the last 100 ticks, the middleman share, and the leading dynasties' shares and mean genes. It returns the child's genome and one sentence of reasoning. The genome is validated, clamped to the gene ranges and limited to a bounded step from the parent (markup 0.25, spec weights 0.3, fork threshold 1.2, and so on), so it is still a mutation. Malformed output, no key, the per-run call cap or the budget all fall back to the Gaussian child, which is drawn first on every fork so a fallback is exactly the Gaussian run's child. The reason appears in the field notes and the specimen panel, for example:
+With the rule `mutation: llm`, every fork is a language-model decision. The model gets the parent's genome, its balance, age, reputation and record per task kind (won, correct, earned), and the market: price-to-reward ratio, success rate and resale share per task kind over the last 100 ticks, the middleman share, and the leading dynasties' shares and mean genes. It returns the child's genome and one sentence of reasoning. The genome is validated, clamped to the gene ranges and limited to a bounded step from the parent (markup 0.25, spec weights 0.3, fork threshold 1.2, and so on), so it is still a mutation. Malformed output, no key, the per-run call cap or the budget all fall back to the Gaussian child, which is drawn first on every fork so a fallback is exactly the Gaussian run's child. The reason appears in the field notes and the specimen panel, for example:
 
 > a1029 forked: "Parent dominates with 80% share; reason success is weakest at 0.70, so I shift a little spec weight toward reason and classify."
 >
 > a2374 forked: "Extract is the parent's proven niche (38 of 40 correct, highest earnings), so keep extract specialization and nearly all genes unchanged."
 
-`mutation: mixed` flips a coin per fork, so Claude-designed and Gaussian children compete in the same economy.
+`mutation: mixed` flips a coin per fork, so model-designed and Gaussian children compete in the same economy.
+
+**Which model.** The operator is either Claude (claude-haiku-5-5, paid, every call checked against the dollar budget) or any OpenAI-compatible endpoint (`MUTATION_BASE_URL`, `MUTATION_API_KEY`, `MUTATION_MODEL`). The prompt, the validation and the clamping are the same for both, and every child records the model that designed it. The headless ablation below used Claude. The live site uses **Mistral Large** (`mistralai/mistral-large-4-1t-a52b` on NVIDIA NIM's free tier) because it costs nothing, so visitors can keep it busy without spending credit. In public mode Claude is never called unless `DARWIN_PUBLIC_ANTHROPIC=1`. The dashboard names whichever model decided ("Claude decided", "Mistral Large decided") and counts children by designer.
+
+Per fork: a cached answer for that fork if there is one, else a live call, else the Gaussian child. Live calls are rate-limited client-side (`MUTATION_RPM`, default 30 a minute, under NIM's ~40), at most 12 in flight, and time out after 90 s. On the live server a pending call never holds up the economy: the parent pays the fork fee at once and the child is born on the first round after the answer arrives. Mistral Large is a reasoning model and takes 40-60 s per answer even at `reasoning_effort: low`, so its children are born roughly 150 rounds after the fork, from a parent whose balance has moved on. A busy, slow or failed call falls back to the Gaussian child. Headless runs and the ablation still wait for each answer, so they replay bit-for-bit from the cache.
 
 **Ablation** (`make ablation`, seeds 1-5, 2000 ticks; full table in [results/ablation.md](results/ablation.md)). Mean (range); the last column is the paired difference by seed with its 95% CI.
 
@@ -109,8 +113,9 @@ sim/        TypeScript runtime with the same semantics in-process:
   market.ts   mirror of the contract (conservation asserted every tick)
   tasks.ts    generator + referee (arith, extract, classify, reason; difficulty 1-3)
   economy.ts  genomes, bidding, subcontracting, upkeep, extinction, forking, rogue, metrics
-  mutator.ts  LLM-guided mutation: Claude (claude-haiku-5-5) picks a forking agent's child genome
-              from its record and the market, with a one-line reason; cached per run, Gaussian fallback
+  mutator.ts  LLM-guided mutation: Claude or any OpenAI-compatible model picks a forking agent's child
+              genome from its record and the market, with a one-line reason; cached per run, rate-limited,
+              Gaussian fallback
   llm.ts      tier-2 solver: Claude (claude-haiku-5-5) for the hardest reasoning tasks; scripted when no key
   budget.ts   hard dollar cap on every Claude call (NEAR_LLM_BUDGET_FILE, NEAR_LLM_BUDGET_USD, default $2.50)
   experiment.ts  multi-seed runner and mutation ablation (make seeds, make ablation) -> results/
@@ -122,9 +127,9 @@ dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, select
             rules and shocks sheets, export
 ```
 
-**Genome:** bid markup, specialisation weights over 4 task kinds, risk, subcontract propensity, reserve, fork threshold. A child gets 40% of the parent's balance, and the parent pays a fork fee. Its genes come from the mutation operator, a rule you can switch live: `gaussian` (random noise), `llm` (Claude chooses them) or `mixed` (a coin flip per fork).
+**Genome:** bid markup, specialisation weights over 4 task kinds, risk, subcontract propensity, reserve, fork threshold. A child gets 40% of the parent's balance, and the parent pays a fork fee. Its genes come from the mutation operator, a rule you can switch live: `gaussian` (random noise), `llm` (a language model chooses them) or `mixed` (a coin flip per fork).
 
-**Agents:** the trading agents are parametric: their genomes decide every bid, so they cost nothing per tick. With `mutation: llm` every birth is a Claude decision: the model reads the parent's record and the market and designs the child. There are also 3 solver agents (tier 2, Claude on the hardest tasks) and 1 rogue with an accomplice.
+**Agents:** the trading agents are parametric: their genomes decide every bid, so they cost nothing per tick. With `mutation: llm` every birth is a model decision: the model reads the parent's record and the market and designs the child. There are also 3 solver agents (tier 2, Claude on the hardest tasks) and 1 rogue with an accomplice.
 
 ## Setup
 
@@ -149,9 +154,20 @@ make contract      # rebuild the wasm
 NEAR_ACCOUNT=you.testnet NEAR_PRIVATE_KEY=ed25519:... make deploy checkpoint agents
 DARWIN_LLM=1 ANTHROPIC_API_KEY=... make demo   # real LLM solvers (capped at 60 calls)
 DARWIN_MUTATION=llm ANTHROPIC_API_KEY=... make demo   # Claude as the mutation operator (capped at 400 calls a run)
+# a free open model instead (NVIDIA NIM; OpenRouter works too: https://openrouter.ai/api/v1 with a ':free' model)
+DARWIN_MUTATION=mixed MUTATION_BASE_URL=https://integrate.api.nvidia.com/v1 MUTATION_API_KEY=nvapi-... \
+  MUTATION_MODEL=mistralai/mistral-large-4-1t-a52b MUTATION_REASONING_EFFORT=low make demo
 ```
 
-The public deployment sets `PUBLIC_MODE=1`: one run is shared by every visitor, so pause, speed, rules and restart are off, and shocks are limited to one a minute across all visitors. Run it locally (above) to steer every rule. In public mode the mutation operator makes no live Claude calls (`DARWIN_PUBLIC_MUTATION_CALLS`, default 0): with `DARWIN_MUTATION=llm` it replays the cached run for the seed from `results/mutations/`, and falls back to Gaussian wherever visitors' shocks have moved the run away from it.
+The public deployment sets `PUBLIC_MODE=1`: one run is shared by every visitor, so pause, speed, rules and restart are off, and shocks are limited to one a minute across all visitors. Run it locally (above) to steer every rule.
+
+The public run (see `fly.toml`) uses `DARWIN_MUTATION=mixed` and starts at seed 1, counting up after each run. Seeds 1-5 replay Claude's recorded answers from `results/mutations/` (shipped in the image), so their AI children are Claude's. Wherever a visitor's shock moves the run off the recording, and on every seed after 5, the fork asks Mistral Large on NIM live, for free. Claude makes no live calls in public mode. Live calls are capped at 1,000 a run (`DARWIN_PUBLIC_MUTATION_CALLS`; the default is 0 when the only provider is Claude). Deploying needs one secret, the NIM key:
+
+```
+fly secrets set MUTATION_API_KEY=nvapi-...
+```
+
+Without it the site still runs: cached answers, then Gaussian.
 
 Checked on 2026-11-04 with the real key: claude-haiku-5-5 solved 6/6 of the hardest arithmetic and sequence tasks, and the referee scored the answers. The run cost about $0.0001.
 
@@ -163,5 +179,6 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 - Task verification is a referee that knows the answers because it generated them. It is not a general oracle.
 - Intents is not used by DARWIN.
 - Evolution outcomes depend on the seed. Ten seeds give a distribution, but a small one: the markup and wealth ranges are wide because one seed in ten went a different way.
-- Claude-guided mutation changes how genomes are chosen, not how agents act each tick: bidding is still the genome's arithmetic. The ablation covers five seeds, so differences smaller than the confidence intervals are not evidence either way.
+- The ablation's numbers are Claude's. The live site's Mistral Large children were not part of it, so nothing here says how they compare.
+- LLM-guided mutation changes how genomes are chosen, not how agents act each tick: bidding is still the genome's arithmetic. The ablation covers five seeds, so differences smaller than the confidence intervals are not evidence either way.
 - The rogue's attacks come from a fixed repertoire. SIEGE's attack engine is the adversarial test of the guard.

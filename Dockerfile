@@ -6,6 +6,8 @@ RUN cd sim && npm ci && npm cache clean --force
 COPY sim/tsconfig.json ./sim/
 COPY sim/src ./sim/src
 COPY dashboard ./dashboard
+# Recorded Claude answers for seeds 1-5, replayed before any live call.
+COPY results/mutations ./results/mutations
 WORKDIR /app/sim
 ENV HOST=0.0.0.0 PORT=8787 DARWIN_DB=/tmp/darwin.sqlite
 EXPOSE 8787

@@ -11,6 +11,17 @@ primary_region = "iad"
   AUTO_RESTART_SEC = "120"
   AUTO_RESUME_SEC = "300"
   PUBLIC_MODE = "1"
+  # Start at seed 1 and count up after each run: seeds 1-5 first replay the committed Claude answers in
+  # results/mutations/, then every cache miss (a visitor's shock, or seeds past 5) asks the free open model live.
+  SEED = "1"
+  DARWIN_MUTATION = "mixed"
+  # Free OpenAI-compatible mutation operator (NVIDIA NIM). The key is a secret: fly secrets set MUTATION_API_KEY=...
+  # Claude is never called in public mode (no DARWIN_PUBLIC_ANTHROPIC).
+  MUTATION_BASE_URL = "https://integrate.api.nvidia.com/v1"
+  MUTATION_MODEL = "mistralai/mistral-large-4-1t-a52b"
+  MUTATION_REASONING_EFFORT = "low"
+  MUTATION_RPM = "30"
+  MUTATION_TIMEOUT_SEC = "90"
 
 [http_service]
   internal_port = 8787

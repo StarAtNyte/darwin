@@ -35,7 +35,7 @@ const S = {
   founders: new Map(), // founder -> { idx, first }
   derived: [], // per metrics index: { ended: [founders], deaths, blocked, leaked }
   notes: new Map(), // tick -> group
-  designs: [], // forks whose child genome Claude chose: { tick, parent, child, rationale }
+  designs: [], // forks whose child genome an AI model chose: { tick, parent, child, rationale, model }
   shockMarks: [], // instant shocks { tick, kind }
   exportInfo: null,
   exportTick: -1,
@@ -131,7 +131,7 @@ function ingestEvent(e) {
   if (e.event === "born") {
     S.genomes.set(e.agent, e.genome);
     if (e.rationale && e.parent) {
-      S.designs.push({ tick: e.tick, parent: e.parent, child: e.agent, founder: e.founder, rationale: e.rationale });
+      S.designs.push({ tick: e.tick, parent: e.parent, child: e.agent, founder: e.founder, rationale: e.rationale, model: e.model });
       if (S.designs.length > 300) S.designs.shift();
     }
     if (e.tick > 0 && !e.parent) {
@@ -383,7 +383,7 @@ function renderChrome() {
 
   const llm = st.rules?.mutation === "llm" || st.rules?.mutation === "mixed";
   const tag = llm
-    ? "AI agents on NEAR bid for work and pay rent. Broke ones die. Rich ones fork a child, and Claude chooses its strategy. Nobody designs the winner."
+    ? `AI agents on NEAR bid for work and pay rent. Broke ones die. Rich ones fork a child, and ${operatorName()} chooses its strategy. Nobody designs the winner.`
     : "AI agents on NEAR bid for work and pay rent. Broke ones die. Rich ones fork a child with a mutated strategy. Nobody designs the winner.";
   if ($("#tagline").textContent !== tag) $("#tagline").textContent = tag;
   $("#tick").textContent = fmt(st.tick);
@@ -743,7 +743,23 @@ function labelOther(c, b, h) {
   c.restore();
 }
 
-// Children whose strategy Claude chose, from every agent the run reported (dead ones included).
+// Short display name for a model id (same rule as modelLabel in sim/src/mutator.ts). No id: an answer cached
+// before models were recorded, which were all Claude's.
+function modelName(id) {
+  if (!id || /claude/i.test(id)) return "Claude";
+  if (/mistral-large/i.test(id)) return "Mistral Large";
+  const name = id.split("/").pop().replace(/:free$/, "").replace(/-(it|instruct|chat)$/i, "");
+  return name.split(/[-_]/).map((w) => (/^[a-z]/.test(w) ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
+}
+// Who designs children in this run: the live model if there is one, else whoever designed the latest child.
+function operatorName() {
+  const live = S.state?.mutation?.liveModel;
+  if (live) return modelName(live);
+  const last = latestDecision();
+  return last ? modelName(last.model) : "an AI model";
+}
+
+// Children whose strategy an AI model chose, from every agent the run reported (dead ones included).
 function claudeChildren() {
   const out = [];
   for (const a of S.agents.values()) if (a.origin === "llm" && typeof a.born === "number") out.push(a);
@@ -754,7 +770,7 @@ function latestDecision() {
   for (const a of S.agents.values()) if (a.origin === "llm" && a.rationale && typeof a.born === "number" && (!best || a.born > best.born || (a.born === best.born && a.id > best.id))) best = a;
   if (!best) {
     const d = S.designs.at(-1);
-    return d ? { id: d.child, parent: d.parent, born: d.tick, founder: d.founder, rationale: d.rationale } : null;
+    return d ? { id: d.child, parent: d.parent, born: d.tick, founder: d.founder, rationale: d.rationale, model: d.model } : null;
   }
   return best;
 }
@@ -782,27 +798,33 @@ function renderAI() {
   if (cur) {
     const was = box.dataset.cur;
     box.dataset.cur = cur.id;
-    $("#ai-tag").textContent = "Claude decided";
-    set("#ai-what", `Round ${fmt(cur.born)}: ${idHtml(cur.parent)} got rich and forked ${idHtml(cur.id)}. Claude chose the child’s strategy:`);
+    const who = modelName(cur.model);
+    $("#ai-tag").textContent = `${who} decided`;
+    set("#ai-what", `Round ${fmt(cur.born)}: ${idHtml(cur.parent)} got rich and forked ${idHtml(cur.id)}. ${esc(who)} chose the child’s strategy:`);
     set("#ai-why", `“${esc(cur.rationale)}”`);
     const born = [...S.agents.values()].filter((a) => a.parent && a.role === "parametric").length;
     const fb = st.mutation?.fallback || 0;
-    const tail = mode === "mixed" ? " The rest got random changes, so the two kinds of child compete." : mode === "gaussian" ? " Mutation is now set to random." : "";
-    set("#ai-meta", `Claude has designed ${fmt(kids)} of the ${fmt(born)} children born so far.${tail}${fb && mode !== "gaussian" ? ` ${fmt(fb)} fell back to random (no API key or call cap).` : ""} Purple marks under the chart show when.`);
+    const by = new Map();
+    for (const a of claudeChildren()) by.set(modelName(a.model), (by.get(modelName(a.model)) || 0) + 1);
+    const parts = [...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} ${fmt(k)}`);
+    parts.push(`random ${fmt(Math.max(0, born - kids))}`);
+    const tail = mode === "mixed" ? " Random children compete with them." : mode === "gaussian" ? " Mutation is now set to random." : "";
+    set("#ai-meta", `Designed by an AI model: ${fmt(kids)} of ${fmt(born)} children (${parts.join(", ")}).${tail}${fb && mode !== "gaussian" ? ` ${fmt(fb)} fell back to random (model busy, slow or unavailable).` : ""} Purple marks under the chart show when.`);
     if (was !== cur.id) { box.classList.remove("is-new"); void box.offsetWidth; box.classList.add("is-new"); }
     return;
   }
   delete box.dataset.cur;
   if (mode === "llm" || mode === "mixed") {
-    $("#ai-tag").textContent = "Claude";
-    set("#ai-what", "Waiting for the first child. When an agent gets rich enough to fork, Claude reads its record and the market, then chooses the child’s strategy and says why.");
+    const who = operatorName();
+    $("#ai-tag").textContent = who === "an AI model" ? "AI model" : who;
+    set("#ai-what", `Waiting for the first child. When an agent gets rich enough to fork, ${esc(who)} reads its record and the market, then chooses the child’s strategy and says why.`);
     set("#ai-why", "");
-    set("#ai-meta", st.mutation?.fallback ? `${fmt(st.mutation.fallback)} ${plural(st.mutation.fallback, "child", "children")} fell back to random changes: no API key, or the call cap was reached.` : "");
+    set("#ai-meta", st.mutation?.fallback ? `${fmt(st.mutation.fallback)} ${plural(st.mutation.fallback, "child", "children")} fell back to random changes: no model available, or it was busy or slow.` : "");
   } else {
     $("#ai-tag").textContent = "Random mutation";
     set("#ai-what", "In this run each child copies its parent’s strategy with small random changes.");
     set("#ai-why", "");
-    set("#ai-meta", st.publicMode ? "In a Claude run, Claude chooses each child’s strategy and says why. <a href=\"https://github.com/StarAtNyte/near-darwin#claude-as-the-mutation-operator\" rel=\"noopener\">See how</a>." : "Open Rules and set Mutation to Claude: Claude then chooses each child’s strategy and says why.");
+    set("#ai-meta", st.publicMode ? "In an AI run, a language model chooses each child’s strategy and says why. <a href=\"https://github.com/StarAtNyte/near-darwin#an-ai-model-as-the-mutation-operator\" rel=\"noopener\">See how</a>." : "Open Rules and set Mutation to AI model: a language model then chooses each child’s strategy and says why.");
   }
 }
 
@@ -955,7 +977,7 @@ function drawPlot() {
   narrate();
 }
 
-// The Claude lane: one mark per round in which Claude designed a child, taller for more; the decision shown
+// The AI lane: one mark per round in which an AI model designed a child, taller for more; the decision shown
 // above the chart gets a ring here and a diamond in its family's band.
 function drawAiLane(xt) {
   const lane = $(".lane--ai");
@@ -1450,7 +1472,7 @@ canvas.addEventListener("mousemove", (e) => {
     (strat ? `<em>${esc(strat)}</em>` : "") +
     `<span>At round ${m.tick}: ${share}% of the ${S.mode === "wealth" ? "wealth" : "population"}, ${lin.n} living, ${credits(lin.wealth)} credits.</span><br>` +
     `<span>${nowAlive ? `Now ${living.length} living, ${gens + 1} ${plural(gens + 1, "generation")} deep` : "Extinct now"}. Founded at round ${founder?.born ?? S.founders.get(hit.f)?.first ?? 0}.</span>` +
-    (nowAlive && living.some((a) => a.origin === "llm") ? `<br><span class="tip__ai">Claude designed ${living.filter((a) => a.origin === "llm").length} of its ${living.length} living members.</span>` : "");
+    (nowAlive && living.some((a) => a.origin === "llm") ? `<br><span class="tip__ai">An AI model designed ${living.filter((a) => a.origin === "llm").length} of its ${living.length} living members.</span>` : "");
   }
   tip.hidden = false;
   const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -1534,13 +1556,13 @@ function edgeSentence(mk, mkAvg, sub, subAvg) {
   return `<p class="spec__edge">${out.charAt(0).toUpperCase() + out.slice(1)}.</p>`;
 }
 
-// Members whose genes Claude chose as the mutation operator, and its latest reason in this dynasty.
+// Members whose genes an AI model chose as the mutation operator, and its latest reason in this dynasty.
 function designSentence(f, living) {
   const byClaude = living.filter((a) => a.origin === "llm").length;
   const last = [...S.designs].reverse().find((d) => d.founder === f);
   if (!byClaude && !last) return "";
-  const head = byClaude ? `Claude chose the genes of ${byClaude} of its ${living.length} living ${plural(living.length, "member")}.` : "";
-  const why = last ? ` Latest, at round ${last.tick}: ${esc(short(last.parent))} forked ${esc(short(last.child))}, “${esc(last.rationale)}”` : "";
+  const head = byClaude ? `An AI model chose the genes of ${byClaude} of its ${living.length} living ${plural(living.length, "member")}.` : "";
+  const why = last ? ` Latest, at round ${last.tick}: ${esc(short(last.parent))} forked ${esc(short(last.child))}, and ${esc(modelName(last.model))} said “${esc(last.rationale)}”` : "";
   return `<p class="spec__edge spec__llm">${head}${why}</p>`;
 }
 
@@ -1597,7 +1619,7 @@ function renderSpecimen() {
     ["Founder", short(f)],
     [isChampLine ? "Champion, its top earner" : "Champion, its richest member", short(champ)],
   ];
-  let note = `Genes are the numbers an agent bids by. ${living.some((a) => a.origin === "llm") ? "A child’s genes are its parent’s, adjusted by Claude or by small random changes." : "A child inherits them with small random changes."} Bars average the family’s living members; the white mark is the whole market’s average.`;
+  let note = `Genes are the numbers an agent bids by. ${living.some((a) => a.origin === "llm") ? "A child’s genes are its parent’s, adjusted by an AI model or by small random changes." : "A child inherits them with small random changes."} Bars average the family’s living members; the white mark is the whole market’s average.`;
   if (!isChampLine && g3.source !== "all") {
     note += g3.source ? ` Risk, reserve and fork threshold average the ${g3.source} of ${living.length} members born while this page was open.` : " Risk, reserve and fork threshold arrive with the next birth in this family.";
   }
@@ -1738,10 +1760,10 @@ function renderNotes() {
   for (const [w, win] of new Set([wins[0], wins.at(-1)].filter(Boolean))) {
     entries.push({ t: win.last + 0.5, from: w, to: win.last, ss: [subsSentence(win.subs)], quiet: true });
   }
-  // Forks where Claude chose the child's genes: the first one, and the latest three, each with its one-line reason.
+  // Forks where an AI model chose the child's genes: the first one, and the latest three, each with its one-line reason.
   const ds = S.designs;
   for (const d of new Set([ds[0], ...ds.slice(-3)].filter(Boolean))) {
-    entries.push({ t: d.tick + 0.4, from: d.tick, to: d.tick, ss: [mark("llm", `${esc(short(d.parent))} forked ${esc(short(d.child))}, and Claude chose the child’s genes: “${esc(d.rationale)}”`)] });
+    entries.push({ t: d.tick + 0.4, from: d.tick, to: d.tick, ss: [mark("llm", `${esc(short(d.parent))} forked ${esc(short(d.child))}, and ${esc(modelName(d.model))} chose the child’s genes: “${esc(d.rationale)}”`)] });
   }
   // A routine window sorts at its last tick, below any notable note from that same tick.
   for (const r of routine.values()) entries.push({ t: r.to - 0.25, from: r.from, to: r.to, ss: [routineSentence(r)], routine: true });
@@ -1884,9 +1906,9 @@ const RULES = [
 function buildRules() {
   const html = `<fieldset class="rule" data-rule="mutation"><legend>Who designs each child</legend><div class="seg seg--small">` +
     `<input type="radio" name="mutation" id="m-gauss" value="gaussian"><label for="m-gauss">Random</label>` +
-    `<input type="radio" name="mutation" id="m-llm" value="llm"><label for="m-llm">Claude</label>` +
+    `<input type="radio" name="mutation" id="m-llm" value="llm"><label for="m-llm">AI model</label>` +
     `<input type="radio" name="mutation" id="m-mixed" value="mixed"><label for="m-mixed">Mixed</label></div>` +
-    `<p class="hint" id="h-mutation">Random: the child copies its parent’s genes with small random changes. Claude: Claude reads the parent’s record and the market, then picks the child’s genes and gives a one-line reason, shown above the chart. Mixed: a coin flip per child, so both kinds compete. Without an API key, or past the run’s call cap, Claude children fall back to random; a recorded run replays Claude’s cached answers.</p><p class="err" id="e-mutation" aria-live="polite"></p></fieldset>` +
+    `<p class="hint" id="h-mutation">Random: the child copies its parent’s genes with small random changes. AI model: a language model (Claude, or a free open model) reads the parent’s record and the market, then picks the child’s genes and gives a one-line reason, shown above the chart. Mixed: a coin flip per child, so both kinds compete. Without a model, past the run’s call cap, or when the model is busy or slow, the child falls back to random; a recorded run replays its cached answers.</p><p class="err" id="e-mutation" aria-live="polite"></p></fieldset>` +
     RULES.map((r) => `<div class="rule" data-rule="${r.k}"><div class="rule__top"><label for="r-${r.k}">${r.label}</label><output for="r-${r.k}" id="o-${r.k}"></output></div>` +
     `<input type="range" id="r-${r.k}" name="${r.k}" min="${r.min}" max="${r.max}" step="${r.step}" aria-describedby="h-${r.k} e-${r.k}">` +
     `<p class="hint" id="h-${r.k}">${r.help}</p><p class="err" id="e-${r.k}" aria-live="polite"></p></div>`).join("") +
@@ -2125,7 +2147,7 @@ const TOUR = [
       `<div><dt>Pay rent</dt><dd>every round, whether it earned or not.</dd></div>` +
       `<div><dt>Die broke</dt><dd>when its credits run out, the agent is gone.</dd></div>` +
       (claudeRun()
-        ? `<div><dt>Fork when rich</dt><dd>it has a child. <b>Claude chooses the child’s strategy</b>, reading the parent’s record and the market, and says why in one line.</dd></div></dl>`
+        ? `<div><dt>Fork when rich</dt><dd>it has a child. <b>${esc(operatorName() === "an AI model" ? "An AI model" : operatorName())} chooses the child’s strategy</b>, reading the parent’s record and the market, and says why in one line.</dd></div></dl>`
         : `<div><dt>Fork when rich</dt><dd>it has a child that copies its strategy with small random changes.</dd></div></dl>`) +
       `<p>An agent and all its descendants form a family. Nobody designs the winner: cheap bidders, specialists and middlemen (agents who resell work they win) appear only because they outlast the rest.</p>`,
     pins: [],
@@ -2137,7 +2159,7 @@ const TOUR = [
       const guardNote = last?.rogueBlocked ? `${fmt(last.rogueBlocked)} so far.` : "The first rogue arrives at round 120.";
       return `<ol class="tour__watch">` +
         `<li><span class="tour__ref">1</span><p><b>The headline.</b> What is happening right now, in one sentence.</p></li>` +
-        `<li><span class="tour__ref">2</span><p><b>Claude’s latest decision.</b> ${claudeRun() ? "Which child Claude just designed, and its reason." : "In a Claude run, which child Claude just designed, and why. This run uses random changes."}</p></li>` +
+        `<li><span class="tour__ref">2</span><p><b>The AI’s latest decision.</b> ${claudeRun() ? `Which child ${esc(operatorName())} just designed, and its reason.` : "In an AI run, which child the model just designed, and why. This run uses random changes."}</p></li>` +
         `<li><span class="tour__ref">3</span><p><b>The chart.</b> Time runs left to right. Each colour is a family; thicker means more of it alive.</p></li>` +
         `<li><span class="tour__ref">4</span><p><b>The green marks.</b> A guard checks every payment; each mark is a theft it blocked. ${guardNote}</p></li></ol>`;
     },
