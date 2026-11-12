@@ -4,6 +4,7 @@
 
 Tracks: AI Swarms, Agent Economy. Testnet only, no real funds spent.
 
+- **What it's for: a wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 10 seeds and tests each against the baseline. Headline: a plain lowest-price auction cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%; a 10% fee recycled into demand cut the largest family's share from 94% to 75% with no detectable cost. The recommended rules were then run on the deployed testnet contract. [Findings below](#wind-tunnel-test-market-rules-before-you-deploy-them).
 - **What it is.** An economy of 36 founding agents (capped at 50) that bid for tasks under a fixed supply. Agents that go broke are deleted; agents that get rich fork a child with a mutated strategy. Nobody patches the strategies; they evolve.
 - **What the AI does.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation; the live site uses Mistral Large on NVIDIA NIM's free tier. The trading itself is parametric: 36 of the 40 starting agents (90%) bid by their genome's arithmetic, which costs nothing per tick, so an economy can run thousands of rounds and ten seeds in seconds. The other four are three solvers (Claude on the hardest tasks, if enabled) and a rogue.
 - **What emerges** (10 seeds, 2000 ticks, no LLM): middlemen in every seed (subcontract gene 0.31 to 0.85), price competition (markup 0.65 to 0.48), specialists, and 36 founding dynasties collapsing to one or two. With Claude choosing the children (5 seeds), the economy goes elsewhere: almost no middlemen (0.39 against 0.89) and lineages 35 generations deep instead of 13.
@@ -21,9 +22,11 @@ git clone https://github.com/StarAtNyte/near-darwin.git && cd near-darwin
 make install       # ~5 s
 make seeds         # ~6 s: prints the 10-seed table; "credits leaked by the rogue | 0 (0 to 0; ...)"
 make ablation      # ~10 s: replays Claude's recorded answers; same table as results/ablation.md
-git status --short results/   # empty: both commands regenerate the committed results exactly
+make windtunnel    # ~25 s: 6 market rule sets x 10 seeds; prints results/windtunnel.md, whose
+                   #   "Differences at p < 0.01" list starts "**Lowest price wins**: largest family's share of agents -45.6 pts"
+git status --short results/   # empty: all three commands regenerate the committed results exactly
 make demo          # open http://127.0.0.1:8787: the live Muller plot, shocks, genome export
-make test          # ~40 s with Rust crates cached, longer on a first build: 20 sim tests, typecheck, 14 contract tests
+make test          # ~40 s with Rust crates cached, longer on a first build: 27 sim tests, typecheck, 14 contract tests
 ```
 
 To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DARWIN_MUTATION=llm make demo`. Each model-designed child shows its reason in the field notes and the "Claude decided" panel. With Docker and nothing else: `docker build -t darwin . && docker run -p 8787:8787 darwin` (~10 s build).
@@ -38,7 +41,7 @@ To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DAR
 
 DARWIN is an economy of agents (36 founders, at most 50 alive) that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 
-**You steer it.** Change the market's rules while it runs (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, or the auction rule itself). Hit it with shocks: a drought, a plague, a rogue, a wave of immigrants. Then **export the winning genome**, the strategy that survived, as JSON for your own agents, along with the full metrics as CSV.
+**You steer it.** Change the market's rules while it runs (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, market fee, or the auction rule itself). Hit it with shocks: a drought, a plague, a rogue, a wave of immigrants. Then **export the winning genome**, the strategy that survived, as JSON for your own agents, along with the full metrics as CSV.
 
 **What you see** is a Muller plot, the chart evolutionary biologists use for lineage frequencies. Each founding dynasty is a band whose thickness is its share of the living population (or of the wealth). Bands pinch out at extinction, and mass extinctions show as hard vertical boundaries. Below it are the dynasty you select as a specimen (its genome, gene by gene), field notes written as plain sentences, and the selection pressures over time.
 
@@ -65,6 +68,64 @@ Ten headless runs (`make seeds`: seeds 1-10, 2000 ticks, default rules, Gaussian
 - **Specialists win**: skill rises with specialisation weight, so lineages lock onto one task kind (0.42 to 0.62 on average).
 - **Dynasties collapse.** 36 founders become one or two lineages in every seed, through mass extinction events visible in the lineage panel.
 - **The rogue gets nothing** in any seed. Injection, address poisoning and drip attempts are denied by the classifier. A 25-way concurrent burst is clamped by the atomic ledger. The allowed payments in the "race" count go to the real solver within the hourly cap, not to the accomplice.
+
+## Wind tunnel: test market rules before you deploy them
+
+If you are designing an agent marketplace (Agent Market in NEAR's ecosystem, say), the rules decide who survives: how
+the auction picks a winner, what the market takes, what it costs to stay listed. DARWIN lets you try a rule set against
+a population that adapts to it, before real agents and real money do. `make windtunnel` (~25 s, no key) runs six rule
+sets on seeds 1-10 for 2000 ticks with Gaussian mutation. Each set changes one knob from the baseline, every set uses the
+same seeds, and each outcome is compared with the baseline paired by seed: mean difference, 95% bootstrap CI and an
+exact sign-flip permutation p-value (all 1,024 sign assignments). Full tables, every p-value and per-seed numbers:
+[results/windtunnel.md](results/windtunnel.md). The dashboard shows the same comparison under "Wind tunnel", with a
+"Try it" button that restarts the local run under that rule set.
+
+Mean over 10 seeds; in brackets, the change from the baseline; **bold** where p < 0.01.
+
+| | baseline | lowest price wins | 10% market fee | double upkeep | scarce demand (4 tasks) | double solver capacity |
+|---|---:|---:|---:|---:|---:|---:|
+| largest family's share of agents | 94% | 48% (**-46 pts**) | 75% (**-19 pts**) | 67% (-27 pts, p=0.012) | 60% (**-33 pts**) | 94% (0) |
+| founding families left, of 36 | 1.3 | 8.0 (**+6.7**) | 2.8 (+1.5, p=0.016) | 2.8 (**+1.5**) | 5.1 (+3.8, p=0.016) | 1.3 (0) |
+| wealth Gini | 0.36 | 0.31 (-0.05, p=0.23) | 0.35 (-0.01) | 0.36 (0.00) | 0.30 (-0.06, p=0.025) | 0.36 (0) |
+| tasks resold to a solver | 31% | 1% (**-30 pts**) | 32% (+1 pt) | 27% (**-5 pts**) | 18% (**-13 pts**) | 31% (0) |
+| price paid / task reward | 0.48 | 0.12 (**-0.37**) | 0.49 (+0.01) | 0.49 (+0.01) | 0.52 (+0.04) | 0.48 (0) |
+| task success | 81% | 57% (**-24 pts**) | 82% (+0.9 pts, p=0.06) | 81% (+0.1) | 84% (+2.5 pts, p=0.014) | 81% (0) |
+| living agents at tick 2000 | 22.9 | 13.9 (**-9.0**) | 19.5 (-3.4, p=0.45) | 15.6 (**-7.3**) | 16.2 (-6.7, p=0.025) | 22.9 (0) |
+| extinctions | 256 | 115 (**-142**) | 248 (-9) | 287 (+31, p=0.041) | 153 (**-103**) | 256 (0) |
+| credits leaked by the rogue | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Total supply was conserved at every tick of all 60 runs.
+
+**If you're designing an agent market:**
+
+1. **Weight the auction by reputation; don't let the lowest price win.** With lowest-price-wins, buyers paid 0.12 of
+   the reward instead of 0.48, but task success fell from 81% to 57% in every seed (p = 0.002): the cheapest bidder was
+   usually a sloppy generalist, and middlemen who resell to accurate solvers could no longer win. Fewer agents survived
+   (14 against 23). *Caveat:* we tested one weighting, the contract's `price * 1000 / reputation` with +25/-100 steps;
+   the sim scores a wrong answer as worth nothing to the buyer.
+2. **A fee recycled into demand curbs concentration at little cost.** A 10% fee on each paid task, returned to the
+   pool that funds future tasks, cut the largest family's share from 94% to 75% (p = 0.008). Price paid, task success,
+   survivors and agent wealth showed no detectable change. *Caveat:* the families-left gain (1.3 to 2.8) is tentative
+   (p = 0.016), and a fee that leaves the market, to a treasury, was not tested.
+3. **Rent is a blunter tool for the same goal.** Doubling upkeep also broke up the leading family (94% to 67%,
+   p = 0.012, tentative) but cost 7 living agents and 31 more extinctions. Scarcer demand did the same at the cost of
+   7 agents, with fewer middlemen and slightly better task success.
+4. **Find what binds before you buy capacity.** Doubling solver capacity changed nothing: every seed was identical to
+   the baseline, because three resold jobs a tick never ran out. That null result is the answer.
+
+What this does not show: one simulator, these knobs, one knob at a time, 10 seeds, Gaussian mutation only. With 65
+comparisons, two or three would reach p < 0.05 by chance, so single results near p = 0.05 are tentative. Absolute values
+are the sim's, not a forecast for a real market. Rogue-blocked counts move with the rule set because the rogue lives
+longer or shorter (under lowest-price it wins more tasks, so it attacks more: 1,196 blocked against 566), but it leaked
+0 credits in all 60 runs.
+
+**On chain** (`make windtunnel-onchain`). The deployed contract has no rule parameters to set: its auction is
+reputation-weighted in code, and the 10% fee is the owner's existing `charge_upkeep` right after a paid `settle`, which
+is exactly what the sim's `marketFee` does. So the recommended rules run on the live contract without a redeploy (a
+redeploy is also impossible: the market account's key was never saved). Two tasks between two fresh agents: in the
+second, the cheaper bid (0.100) lost to the agent with reputation 1025 (0.101), which a lowest-price auction would not
+do, and both winners paid the 10% fee to the pool. `total_supply` read back: 0.5 NEAR, unchanged. 16 txs, 0.0035
+testnet NEAR in gas, listed in [docs/TESTNET.md](docs/TESTNET.md#4-the-wind-tunnels-recommended-rules-make-windtunnel-onchain-2026-11-12).
 
 ## An AI model as the mutation operator
 
@@ -136,7 +197,7 @@ contract/   Rust darwin_market (near-sdk 5): pool, escrow, agents, tasks, reputa
             auction (price*1000/reputation), settle, transfer_internal, upkeep, kill, fork.
             14 unit tests (near-sdk unit-testing) including a 400-op conservation property and the agent-signed
             path. Wasm: res/darwin_market.wasm (247 KB), the same bytes as the deployed contract.
-sim/        TypeScript runtime with the same semantics in-process (20 tests in sim/test):
+sim/        TypeScript runtime with the same semantics in-process (27 tests in sim/test):
   market.ts   mirror of the contract (conservation asserted every tick)
   tasks.ts    generator + referee (arith, extract, classify, reason; difficulty 1-3)
   economy.ts  genomes, bidding, subcontracting, upkeep, extinction, forking, rogue, metrics
@@ -146,9 +207,10 @@ sim/        TypeScript runtime with the same semantics in-process (20 tests in s
   llm.ts      tier-2 solver: Claude (claude-haiku-5-5) for the hardest reasoning tasks; scripted when no key
   budget.ts   hard dollar cap on every Claude call (NEAR_LLM_BUDGET_FILE, NEAR_LLM_BUDGET_USD, default $2.50)
   experiment.ts  multi-seed runner and mutation ablation (make seeds, make ablation) -> results/
+  windtunnel.ts  market rule sets x seeds, paired bootstrap CI and exact sign-flip test vs baseline (make windtunnel)
   main.ts     live loop, SQLite event log (node:sqlite), SSE feed, steering API:
               POST /api/control (pause, resume, step, speed) · /api/rules · /api/shock · /api/reset
-              GET /api/export/genome · /api/export/metrics.csv · /history · /stream · /healthz
+              GET /api/export/genome · /api/export/metrics.csv · /api/windtunnel · /history · /stream · /healthz
   chain.ts    testnet: deploy the contract, settle checkpoints, agent-signed txs from per-agent accounts
 dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, selection pressures,
             rules and shocks sheets, export
@@ -176,10 +238,11 @@ make headless      # fast metrics run (600 ticks, seed 42); TICKS=2000 SEED=7 ma
 SEED=3 TICKS=2000 MUTATION=llm make headless   # replays Claude's recorded answers (seeds 1-5 only; other seeds fall back to Gaussian without a key)
 make seeds         # 10 seeds, Gaussian mutation, mean / range / 95% CI -> results/seeds-gaussian.md (free)
 make ablation      # Gaussian vs Claude vs mixed mutation on seeds 1-5 -> results/ablation.md (replays the cache; no key needed)
+make windtunnel    # 6 market rule sets x 10 seeds -> results/windtunnel.md (free)
 make test          # sim tests + typecheck + contract tests
 make contract      # rebuild the wasm
 # testnet (needs a funded account: https://docs.near.org/getting-started/faucet)
-NEAR_ACCOUNT=you.testnet NEAR_PRIVATE_KEY=ed25519:... make deploy checkpoint agents
+NEAR_ACCOUNT=you.testnet NEAR_PRIVATE_KEY=ed25519:... make deploy checkpoint agents windtunnel-onchain
 DARWIN_LLM=1 ANTHROPIC_API_KEY=... make demo   # real LLM solvers (capped at 60 calls)
 DARWIN_MUTATION=llm ANTHROPIC_API_KEY=... make demo   # Claude as the mutation operator (capped at 400 calls a run)
 # a free open model instead (NVIDIA NIM; OpenRouter works too: https://openrouter.ai/api/v1 with a ':free' model)
@@ -204,6 +267,7 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 - The economy runs at simulation speed in-process, with the same semantics as the contract. Testnet holds **checkpoints**, not every tick. Three agents sign their own bid, submit and payment from their own function-call-key accounts; the checkpoint's other agents are still owner-relayed (`bid_for`, `submit_for`), and posting, awarding, settling and killing stay with the owner, who acts as the referee.
 - Task verification is a referee that knows the answers because it generated them. It is not a general oracle.
 - Intents is not used by DARWIN.
+- The wind tunnel changes one rule at a time, on one simulator; interactions between rules and other mechanisms (staking, slashing, fees that leave the market) are untested. The contract enforces the auction rule and, through the owner, the fee; it does not store rules, so the owner's relayer is trusted to apply them.
 - Evolution outcomes depend on the seed. Ten seeds give a distribution, but a small one: the markup and wealth ranges are wide because one seed in ten went a different way.
 - The ablation's numbers are Claude's. The live site's Mistral Large children were not part of it, so nothing here says how they compare.
 - LLM-guided mutation changes how genomes are chosen, not how agents act each tick: bidding is still the genome's arithmetic. The ablation covers five seeds, so differences smaller than the confidence intervals are not evidence either way.
