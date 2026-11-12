@@ -74,6 +74,11 @@ const WINDTUNNEL = (() => {
 const notable = new Set(["born", "fork", "kill", "guard_block", "guard_allow_rogue", "subcontract", "shock", "rules"]);
 const clients = new Set<http.ServerResponse>();
 
+// A heartbeat every 15 s: a paused or finished run sends nothing else, and proxies close a stream idle for 60-100 s.
+// A named event (not an SSE comment) so the dashboard can tell a quiet run from a dead connection.
+const HEARTBEAT_MS = 15_000;
+setInterval(() => broadcast("ping", { t: Date.now() }), HEARTBEAT_MS).unref();
+
 function broadcast(name: string, data: unknown) {
   const msg = `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const c of clients) c.write(msg);
@@ -198,7 +203,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/api/windtunnel") return WINDTUNNEL ? send(res, 200, WINDTUNNEL) : send(res, 404, { error: "no wind tunnel results: run make windtunnel" });
     if (req.method === "GET" && p === "/snapshot") return send(res, 200, run.eco.snapshot());
     if (req.method === "GET" && p === "/stream") {
-      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
+      // no-transform and x-accel-buffering keep proxies (Render, Cloudflare) from buffering or compressing the stream.
+      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache, no-transform", connection: "keep-alive", "x-accel-buffering": "no" });
+      res.socket?.setKeepAlive(true, 15_000);
+      res.socket?.setNoDelay(true);
+      res.write(`retry: 2000\n\n`);
       res.write(`event: state\ndata: ${JSON.stringify(run.state())}\n\n`);
       res.write(`event: snapshot\ndata: ${JSON.stringify(run.eco.snapshot())}\n\n`);
       clients.add(res);

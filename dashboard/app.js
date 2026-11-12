@@ -220,32 +220,63 @@ async function loadHistory() {
   schedule("all");
 }
 
+// The stream is live while anything arrives on it; the server sends a ping every 15 s even when the run is quiet
+// (paused, finished), so a proxy never sees an idle connection. Only a stream silent for STALE_MS counts as lost, and
+// then the client reconnects with backoff. A lost connection shows a small "Reconnecting…" in the status line, never a banner.
+const STALE_MS = 8000, DEAD_MS = 40000;
+let lastMsg = 0, backoff = 1000, historyBusy = false;
+function heard() {
+  lastMsg = Date.now();
+  backoff = 1000;
+  if (S.status === "disconnected") {
+    S.status = "live";
+    schedule("chrome");
+    // Backfill anything missed while the stream was down.
+    if (!historyBusy) { historyBusy = true; loadHistory().catch(() => {}).finally(() => (historyBusy = false)); }
+  }
+}
+function stale() {
+  if (S.status === "disconnected") return;
+  S.status = "disconnected";
+  schedule("chrome");
+}
+function reconnectSoon() {
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(connect, backoff);
+  backoff = Math.min(backoff * 2, 30000);
+}
+setInterval(() => {
+  if (!es || !lastMsg) return;
+  const quiet = Date.now() - lastMsg;
+  if (quiet > STALE_MS && es.readyState !== EventSource.OPEN) stale();
+  if (quiet > DEAD_MS) { stale(); es.close(); reconnectSoon(); lastMsg = Date.now(); }
+}, 2000);
+
 function connect() {
   clearTimeout(retryTimer);
   es?.close();
   es = new EventSource("/stream");
-  let opened = false;
-  es.addEventListener("open", async () => {
-    const wasDown = S.status !== "live";
-    opened = true;
-    if (wasDown) {
-      try { await loadHistory(); } catch { /* the stream’s own events will fill in */ }
-    }
-  });
+  lastMsg ||= Date.now();
+  es.addEventListener("open", heard);
+  es.addEventListener("ping", heard);
   es.addEventListener("state", (e) => {
+    heard();
     S.state = JSON.parse(e.data);
     schedule("chrome");
   });
   es.addEventListener("snapshot", (e) => {
+    heard();
     ingestSnapshot(JSON.parse(e.data));
     if (S.status === "loading") S.status = "live";
     schedule("all");
   });
   es.addEventListener("ev", (e) => {
+    heard();
     ingestEvent(JSON.parse(e.data));
     schedule("notes");
   });
   es.addEventListener("reset", async (e) => {
+    heard();
     S.state = JSON.parse(e.data);
     S.selected = null;
     clearAll();
@@ -259,12 +290,9 @@ function connect() {
       schedule("chrome");
       return;
     }
-    S.status = "disconnected";
-    schedule("chrome");
-    if (es.readyState === EventSource.CLOSED || !opened) {
-      es.close();
-      retryTimer = setTimeout(connect, 3000);
-    }
+    // A transient drop: the browser retries on its own (readyState CONNECTING). The watchdog above decides
+    // whether the data is stale. A closed stream (the server answered with an error) is retried here, with backoff.
+    if (es.readyState === EventSource.CLOSED) reconnectSoon();
   });
 }
 
@@ -365,13 +393,9 @@ function renderChrome() {
 
   if (S.status === "disconnected") {
     status.hidden = false;
-    status.textContent = "Reconnecting to the run";
+    status.textContent = "Reconnecting…";
     toggle.disabled = true;
     step.hidden = true;
-    notice.hidden = false;
-    noticeText.innerHTML = "Lost the connection to the DARWIN server. Retrying every few seconds; if it stopped, run <code>make demo</code> to start it again.";
-    $("#try").hidden = true;
-    noticeAction.hidden = true;
     $$("#speed input").forEach((i) => (i.disabled = true));
     $("#speed-select").disabled = true;
     return;
@@ -2536,7 +2560,7 @@ function boot() {
   // Headless Chrome screenshots (docs/dashboard.png) never finish while a stream is open: render the history once instead.
   const still = /HeadlessChrome/.test(navigator.userAgent);
   loadTunnel();
-  loadHistory().catch(() => { S.status = "disconnected"; schedule("chrome"); }).finally(() => {
+  loadHistory().catch(() => {}).finally(() => {
     if (!still) connect();
     if (!tourSeen() && !sheetBtn) requestAnimationFrame(() => requestAnimationFrame(openTour));
   });
