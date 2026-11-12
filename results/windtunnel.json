@@ -1,0 +1,2100 @@
+{
+ "ticks": 2000,
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10
+ ],
+ "ruleSets": [
+  {
+   "id": "baseline",
+   "label": "Baseline",
+   "question": "The reference: reputation-weighted auction, upkeep 0.006 credits a tick, 7 tasks a tick, solvers resell 3 jobs a tick, no fee.",
+   "rules": {}
+  },
+  {
+   "id": "price-auction",
+   "label": "Lowest price wins",
+   "question": "What if the auction ignores reputation and the lowest bid wins?",
+   "rules": {
+    "auction": "price"
+   }
+  },
+  {
+   "id": "market-fee",
+   "label": "10% market fee",
+   "question": "What does a 10% fee on every paid task (back to the pool) do?",
+   "rules": {
+    "marketFee": 0.1
+   }
+  },
+  {
+   "id": "high-rent",
+   "label": "Double upkeep",
+   "question": "What if staying listed costs twice as much (upkeep 0.012 a tick)?",
+   "rules": {
+    "upkeep": 12000
+   }
+  },
+  {
+   "id": "scarce-demand",
+   "label": "Scarce demand",
+   "question": "What if buyers post 4 tasks a tick instead of 7?",
+   "rules": {
+    "tasksPerTick": 4
+   }
+  },
+  {
+   "id": "solver-capacity",
+   "label": "Double solver capacity",
+   "question": "What if the honest solvers can take 6 resold jobs a tick instead of 3?",
+   "rules": {
+    "solverSubCap": 6
+   }
+  }
+ ],
+ "metrics": [
+  {
+   "key": "topFamilyShare",
+   "group": "monopoly",
+   "label": "largest family's share of agents"
+  },
+  {
+   "key": "dynastiesLeft",
+   "group": "monopoly",
+   "label": "founding families left (of 36)"
+  },
+  {
+   "key": "gini",
+   "group": "monopoly",
+   "label": "wealth Gini"
+  },
+  {
+   "key": "middlemanShare",
+   "group": "middlemen",
+   "label": "share of tasks resold to a solver"
+  },
+  {
+   "key": "priceRatio",
+   "group": "price",
+   "label": "price paid / task reward"
+  },
+  {
+   "key": "meanMarkup",
+   "group": "price",
+   "label": "markup gene at the end"
+  },
+  {
+   "key": "taskSuccess",
+   "group": "quality",
+   "label": "task success rate"
+  },
+  {
+   "key": "population",
+   "group": "survival",
+   "label": "living agents at the end (cap 50)"
+  },
+  {
+   "key": "meanWealth",
+   "group": "survival",
+   "label": "mean agent wealth, credits"
+  },
+  {
+   "key": "extinctions",
+   "group": "survival",
+   "label": "extinctions"
+  },
+  {
+   "key": "rogueBlocked",
+   "group": "safety",
+   "label": "rogue payments blocked"
+  },
+  {
+   "key": "rogueLeaked",
+   "group": "safety",
+   "label": "credits leaked by the rogue"
+  },
+  {
+   "key": "supplyDrift",
+   "group": "safety",
+   "label": "max supply drift (micro-credits)"
+  }
+ ],
+ "summary": {
+  "baseline": {
+   "topFamilyShare": {
+    "mean": 0.9381,
+    "min": 0.5455,
+    "max": 1
+   },
+   "dynastiesLeft": {
+    "mean": 1.3,
+    "min": 1,
+    "max": 2
+   },
+   "gini": {
+    "mean": 0.3578,
+    "min": 0.2935,
+    "max": 0.5976
+   },
+   "middlemanShare": {
+    "mean": 0.3128,
+    "min": 0.2312,
+    "max": 0.3714
+   },
+   "priceRatio": {
+    "mean": 0.4817,
+    "min": 0.425,
+    "max": 0.7075
+   },
+   "meanMarkup": {
+    "mean": 0.4767,
+    "min": 0.3744,
+    "max": 0.9612
+   },
+   "taskSuccess": {
+    "mean": 0.8107,
+    "min": 0.7927,
+    "max": 0.8291
+   },
+   "population": {
+    "mean": 22.9,
+    "min": 14,
+    "max": 46
+   },
+   "meanWealth": {
+    "mean": 0.8472,
+    "min": 0.589,
+    "max": 1.9178
+   },
+   "extinctions": {
+    "mean": 256.4,
+    "min": 218,
+    "max": 308
+   },
+   "rogueBlocked": {
+    "mean": 566.4,
+    "min": 438,
+    "max": 695
+   },
+   "rogueLeaked": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   },
+   "supplyDrift": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   }
+  },
+  "price-auction": {
+   "topFamilyShare": {
+    "mean": 0.4824,
+    "min": 0.3571,
+    "max": 0.5714
+   },
+   "dynastiesLeft": {
+    "mean": 8,
+    "min": 7,
+    "max": 9
+   },
+   "gini": {
+    "mean": 0.3059,
+    "min": 0.1879,
+    "max": 0.4256
+   },
+   "middlemanShare": {
+    "mean": 0.0101,
+    "min": 0.005,
+    "max": 0.0221
+   },
+   "priceRatio": {
+    "mean": 0.1156,
+    "min": 0.1009,
+    "max": 0.1488
+   },
+   "meanMarkup": {
+    "mean": 0.3785,
+    "min": 0.3154,
+    "max": 0.4432
+   },
+   "taskSuccess": {
+    "mean": 0.5702,
+    "min": 0.5376,
+    "max": 0.6201
+   },
+   "population": {
+    "mean": 13.9,
+    "min": 13,
+    "max": 14
+   },
+   "meanWealth": {
+    "mean": 0.9761,
+    "min": 0.7155,
+    "max": 1.3329
+   },
+   "extinctions": {
+    "mean": 114.5,
+    "min": 89,
+    "max": 124
+   },
+   "rogueBlocked": {
+    "mean": 1195.7,
+    "min": 406,
+    "max": 1977
+   },
+   "rogueLeaked": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   },
+   "supplyDrift": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   }
+  },
+  "market-fee": {
+   "topFamilyShare": {
+    "mean": 0.7499,
+    "min": 0.5185,
+    "max": 1
+   },
+   "dynastiesLeft": {
+    "mean": 2.8,
+    "min": 1,
+    "max": 6
+   },
+   "gini": {
+    "mean": 0.347,
+    "min": 0.2833,
+    "max": 0.4046
+   },
+   "middlemanShare": {
+    "mean": 0.3199,
+    "min": 0.1715,
+    "max": 0.4521
+   },
+   "priceRatio": {
+    "mean": 0.4887,
+    "min": 0.423,
+    "max": 0.5529
+   },
+   "meanMarkup": {
+    "mean": 0.4509,
+    "min": 0.346,
+    "max": 0.5201
+   },
+   "taskSuccess": {
+    "mean": 0.82,
+    "min": 0.7916,
+    "max": 0.8362
+   },
+   "population": {
+    "mean": 19.5,
+    "min": 14,
+    "max": 27
+   },
+   "meanWealth": {
+    "mean": 0.7546,
+    "min": 0.5865,
+    "max": 0.9539
+   },
+   "extinctions": {
+    "mean": 247.8,
+    "min": 208,
+    "max": 349
+   },
+   "rogueBlocked": {
+    "mean": 545.8,
+    "min": 438,
+    "max": 636
+   },
+   "rogueLeaked": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   },
+   "supplyDrift": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   }
+  },
+  "high-rent": {
+   "topFamilyShare": {
+    "mean": 0.6724,
+    "min": 0.4706,
+    "max": 1
+   },
+   "dynastiesLeft": {
+    "mean": 2.8,
+    "min": 1,
+    "max": 5
+   },
+   "gini": {
+    "mean": 0.3563,
+    "min": 0.2939,
+    "max": 0.4215
+   },
+   "middlemanShare": {
+    "mean": 0.2663,
+    "min": 0.2069,
+    "max": 0.3708
+   },
+   "priceRatio": {
+    "mean": 0.4941,
+    "min": 0.3561,
+    "max": 0.5575
+   },
+   "meanMarkup": {
+    "mean": 0.4755,
+    "min": 0.4105,
+    "max": 0.5932
+   },
+   "taskSuccess": {
+    "mean": 0.8112,
+    "min": 0.7974,
+    "max": 0.8328
+   },
+   "population": {
+    "mean": 15.6,
+    "min": 10,
+    "max": 23
+   },
+   "meanWealth": {
+    "mean": 0.8774,
+    "min": 0.7616,
+    "max": 1.092
+   },
+   "extinctions": {
+    "mean": 287.2,
+    "min": 228,
+    "max": 345
+   },
+   "rogueBlocked": {
+    "mean": 271.6,
+    "min": 207,
+    "max": 339
+   },
+   "rogueLeaked": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   },
+   "supplyDrift": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   }
+  },
+  "scarce-demand": {
+   "topFamilyShare": {
+    "mean": 0.6047,
+    "min": 0.375,
+    "max": 1
+   },
+   "dynastiesLeft": {
+    "mean": 5.1,
+    "min": 1,
+    "max": 9
+   },
+   "gini": {
+    "mean": 0.3027,
+    "min": 0.2268,
+    "max": 0.3802
+   },
+   "middlemanShare": {
+    "mean": 0.1798,
+    "min": 0.0936,
+    "max": 0.3067
+   },
+   "priceRatio": {
+    "mean": 0.5237,
+    "min": 0.4574,
+    "max": 0.5644
+   },
+   "meanMarkup": {
+    "mean": 0.5844,
+    "min": 0.3612,
+    "max": 0.9333
+   },
+   "taskSuccess": {
+    "mean": 0.8358,
+    "min": 0.811,
+    "max": 0.8611
+   },
+   "population": {
+    "mean": 16.2,
+    "min": 14,
+    "max": 26
+   },
+   "meanWealth": {
+    "mean": 0.8304,
+    "min": 0.6821,
+    "max": 1.0114
+   },
+   "extinctions": {
+    "mean": 153.4,
+    "min": 114,
+    "max": 196
+   },
+   "rogueBlocked": {
+    "mean": 507.4,
+    "min": 405,
+    "max": 571
+   },
+   "rogueLeaked": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   },
+   "supplyDrift": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   }
+  },
+  "solver-capacity": {
+   "topFamilyShare": {
+    "mean": 0.9381,
+    "min": 0.5455,
+    "max": 1
+   },
+   "dynastiesLeft": {
+    "mean": 1.3,
+    "min": 1,
+    "max": 2
+   },
+   "gini": {
+    "mean": 0.3578,
+    "min": 0.2935,
+    "max": 0.5976
+   },
+   "middlemanShare": {
+    "mean": 0.3128,
+    "min": 0.2312,
+    "max": 0.3714
+   },
+   "priceRatio": {
+    "mean": 0.4817,
+    "min": 0.425,
+    "max": 0.7075
+   },
+   "meanMarkup": {
+    "mean": 0.4767,
+    "min": 0.3744,
+    "max": 0.9612
+   },
+   "taskSuccess": {
+    "mean": 0.8107,
+    "min": 0.7927,
+    "max": 0.8291
+   },
+   "population": {
+    "mean": 22.9,
+    "min": 14,
+    "max": 46
+   },
+   "meanWealth": {
+    "mean": 0.8472,
+    "min": 0.589,
+    "max": 1.9178
+   },
+   "extinctions": {
+    "mean": 256.4,
+    "min": 218,
+    "max": 308
+   },
+   "rogueBlocked": {
+    "mean": 566.4,
+    "min": 438,
+    "max": 695
+   },
+   "rogueLeaked": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   },
+   "supplyDrift": {
+    "mean": 0,
+    "min": 0,
+    "max": 0
+   }
+  }
+ },
+ "vsBaseline": {
+  "price-auction": {
+   "topFamilyShare": {
+    "diff": -0.4557,
+    "ci": [
+     -0.5403,
+     -0.3329
+    ],
+    "p": 0.0039
+   },
+   "dynastiesLeft": {
+    "diff": 6.7,
+    "ci": [
+     6.2,
+     7.2
+    ],
+    "p": 0.002
+   },
+   "gini": {
+    "diff": -0.0519,
+    "ci": [
+     -0.1349,
+     0.0127
+    ],
+    "p": 0.2305
+   },
+   "middlemanShare": {
+    "diff": -0.3028,
+    "ci": [
+     -0.3308,
+     -0.2727
+    ],
+    "p": 0.002
+   },
+   "priceRatio": {
+    "diff": -0.3661,
+    "ci": [
+     -0.4288,
+     -0.3244
+    ],
+    "p": 0.002
+   },
+   "meanMarkup": {
+    "diff": -0.0982,
+    "ci": [
+     -0.2326,
+     -0.0072
+    ],
+    "p": 0.082
+   },
+   "taskSuccess": {
+    "diff": -0.2405,
+    "ci": [
+     -0.2546,
+     -0.2269
+    ],
+    "p": 0.002
+   },
+   "population": {
+    "diff": -9,
+    "ci": [
+     -15.2,
+     -4.5
+    ],
+    "p": 0.0039
+   },
+   "meanWealth": {
+    "diff": 0.1289,
+    "ci": [
+     -0.2154,
+     0.3712
+    ],
+    "p": 0.4707
+   },
+   "extinctions": {
+    "diff": -141.9,
+    "ci": [
+     -165.2,
+     -120.7
+    ],
+    "p": 0.002
+   },
+   "rogueBlocked": {
+    "diff": 629.3,
+    "ci": [
+     215.7,
+     1041.8
+    ],
+    "p": 0.0313
+   },
+   "rogueLeaked": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "supplyDrift": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   }
+  },
+  "market-fee": {
+   "topFamilyShare": {
+    "diff": -0.1883,
+    "ci": [
+     -0.2896,
+     -0.0912
+    ],
+    "p": 0.0078
+   },
+   "dynastiesLeft": {
+    "diff": 1.5,
+    "ci": [
+     0.6,
+     2.5
+    ],
+    "p": 0.0156
+   },
+   "gini": {
+    "diff": -0.0109,
+    "ci": [
+     -0.084,
+     0.034
+    ],
+    "p": 0.9902
+   },
+   "middlemanShare": {
+    "diff": 0.0071,
+    "ci": [
+     -0.0503,
+     0.0702
+    ],
+    "p": 0.834
+   },
+   "priceRatio": {
+    "diff": 0.007,
+    "ci": [
+     -0.062,
+     0.0501
+    ],
+    "p": 0.9258
+   },
+   "meanMarkup": {
+    "diff": -0.0258,
+    "ci": [
+     -0.1488,
+     0.0557
+    ],
+    "p": 0.8379
+   },
+   "taskSuccess": {
+    "diff": 0.0093,
+    "ci": [
+     0.0016,
+     0.0178
+    ],
+    "p": 0.0605
+   },
+   "population": {
+    "diff": -3.4,
+    "ci": [
+     -10.7,
+     2.3
+    ],
+    "p": 0.4531
+   },
+   "meanWealth": {
+    "diff": -0.0925,
+    "ci": [
+     -0.4055,
+     0.1157
+    ],
+    "p": 0.7578
+   },
+   "extinctions": {
+    "diff": -8.6,
+    "ci": [
+     -42.4,
+     31
+    ],
+    "p": 0.6836
+   },
+   "rogueBlocked": {
+    "diff": -20.6,
+    "ci": [
+     -70,
+     25.7
+    ],
+    "p": 0.459
+   },
+   "rogueLeaked": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "supplyDrift": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   }
+  },
+  "high-rent": {
+   "topFamilyShare": {
+    "diff": -0.2657,
+    "ci": [
+     -0.3996,
+     -0.1269
+    ],
+    "p": 0.0117
+   },
+   "dynastiesLeft": {
+    "diff": 1.5,
+    "ci": [
+     0.9,
+     2.2
+    ],
+    "p": 0.0078
+   },
+   "gini": {
+    "diff": -0.0015,
+    "ci": [
+     -0.0673,
+     0.0435
+    ],
+    "p": 0.9805
+   },
+   "middlemanShare": {
+    "diff": -0.0465,
+    "ci": [
+     -0.0696,
+     -0.0243
+    ],
+    "p": 0.0059
+   },
+   "priceRatio": {
+    "diff": 0.0124,
+    "ci": [
+     -0.0485,
+     0.0613
+    ],
+    "p": 0.6875
+   },
+   "meanMarkup": {
+    "diff": -0.0012,
+    "ci": [
+     -0.1048,
+     0.0737
+    ],
+    "p": 0.9902
+   },
+   "taskSuccess": {
+    "diff": 0.0005,
+    "ci": [
+     -0.0085,
+     0.0095
+    ],
+    "p": 0.9238
+   },
+   "population": {
+    "diff": -7.3,
+    "ci": [
+     -12.2,
+     -3
+    ],
+    "p": 0.0098
+   },
+   "meanWealth": {
+    "diff": 0.0302,
+    "ci": [
+     -0.214,
+     0.183
+    ],
+    "p": 0.8965
+   },
+   "extinctions": {
+    "diff": 30.8,
+    "ci": [
+     7,
+     58
+    ],
+    "p": 0.041
+   },
+   "rogueBlocked": {
+    "diff": -294.8,
+    "ci": [
+     -358.3,
+     -226.7
+    ],
+    "p": 0.002
+   },
+   "rogueLeaked": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "supplyDrift": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   }
+  },
+  "scarce-demand": {
+   "topFamilyShare": {
+    "diff": -0.3334,
+    "ci": [
+     -0.4431,
+     -0.2129
+    ],
+    "p": 0.0039
+   },
+   "dynastiesLeft": {
+    "diff": 3.8,
+    "ci": [
+     2.1,
+     5.5
+    ],
+    "p": 0.0156
+   },
+   "gini": {
+    "diff": -0.0551,
+    "ci": [
+     -0.1029,
+     -0.0152
+    ],
+    "p": 0.0254
+   },
+   "middlemanShare": {
+    "diff": -0.1331,
+    "ci": [
+     -0.1847,
+     -0.0833
+    ],
+    "p": 0.002
+   },
+   "priceRatio": {
+    "diff": 0.042,
+    "ci": [
+     -0.015,
+     0.0837
+    ],
+    "p": 0.1543
+   },
+   "meanMarkup": {
+    "diff": 0.1077,
+    "ci": [
+     -0.0276,
+     0.2204
+    ],
+    "p": 0.1484
+   },
+   "taskSuccess": {
+    "diff": 0.0251,
+    "ci": [
+     0.011,
+     0.0387
+    ],
+    "p": 0.0137
+   },
+   "population": {
+    "diff": -6.7,
+    "ci": [
+     -13.4,
+     -1.7
+    ],
+    "p": 0.0254
+   },
+   "meanWealth": {
+    "diff": -0.0168,
+    "ci": [
+     -0.3148,
+     0.1679
+    ],
+    "p": 0.9883
+   },
+   "extinctions": {
+    "diff": -103,
+    "ci": [
+     -133.6,
+     -74.2
+    ],
+    "p": 0.002
+   },
+   "rogueBlocked": {
+    "diff": -59,
+    "ci": [
+     -122.4,
+     4.4
+    ],
+    "p": 0.1172
+   },
+   "rogueLeaked": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "supplyDrift": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   }
+  },
+  "solver-capacity": {
+   "topFamilyShare": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "dynastiesLeft": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "gini": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "middlemanShare": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "priceRatio": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "meanMarkup": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "taskSuccess": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "population": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "meanWealth": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "extinctions": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "rogueBlocked": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "rogueLeaked": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   },
+   "supplyDrift": {
+    "diff": 0,
+    "ci": [
+     0,
+     0
+    ],
+    "p": 1
+   }
+  }
+ },
+ "runs": {
+  "baseline": [
+   {
+    "seed": 1,
+    "topFamilyShare": 0.9411764705882353,
+    "dynastiesLeft": 2,
+    "gini": 0.29349341844610266,
+    "middlemanShare": 0.37140648264256926,
+    "priceRatio": 0.45206987198798415,
+    "meanMarkup": 0.4139665633774905,
+    "taskSuccess": 0.8182718098176844,
+    "population": 17,
+    "extinctions": 265,
+    "meanWealth": 0.6540623156778254,
+    "rogueBlocked": 438,
+    "rogueAttempts": 463,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 2,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3481814194006092,
+    "middlemanShare": 0.334032337290217,
+    "priceRatio": 0.5300119096626317,
+    "meanMarkup": 0.5175596340021068,
+    "taskSuccess": 0.829133851821531,
+    "population": 22,
+    "extinctions": 293,
+    "meanWealth": 0.8218672544874803,
+    "rogueBlocked": 505,
+    "rogueAttempts": 530,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 3,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.33595102648415964,
+    "middlemanShare": 0.3112342218677809,
+    "priceRatio": 0.4656600346265537,
+    "meanMarkup": 0.415815380623968,
+    "taskSuccess": 0.801307328938887,
+    "population": 19,
+    "extinctions": 247,
+    "meanWealth": 0.6814342125257984,
+    "rogueBlocked": 530,
+    "rogueAttempts": 555,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 4,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3229215253656261,
+    "middlemanShare": 0.35508002455996734,
+    "priceRatio": 0.4730626927994891,
+    "meanMarkup": 0.4271787199908612,
+    "taskSuccess": 0.8231039705280395,
+    "population": 30,
+    "extinctions": 218,
+    "meanWealth": 0.9544688885641617,
+    "rogueBlocked": 695,
+    "rogueAttempts": 720,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 5,
+    "topFamilyShare": 0.8947368421052632,
+    "dynastiesLeft": 2,
+    "gini": 0.3532306892789612,
+    "middlemanShare": 0.2664999999999999,
+    "priceRatio": 0.46234243483577264,
+    "meanMarkup": 0.4045366847928611,
+    "taskSuccess": 0.8192857142857145,
+    "population": 19,
+    "extinctions": 308,
+    "meanWealth": 0.7082993899946276,
+    "rogueBlocked": 596,
+    "rogueAttempts": 621,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 6,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3587936321462295,
+    "middlemanShare": 0.34682967345781385,
+    "priceRatio": 0.4250429573889397,
+    "meanMarkup": 0.403673497092634,
+    "taskSuccess": 0.8080664338369153,
+    "population": 20,
+    "extinctions": 269,
+    "meanWealth": 0.5890481300163115,
+    "rogueBlocked": 669,
+    "rogueAttempts": 694,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 7,
+    "topFamilyShare": 0.5454545454545454,
+    "dynastiesLeft": 2,
+    "gini": 0.3314247173181273,
+    "middlemanShare": 0.231169668440442,
+    "priceRatio": 0.4291377286841218,
+    "meanMarkup": 0.4273281028179062,
+    "taskSuccess": 0.792681539091281,
+    "population": 22,
+    "extinctions": 258,
+    "meanWealth": 0.748043793285597,
+    "rogueBlocked": 497,
+    "rogueAttempts": 522,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 8,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3219497879511988,
+    "middlemanShare": 0.336930394930916,
+    "priceRatio": 0.4381618144804122,
+    "meanMarkup": 0.42129932127025865,
+    "taskSuccess": 0.8176785710380191,
+    "population": 14,
+    "extinctions": 262,
+    "meanWealth": 0.6784303447903857,
+    "rogueBlocked": 503,
+    "rogueAttempts": 528,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 9,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.31480718705775157,
+    "middlemanShare": 0.33055341338018074,
+    "priceRatio": 0.4343838250100437,
+    "meanMarkup": 0.3744484973039173,
+    "taskSuccess": 0.7970158023302026,
+    "population": 20,
+    "extinctions": 226,
+    "meanWealth": 0.7183968420680539,
+    "rogueBlocked": 629,
+    "rogueAttempts": 654,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 10,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.5976211367440503,
+    "middlemanShare": 0.2445003324717156,
+    "priceRatio": 0.7074558170872146,
+    "meanMarkup": 0.9611812542159615,
+    "taskSuccess": 0.8005095339984483,
+    "population": 46,
+    "extinctions": 218,
+    "meanWealth": 1.917849225129042,
+    "rogueBlocked": 602,
+    "rogueAttempts": 627,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   }
+  ],
+  "price-auction": [
+   {
+    "seed": 1,
+    "topFamilyShare": 0.42857142857142855,
+    "dynastiesLeft": 9,
+    "gini": 0.30259550974165306,
+    "middlemanShare": 0.005000000000000004,
+    "priceRatio": 0.10561312969200239,
+    "meanMarkup": 0.42241025375116925,
+    "taskSuccess": 0.5375798198935734,
+    "population": 14,
+    "extinctions": 121,
+    "meanWealth": 0.73330521151926,
+    "rogueBlocked": 1097,
+    "rogueAttempts": 1122,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 2,
+    "topFamilyShare": 0.35714285714285715,
+    "dynastiesLeft": 8,
+    "gini": 0.30427731828807136,
+    "middlemanShare": 0.00807142857142857,
+    "priceRatio": 0.1062486199749614,
+    "meanMarkup": 0.31543570578297864,
+    "taskSuccess": 0.6200826852230863,
+    "population": 14,
+    "extinctions": 113,
+    "meanWealth": 1.0403142272472694,
+    "rogueBlocked": 437,
+    "rogueAttempts": 462,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 3,
+    "topFamilyShare": 0.42857142857142855,
+    "dynastiesLeft": 9,
+    "gini": 0.22221615260267513,
+    "middlemanShare": 0.009286945812807881,
+    "priceRatio": 0.1130281276274719,
+    "meanMarkup": 0.4067617460222688,
+    "taskSuccess": 0.5495767651888341,
+    "population": 14,
+    "extinctions": 114,
+    "meanWealth": 1.055433629734373,
+    "rogueBlocked": 802,
+    "rogueAttempts": 827,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 4,
+    "topFamilyShare": 0.5384615384615384,
+    "dynastiesLeft": 7,
+    "gini": 0.36603532792697324,
+    "middlemanShare": 0.005071428571428573,
+    "priceRatio": 0.10087167596966391,
+    "meanMarkup": 0.3974335941050357,
+    "taskSuccess": 0.6057857142857144,
+    "population": 13,
+    "extinctions": 118,
+    "meanWealth": 0.8691621175777445,
+    "rogueBlocked": 406,
+    "rogueAttempts": 431,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 5,
+    "topFamilyShare": 0.5,
+    "dynastiesLeft": 8,
+    "gini": 0.3932332094745681,
+    "middlemanShare": 0.008357347523536637,
+    "priceRatio": 0.14877967291665858,
+    "meanMarkup": 0.33419842691755586,
+    "taskSuccess": 0.5577531723291036,
+    "population": 14,
+    "extinctions": 89,
+    "meanWealth": 1.3328666052017364,
+    "rogueBlocked": 1977,
+    "rogueAttempts": 2007,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 6,
+    "topFamilyShare": 0.5,
+    "dynastiesLeft": 8,
+    "gini": 0.42556684836129044,
+    "middlemanShare": 0.009286328284895614,
+    "priceRatio": 0.10338009597147299,
+    "meanMarkup": 0.44321534670078394,
+    "taskSuccess": 0.5670810478919361,
+    "population": 14,
+    "extinctions": 121,
+    "meanWealth": 1.1001030365882811,
+    "rogueBlocked": 662,
+    "rogueAttempts": 687,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 7,
+    "topFamilyShare": 0.5714285714285714,
+    "dynastiesLeft": 7,
+    "gini": 0.2670593067330871,
+    "middlemanShare": 0.011714285714285715,
+    "priceRatio": 0.12480849521787933,
+    "meanMarkup": 0.33077035416976763,
+    "taskSuccess": 0.5761074498567335,
+    "population": 14,
+    "extinctions": 103,
+    "meanWealth": 1.1115741612281613,
+    "rogueBlocked": 1973,
+    "rogueAttempts": 2007,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 8,
+    "topFamilyShare": 0.5,
+    "dynastiesLeft": 8,
+    "gini": 0.34369047950283105,
+    "middlemanShare": 0.011928571428571429,
+    "priceRatio": 0.1213314169970446,
+    "meanMarkup": 0.3417863348977264,
+    "taskSuccess": 0.5539999999999999,
+    "population": 14,
+    "extinctions": 122,
+    "meanWealth": 0.9252666343129428,
+    "rogueBlocked": 1977,
+    "rogueAttempts": 2007,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 9,
+    "topFamilyShare": 0.5,
+    "dynastiesLeft": 8,
+    "gini": 0.1878534319203995,
+    "middlemanShare": 0.022072247237003687,
+    "priceRatio": 0.12160764328559229,
+    "meanMarkup": 0.4388264934099944,
+    "taskSuccess": 0.5594697093737209,
+    "population": 14,
+    "extinctions": 120,
+    "meanWealth": 0.8770695515357974,
+    "rogueBlocked": 1825,
+    "rogueAttempts": 1850,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 10,
+    "topFamilyShare": 0.5,
+    "dynastiesLeft": 8,
+    "gini": 0.24686986971208902,
+    "middlemanShare": 0.009928571428571427,
+    "priceRatio": 0.11031189723138049,
+    "meanMarkup": 0.35381174058919507,
+    "taskSuccess": 0.5746428571428572,
+    "population": 14,
+    "extinctions": 124,
+    "meanWealth": 0.7154711083697856,
+    "rogueBlocked": 801,
+    "rogueAttempts": 826,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   }
+  ],
+  "market-fee": [
+   {
+    "seed": 1,
+    "topFamilyShare": 0.6842105263157895,
+    "dynastiesLeft": 2,
+    "gini": 0.3020037874428667,
+    "middlemanShare": 0.35620311966728585,
+    "priceRatio": 0.4230350408856728,
+    "meanMarkup": 0.3904345490729053,
+    "taskSuccess": 0.8141449478328828,
+    "population": 19,
+    "extinctions": 208,
+    "meanWealth": 0.790497857030024,
+    "rogueBlocked": 538,
+    "rogueAttempts": 563,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 2,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.38561896308847454,
+    "middlemanShare": 0.3314285714285715,
+    "priceRatio": 0.5529162130374934,
+    "meanMarkup": 0.43984099108979446,
+    "taskSuccess": 0.8314999999999999,
+    "population": 22,
+    "extinctions": 258,
+    "meanWealth": 0.7867645916999295,
+    "rogueBlocked": 563,
+    "rogueAttempts": 588,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 3,
+    "topFamilyShare": 0.5185185185185185,
+    "dynastiesLeft": 2,
+    "gini": 0.36095183975953304,
+    "middlemanShare": 0.171488127616998,
+    "priceRatio": 0.49222847757371485,
+    "meanMarkup": 0.5105365644110301,
+    "taskSuccess": 0.8065134956297364,
+    "population": 27,
+    "extinctions": 292,
+    "meanWealth": 0.7505018473290553,
+    "rogueBlocked": 505,
+    "rogueAttempts": 530,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 4,
+    "topFamilyShare": 0.8235294117647058,
+    "dynastiesLeft": 4,
+    "gini": 0.32888243821326557,
+    "middlemanShare": 0.3848489622310554,
+    "priceRatio": 0.538819680489814,
+    "meanMarkup": 0.4992156109034923,
+    "taskSuccess": 0.8361894790552077,
+    "population": 17,
+    "extinctions": 349,
+    "meanWealth": 0.5864789130156159,
+    "rogueBlocked": 629,
+    "rogueAttempts": 654,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 5,
+    "topFamilyShare": 0.8947368421052632,
+    "dynastiesLeft": 3,
+    "gini": 0.35757874945393575,
+    "middlemanShare": 0.3881725337699551,
+    "priceRatio": 0.5270427510354104,
+    "meanMarkup": 0.4990075177149709,
+    "taskSuccess": 0.8349889480147359,
+    "population": 19,
+    "extinctions": 213,
+    "meanWealth": 0.9539244522118547,
+    "rogueBlocked": 569,
+    "rogueAttempts": 594,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 6,
+    "topFamilyShare": 0.9444444444444444,
+    "dynastiesLeft": 2,
+    "gini": 0.40459429973359917,
+    "middlemanShare": 0.3510066702370237,
+    "priceRatio": 0.4698939570493459,
+    "meanMarkup": 0.40630819493226344,
+    "taskSuccess": 0.8200840500589228,
+    "population": 18,
+    "extinctions": 262,
+    "meanWealth": 0.6186980840253579,
+    "rogueBlocked": 538,
+    "rogueAttempts": 563,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 7,
+    "topFamilyShare": 0.5238095238095238,
+    "dynastiesLeft": 2,
+    "gini": 0.3205937725922199,
+    "middlemanShare": 0.2517527335800556,
+    "priceRatio": 0.47292972907260944,
+    "meanMarkup": 0.3459917343814677,
+    "taskSuccess": 0.8202473977965289,
+    "population": 21,
+    "extinctions": 215,
+    "meanWealth": 0.8931505100005124,
+    "rogueBlocked": 538,
+    "rogueAttempts": 563,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 8,
+    "topFamilyShare": 0.6363636363636364,
+    "dynastiesLeft": 2,
+    "gini": 0.339431505749926,
+    "middlemanShare": 0.2258867281372272,
+    "priceRatio": 0.4985665710446023,
+    "meanMarkup": 0.5200997178489019,
+    "taskSuccess": 0.810912540105671,
+    "population": 22,
+    "extinctions": 231,
+    "meanWealth": 0.8501409333216926,
+    "rogueBlocked": 504,
+    "rogueAttempts": 529,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 9,
+    "topFamilyShare": 0.7857142857142857,
+    "dynastiesLeft": 4,
+    "gini": 0.386722069149521,
+    "middlemanShare": 0.2858798608268523,
+    "priceRatio": 0.47693926460479485,
+    "meanMarkup": 0.423460443090017,
+    "taskSuccess": 0.7916283258288992,
+    "population": 14,
+    "extinctions": 213,
+    "meanWealth": 0.7142116013041103,
+    "rogueBlocked": 636,
+    "rogueAttempts": 661,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 10,
+    "topFamilyShare": 0.6875,
+    "dynastiesLeft": 6,
+    "gini": 0.28330525074183077,
+    "middlemanShare": 0.4521358565813651,
+    "priceRatio": 0.43478472552535213,
+    "meanMarkup": 0.474174064177038,
+    "taskSuccess": 0.8342806312386418,
+    "population": 16,
+    "extinctions": 237,
+    "meanWealth": 0.6020736333188285,
+    "rogueBlocked": 438,
+    "rogueAttempts": 463,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   }
+  ],
+  "high-rent": [
+   {
+    "seed": 1,
+    "topFamilyShare": 0.9230769230769231,
+    "dynastiesLeft": 2,
+    "gini": 0.34721145531751185,
+    "middlemanShare": 0.3006207380660783,
+    "priceRatio": 0.5034011317267122,
+    "meanMarkup": 0.4463347815530473,
+    "taskSuccess": 0.8174134032002079,
+    "population": 13,
+    "extinctions": 246,
+    "meanWealth": 0.9088038490756372,
+    "rogueBlocked": 339,
+    "rogueAttempts": 364,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 2,
+    "topFamilyShare": 0.5,
+    "dynastiesLeft": 5,
+    "gini": 0.3162944598980242,
+    "middlemanShare": 0.27717425343816005,
+    "priceRatio": 0.48537440114160724,
+    "meanMarkup": 0.4360096637382963,
+    "taskSuccess": 0.8077977190283289,
+    "population": 10,
+    "extinctions": 289,
+    "meanWealth": 0.8290970692000597,
+    "rogueBlocked": 239,
+    "rogueAttempts": 264,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 3,
+    "topFamilyShare": 0.6111111111111112,
+    "dynastiesLeft": 2,
+    "gini": 0.34698386036737516,
+    "middlemanShare": 0.2909120277360925,
+    "priceRatio": 0.5231468505117439,
+    "meanMarkup": 0.5932423676118179,
+    "taskSuccess": 0.8293854672273826,
+    "population": 18,
+    "extinctions": 345,
+    "meanWealth": 0.761641910905007,
+    "rogueBlocked": 306,
+    "rogueAttempts": 331,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 4,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.2938816369331676,
+    "middlemanShare": 0.37081018721093806,
+    "priceRatio": 0.508654434934798,
+    "meanMarkup": 0.5190458947710092,
+    "taskSuccess": 0.8327581337247872,
+    "population": 14,
+    "extinctions": 228,
+    "meanWealth": 1.0919820893124375,
+    "rogueBlocked": 266,
+    "rogueAttempts": 291,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 5,
+    "topFamilyShare": 0.6,
+    "dynastiesLeft": 4,
+    "gini": 0.39653808780885,
+    "middlemanShare": 0.25177355898391374,
+    "priceRatio": 0.5467704511919387,
+    "meanMarkup": 0.43840221975520227,
+    "taskSuccess": 0.8061775904413737,
+    "population": 15,
+    "extinctions": 316,
+    "meanWealth": 0.8428476186319117,
+    "rogueBlocked": 339,
+    "rogueAttempts": 364,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 6,
+    "topFamilyShare": 0.9411764705882353,
+    "dynastiesLeft": 2,
+    "gini": 0.40880742004206994,
+    "middlemanShare": 0.296854936565533,
+    "priceRatio": 0.55751462307692,
+    "meanMarkup": 0.4760208887529776,
+    "taskSuccess": 0.810439252556387,
+    "population": 17,
+    "extinctions": 304,
+    "meanWealth": 0.915481344922323,
+    "rogueBlocked": 272,
+    "rogueAttempts": 297,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 7,
+    "topFamilyShare": 0.5833333333333334,
+    "dynastiesLeft": 4,
+    "gini": 0.4214674310377542,
+    "middlemanShare": 0.20689742802565153,
+    "priceRatio": 0.35606484690175144,
+    "meanMarkup": 0.4231375853105912,
+    "taskSuccess": 0.8053328193148616,
+    "population": 12,
+    "extinctions": 259,
+    "meanWealth": 0.8526276487519824,
+    "rogueBlocked": 307,
+    "rogueAttempts": 332,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 8,
+    "topFamilyShare": 0.5294117647058824,
+    "dynastiesLeft": 3,
+    "gini": 0.34144414118081046,
+    "middlemanShare": 0.22904847975334489,
+    "priceRatio": 0.47942211115627636,
+    "meanMarkup": 0.41047614099209756,
+    "taskSuccess": 0.797363825327103,
+    "population": 17,
+    "extinctions": 282,
+    "meanWealth": 0.8180149789910053,
+    "rogueBlocked": 233,
+    "rogueAttempts": 258,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 9,
+    "topFamilyShare": 0.47058823529411764,
+    "dynastiesLeft": 3,
+    "gini": 0.3427794502484658,
+    "middlemanShare": 0.2283375615648835,
+    "priceRatio": 0.46787110417305877,
+    "meanMarkup": 0.4398770122839571,
+    "taskSuccess": 0.8078207940206816,
+    "population": 17,
+    "extinctions": 340,
+    "meanWealth": 0.7889866558255444,
+    "rogueBlocked": 207,
+    "rogueAttempts": 232,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 10,
+    "topFamilyShare": 0.5652173913043478,
+    "dynastiesLeft": 2,
+    "gini": 0.34752931175452817,
+    "middlemanShare": 0.2109024250671049,
+    "priceRatio": 0.5129264865578975,
+    "meanMarkup": 0.5722244983130313,
+    "taskSuccess": 0.7976723934694692,
+    "population": 23,
+    "extinctions": 263,
+    "meanWealth": 0.9641017647624881,
+    "rogueBlocked": 208,
+    "rogueAttempts": 233,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   }
+  ],
+  "scarce-demand": [
+   {
+    "seed": 1,
+    "topFamilyShare": 0.6,
+    "dynastiesLeft": 6,
+    "gini": 0.3319593133838463,
+    "middlemanShare": 0.09357223618090452,
+    "priceRatio": 0.5535484497326424,
+    "meanMarkup": 0.6096467624371177,
+    "taskSuccess": 0.8109729899497488,
+    "population": 15,
+    "extinctions": 141,
+    "meanWealth": 0.8151438102670021,
+    "rogueBlocked": 536,
+    "rogueAttempts": 561,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 2,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.2719636426308616,
+    "middlemanShare": 0.11125,
+    "priceRatio": 0.5643854184623275,
+    "meanMarkup": 0.9332836314318679,
+    "taskSuccess": 0.8235000000000001,
+    "population": 26,
+    "extinctions": 131,
+    "meanWealth": 1.011410011368341,
+    "rogueBlocked": 405,
+    "rogueAttempts": 430,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 3,
+    "topFamilyShare": 0.5,
+    "dynastiesLeft": 4,
+    "gini": 0.28146462287726615,
+    "middlemanShare": 0.22152763819095483,
+    "priceRatio": 0.4815533472965757,
+    "meanMarkup": 0.5195613295300062,
+    "taskSuccess": 0.8449786432160803,
+    "population": 14,
+    "extinctions": 196,
+    "meanWealth": 0.6905407051290393,
+    "rogueBlocked": 571,
+    "rogueAttempts": 596,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 4,
+    "topFamilyShare": 0.375,
+    "dynastiesLeft": 9,
+    "gini": 0.2951869263946507,
+    "middlemanShare": 0.17489447236180905,
+    "priceRatio": 0.5529351761045672,
+    "meanMarkup": 0.5505835480270749,
+    "taskSuccess": 0.8443561557788943,
+    "population": 16,
+    "extinctions": 169,
+    "meanWealth": 0.8180711857544873,
+    "rogueBlocked": 438,
+    "rogueAttempts": 463,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 5,
+    "topFamilyShare": 0.6,
+    "dynastiesLeft": 2,
+    "gini": 0.3201036805634869,
+    "middlemanShare": 0.13355544769301048,
+    "priceRatio": 0.5475439270758031,
+    "meanMarkup": 0.6383939727231174,
+    "taskSuccess": 0.8223239683264808,
+    "population": 15,
+    "extinctions": 114,
+    "meanWealth": 0.9101760929570155,
+    "rogueBlocked": 438,
+    "rogueAttempts": 463,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 6,
+    "topFamilyShare": 0.6,
+    "dynastiesLeft": 7,
+    "gini": 0.22678296461618563,
+    "middlemanShare": 0.25296163240058156,
+    "priceRatio": 0.5420636481712355,
+    "meanMarkup": 0.5044650878533631,
+    "taskSuccess": 0.8508983528046323,
+    "population": 15,
+    "extinctions": 184,
+    "meanWealth": 0.7345905070516395,
+    "rogueBlocked": 569,
+    "rogueAttempts": 594,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 7,
+    "topFamilyShare": 0.5333333333333333,
+    "dynastiesLeft": 2,
+    "gini": 0.3431636939056917,
+    "middlemanShare": 0.15319487225518974,
+    "priceRatio": 0.4574469459548901,
+    "meanMarkup": 0.36115806426423414,
+    "taskSuccess": 0.8395431608640548,
+    "population": 15,
+    "extinctions": 155,
+    "meanWealth": 0.8595945234798031,
+    "rogueBlocked": 538,
+    "rogueAttempts": 563,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 8,
+    "topFamilyShare": 0.6666666666666666,
+    "dynastiesLeft": 6,
+    "gini": 0.2762920080947888,
+    "middlemanShare": 0.3066959798994976,
+    "priceRatio": 0.4585671483188437,
+    "meanMarkup": 0.5505895142650766,
+    "taskSuccess": 0.8318278894472361,
+    "population": 15,
+    "extinctions": 143,
+    "meanWealth": 0.7985032714385979,
+    "rogueBlocked": 538,
+    "rogueAttempts": 563,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 9,
+    "topFamilyShare": 0.5294117647058824,
+    "dynastiesLeft": 8,
+    "gini": 0.2997960152757442,
+    "middlemanShare": 0.12051444723618092,
+    "priceRatio": 0.5429826447997544,
+    "meanMarkup": 0.6067078085886973,
+    "taskSuccess": 0.8281036432160803,
+    "population": 17,
+    "extinctions": 116,
+    "meanWealth": 0.983651979550408,
+    "rogueBlocked": 536,
+    "rogueAttempts": 561,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 10,
+    "topFamilyShare": 0.6428571428571429,
+    "dynastiesLeft": 6,
+    "gini": 0.3801743758024412,
+    "middlemanShare": 0.22949999999999998,
+    "priceRatio": 0.5364684815868904,
+    "meanMarkup": 0.5692288434339748,
+    "taskSuccess": 0.8611249999999998,
+    "population": 14,
+    "extinctions": 185,
+    "meanWealth": 0.682071738714507,
+    "rogueBlocked": 505,
+    "rogueAttempts": 530,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   }
+  ],
+  "solver-capacity": [
+   {
+    "seed": 1,
+    "topFamilyShare": 0.9411764705882353,
+    "dynastiesLeft": 2,
+    "gini": 0.29349341844610266,
+    "middlemanShare": 0.37140648264256926,
+    "priceRatio": 0.45206987198798415,
+    "meanMarkup": 0.4139665633774905,
+    "taskSuccess": 0.8182718098176844,
+    "population": 17,
+    "extinctions": 265,
+    "meanWealth": 0.6540623156778254,
+    "rogueBlocked": 438,
+    "rogueAttempts": 463,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 2,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3481814194006092,
+    "middlemanShare": 0.334032337290217,
+    "priceRatio": 0.5300119096626317,
+    "meanMarkup": 0.5175596340021068,
+    "taskSuccess": 0.829133851821531,
+    "population": 22,
+    "extinctions": 293,
+    "meanWealth": 0.8218672544874803,
+    "rogueBlocked": 505,
+    "rogueAttempts": 530,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 3,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.33595102648415964,
+    "middlemanShare": 0.3112342218677809,
+    "priceRatio": 0.4656600346265537,
+    "meanMarkup": 0.415815380623968,
+    "taskSuccess": 0.801307328938887,
+    "population": 19,
+    "extinctions": 247,
+    "meanWealth": 0.6814342125257984,
+    "rogueBlocked": 530,
+    "rogueAttempts": 555,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 4,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3229215253656261,
+    "middlemanShare": 0.35508002455996734,
+    "priceRatio": 0.4730626927994891,
+    "meanMarkup": 0.4271787199908612,
+    "taskSuccess": 0.8231039705280395,
+    "population": 30,
+    "extinctions": 218,
+    "meanWealth": 0.9544688885641617,
+    "rogueBlocked": 695,
+    "rogueAttempts": 720,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 5,
+    "topFamilyShare": 0.8947368421052632,
+    "dynastiesLeft": 2,
+    "gini": 0.3532306892789612,
+    "middlemanShare": 0.2664999999999999,
+    "priceRatio": 0.46234243483577264,
+    "meanMarkup": 0.4045366847928611,
+    "taskSuccess": 0.8192857142857145,
+    "population": 19,
+    "extinctions": 308,
+    "meanWealth": 0.7082993899946276,
+    "rogueBlocked": 596,
+    "rogueAttempts": 621,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 6,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3587936321462295,
+    "middlemanShare": 0.34682967345781385,
+    "priceRatio": 0.4250429573889397,
+    "meanMarkup": 0.403673497092634,
+    "taskSuccess": 0.8080664338369153,
+    "population": 20,
+    "extinctions": 269,
+    "meanWealth": 0.5890481300163115,
+    "rogueBlocked": 669,
+    "rogueAttempts": 694,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 7,
+    "topFamilyShare": 0.5454545454545454,
+    "dynastiesLeft": 2,
+    "gini": 0.3314247173181273,
+    "middlemanShare": 0.231169668440442,
+    "priceRatio": 0.4291377286841218,
+    "meanMarkup": 0.4273281028179062,
+    "taskSuccess": 0.792681539091281,
+    "population": 22,
+    "extinctions": 258,
+    "meanWealth": 0.748043793285597,
+    "rogueBlocked": 497,
+    "rogueAttempts": 522,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 8,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.3219497879511988,
+    "middlemanShare": 0.336930394930916,
+    "priceRatio": 0.4381618144804122,
+    "meanMarkup": 0.42129932127025865,
+    "taskSuccess": 0.8176785710380191,
+    "population": 14,
+    "extinctions": 262,
+    "meanWealth": 0.6784303447903857,
+    "rogueBlocked": 503,
+    "rogueAttempts": 528,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 9,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.31480718705775157,
+    "middlemanShare": 0.33055341338018074,
+    "priceRatio": 0.4343838250100437,
+    "meanMarkup": 0.3744484973039173,
+    "taskSuccess": 0.7970158023302026,
+    "population": 20,
+    "extinctions": 226,
+    "meanWealth": 0.7183968420680539,
+    "rogueBlocked": 629,
+    "rogueAttempts": 654,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   },
+   {
+    "seed": 10,
+    "topFamilyShare": 1,
+    "dynastiesLeft": 1,
+    "gini": 0.5976211367440503,
+    "middlemanShare": 0.2445003324717156,
+    "priceRatio": 0.7074558170872146,
+    "meanMarkup": 0.9611812542159615,
+    "taskSuccess": 0.8005095339984483,
+    "population": 46,
+    "extinctions": 218,
+    "meanWealth": 1.917849225129042,
+    "rogueBlocked": 602,
+    "rogueAttempts": 627,
+    "rogueLeaked": 0,
+    "supplyDrift": 0
+   }
+  ]
+ }
+}

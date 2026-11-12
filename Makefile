@@ -1,5 +1,5 @@
 
-.PHONY: sync-siege install demo headless seeds ablation test contract deploy checkpoint agents
+.PHONY: sync-siege install demo headless seeds ablation windtunnel test contract deploy checkpoint agents
 install:
 	cd sim && npm install
 sync-siege:      ## refresh vendor/siege from a SIEGE checkout (default ../siege)
@@ -12,6 +12,8 @@ seeds:           ## 10 seeds x Gaussian mutation, no LLM: mean, range, 95% CI ->
 	cd sim && npx tsx src/experiment.ts seeds
 ablation:        ## Gaussian vs LLM-guided vs mixed mutation on 5 seeds -> results/ablation.md (replays the committed cache; live calls only on misses)
 	cd sim && NEAR_LLM_BUDGET_FILE=$${NEAR_LLM_BUDGET_FILE:-$$HOME/.near-hackathon-llm-spend-darwin.json} NEAR_LLM_BUDGET_USD=$${NEAR_LLM_BUDGET_USD:-2.5} npx tsx src/experiment.ts ablation
+windtunnel:      ## 6 market rule sets x 10 seeds, no LLM: outcomes and paired tests vs baseline -> results/windtunnel.md
+	cd sim && npx tsx src/windtunnel.ts
 test:
 	cd sim && node --import tsx --test test/*.test.ts && npx tsc --noEmit
 	cd contract && cargo test --quiet
