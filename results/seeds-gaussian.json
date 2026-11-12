@@ -1,0 +1,572 @@
+{
+ "ticks": 2000,
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10
+ ],
+ "runs": [
+  {
+   "seed": 1,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.9330754147534923,
+   "middlemanShare": 0.3628571428571429,
+   "meanMarkup": 0.4139665633774905,
+   "specialisation": 0.4455118967572773,
+   "extinctions": 265,
+   "maxGeneration": 12,
+   "dynastiesLeft": 2,
+   "rogueBlocked": 438,
+   "rogueAttempts": 463,
+   "rogueLeaked": 0,
+   "population": 17,
+   "meanWealth": 0.6540623156778254,
+   "taskSuccess": 0.8182718098176844,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 243,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 243,
+     "alive": 16,
+     "meanLifespan": 135.93415637860082,
+     "meanEarned": 2.2132518024691357,
+     "forkedRate": 0.12345679012345678
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 2,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.8961722475212582,
+   "middlemanShare": 0.3657142857142857,
+   "meanMarkup": 0.5175596340021068,
+   "specialisation": 0.5915121754088488,
+   "extinctions": 293,
+   "maxGeneration": 11,
+   "dynastiesLeft": 1,
+   "rogueBlocked": 505,
+   "rogueAttempts": 530,
+   "rogueLeaked": 0,
+   "population": 22,
+   "meanWealth": 0.8218672544874803,
+   "taskSuccess": 0.829133851821531,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 278,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 278,
+     "alive": 22,
+     "meanLifespan": 192.9496402877698,
+     "meanEarned": 2.2258492338129496,
+     "forkedRate": 0.08992805755395683
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 3,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.9738171542486561,
+   "middlemanShare": 0.43714285714285717,
+   "meanMarkup": 0.415815380623968,
+   "specialisation": 0.6669193205904155,
+   "extinctions": 247,
+   "maxGeneration": 20,
+   "dynastiesLeft": 1,
+   "rogueBlocked": 530,
+   "rogueAttempts": 555,
+   "rogueLeaked": 0,
+   "population": 19,
+   "meanWealth": 0.6814342125257984,
+   "taskSuccess": 0.801307328938887,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 227,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 227,
+     "alive": 19,
+     "meanLifespan": 167.88105726872246,
+     "meanEarned": 2.2601972511013217,
+     "forkedRate": 0.1762114537444934
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 4,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.8812486034027203,
+   "middlemanShare": 0.4657142857142857,
+   "meanMarkup": 0.4271787199908612,
+   "specialisation": 0.6330267402501496,
+   "extinctions": 218,
+   "maxGeneration": 8,
+   "dynastiesLeft": 1,
+   "rogueBlocked": 695,
+   "rogueAttempts": 720,
+   "rogueLeaked": 0,
+   "population": 30,
+   "meanWealth": 0.9544688885641617,
+   "taskSuccess": 0.8231039705280395,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 210,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 210,
+     "alive": 30,
+     "meanLifespan": 207.44761904761904,
+     "meanEarned": 2.819322480952381,
+     "forkedRate": 0.17142857142857143
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 5,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.7678753920750805,
+   "middlemanShare": 0.4828571428571429,
+   "meanMarkup": 0.4045366847928611,
+   "specialisation": 0.5060546815919031,
+   "extinctions": 308,
+   "maxGeneration": 13,
+   "dynastiesLeft": 2,
+   "rogueBlocked": 596,
+   "rogueAttempts": 621,
+   "rogueLeaked": 0,
+   "population": 19,
+   "meanWealth": 0.7082993899946276,
+   "taskSuccess": 0.8192857142857145,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 290,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 290,
+     "alive": 19,
+     "meanLifespan": 144.66551724137932,
+     "meanEarned": 1.7793597620689654,
+     "forkedRate": 0.1310344827586207
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 6,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.9063232051876267,
+   "middlemanShare": 0.32285714285714284,
+   "meanMarkup": 0.403673497092634,
+   "specialisation": 0.5785010047150688,
+   "extinctions": 269,
+   "maxGeneration": 13,
+   "dynastiesLeft": 1,
+   "rogueBlocked": 669,
+   "rogueAttempts": 694,
+   "rogueLeaked": 0,
+   "population": 20,
+   "meanWealth": 0.5890481300163115,
+   "taskSuccess": 0.8080664338369153,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 245,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 245,
+     "alive": 20,
+     "meanLifespan": 133.69387755102042,
+     "meanEarned": 2.1040867387755102,
+     "forkedRate": 0.10612244897959183
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 7,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.6013266631712835,
+   "middlemanShare": 0.28285714285714286,
+   "meanMarkup": 0.4273281028179062,
+   "specialisation": 0.657078789305791,
+   "extinctions": 258,
+   "maxGeneration": 12,
+   "dynastiesLeft": 2,
+   "rogueBlocked": 497,
+   "rogueAttempts": 522,
+   "rogueLeaked": 0,
+   "population": 22,
+   "meanWealth": 0.748043793285597,
+   "taskSuccess": 0.792681539091281,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 243,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 243,
+     "alive": 22,
+     "meanLifespan": 175.5102880658436,
+     "meanEarned": 1.98367241563786,
+     "forkedRate": 0.07818930041152264
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 8,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.931564668047998,
+   "middlemanShare": 0.5890804597701149,
+   "meanMarkup": 0.42129932127025865,
+   "specialisation": 0.7719985119569422,
+   "extinctions": 262,
+   "maxGeneration": 16,
+   "dynastiesLeft": 1,
+   "rogueBlocked": 503,
+   "rogueAttempts": 528,
+   "rogueLeaked": 0,
+   "population": 14,
+   "meanWealth": 0.6784303447903857,
+   "taskSuccess": 0.8176785710380191,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 238,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 238,
+     "alive": 14,
+     "meanLifespan": 163.26050420168067,
+     "meanEarned": 2.2463958781512603,
+     "forkedRate": 0.13445378151260504
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 9,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.9516092680756435,
+   "middlemanShare": 0.43142857142857144,
+   "meanMarkup": 0.3744484973039173,
+   "specialisation": 0.7082755645746823,
+   "extinctions": 226,
+   "maxGeneration": 24,
+   "dynastiesLeft": 1,
+   "rogueBlocked": 629,
+   "rogueAttempts": 654,
+   "rogueLeaked": 0,
+   "population": 20,
+   "meanWealth": 0.7183968420680539,
+   "taskSuccess": 0.7970158023302026,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 202,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 202,
+     "alive": 20,
+     "meanLifespan": 164.41584158415841,
+     "meanEarned": 2.384942420792079,
+     "forkedRate": 0.19801980198019803
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  },
+  {
+   "seed": 10,
+   "mode": "gaussian",
+   "ticks": 2000,
+   "meanSubcontract": 0.671213497463986,
+   "middlemanShare": 0.2621359223300971,
+   "meanMarkup": 0.9611812542159615,
+   "specialisation": 0.6156143152429301,
+   "extinctions": 218,
+   "maxGeneration": 10,
+   "dynastiesLeft": 1,
+   "rogueBlocked": 602,
+   "rogueAttempts": 627,
+   "rogueLeaked": 0,
+   "population": 46,
+   "meanWealth": 1.917849225129042,
+   "taskSuccess": 0.8005095339984483,
+   "mutations": {
+    "llm": 0,
+    "cache": 0,
+    "gaussian": 227,
+    "fallback": 0
+   },
+   "lineages": {
+    "gaussian": {
+     "born": 227,
+     "alive": 46,
+     "meanLifespan": 299.726872246696,
+     "meanEarned": 3.435548894273128,
+     "forkedRate": 0.20704845814977973
+    },
+    "llm": {
+     "born": 0,
+     "alive": 0,
+     "meanLifespan": 0,
+     "meanEarned": 0,
+     "forkedRate": 0
+    }
+   },
+   "llmCalls": 0
+  }
+ ],
+ "summary": {
+  "meanSubcontract": {
+   "n": 10,
+   "mean": 0.8514226113947745,
+   "sd": 0.12737406010441385,
+   "min": 0.6013266631712835,
+   "max": 0.9738171542486561,
+   "ci95": [
+    0.7603110282516159,
+    0.9425341945379331
+   ]
+  },
+  "middlemanShare": {
+   "n": 10,
+   "mean": 0.4002644953528784,
+   "sd": 0.10029778796578652,
+   "min": 0.2621359223300971,
+   "max": 0.5890804597701149,
+   "ci95": [
+    0.3285207648018651,
+    0.4720082259038917
+   ]
+  },
+  "meanMarkup": {
+   "n": 10,
+   "mean": 0.47669876554879653,
+   "sd": 0.1741611568220153,
+   "min": 0.3744484973039173,
+   "max": 0.9611812542159615,
+   "ci95": [
+    0.3521200349415601,
+    0.601277496156033
+   ]
+  },
+  "specialisation": {
+   "n": 10,
+   "mean": 0.617449300039401,
+   "sd": 0.09461008180277904,
+   "min": 0.4455118967572773,
+   "max": 0.7719985119569422,
+   "ci95": [
+    0.5497740266965501,
+    0.685124573382252
+   ]
+  },
+  "extinctions": {
+   "n": 10,
+   "mean": 256.4,
+   "sd": 30.24051733831432,
+   "min": 218,
+   "max": 308,
+   "ci95": [
+    234.7687400126576,
+    278.03125998734237
+   ]
+  },
+  "maxGeneration": {
+   "n": 10,
+   "mean": 13.9,
+   "sd": 4.840798832148815,
+   "min": 8,
+   "max": 24,
+   "ci95": [
+    10.437341709033362,
+    17.36265829096664
+   ]
+  },
+  "dynastiesLeft": {
+   "n": 10,
+   "mean": 1.3,
+   "sd": 0.48304589153964794,
+   "min": 1,
+   "max": 2,
+   "ci95": [
+    0.9544737926003297,
+    1.6455262073996704
+   ]
+  },
+  "rogueBlocked": {
+   "n": 10,
+   "mean": 566.4,
+   "sd": 84.02671532845307,
+   "min": 438,
+   "max": 695,
+   "ci95": [
+    506.2950849677,
+    626.5049150323
+   ]
+  },
+  "rogueAttempts": {
+   "n": 10,
+   "mean": 591.4,
+   "sd": 84.02671532845307,
+   "min": 463,
+   "max": 720,
+   "ci95": [
+    531.2950849677,
+    651.5049150323
+   ]
+  },
+  "rogueLeaked": {
+   "n": 10,
+   "mean": 0,
+   "sd": 0,
+   "min": 0,
+   "max": 0,
+   "ci95": [
+    0,
+    0
+   ]
+  },
+  "population": {
+   "n": 10,
+   "mean": 22.9,
+   "sd": 9.109823757290197,
+   "min": 14,
+   "max": 46,
+   "ci95": [
+    16.38367741436936,
+    29.41632258563064
+   ]
+  },
+  "meanWealth": {
+   "n": 10,
+   "mean": 0.8471900396539283,
+   "sd": 0.38930989611352934,
+   "min": 0.5890481300163115,
+   "max": 1.917849225129042,
+   "ci95": [
+    0.5687138653125791,
+    1.1256662139952773
+   ]
+  },
+  "taskSuccess": {
+   "n": 10,
+   "mean": 0.8107054555686724,
+   "sd": 0.012402231272197396,
+   "min": 0.792681539091281,
+   "max": 0.829133851821531,
+   "ci95": [
+    0.8018340501601363,
+    0.8195768609772084
+   ]
+  }
+ }
+}
