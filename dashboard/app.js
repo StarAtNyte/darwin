@@ -888,7 +888,7 @@ function renderAI() {
     $("#ai-tag").textContent = "Random mutation";
     set("#ai-what", "In this run each child copies its parent’s strategy with small random changes.");
     set("#ai-why", "");
-    set("#ai-meta", st.publicMode ? "In an AI run, a language model chooses each child’s strategy and says why. <a href=\"https://github.com/StarAtNyte/near-darwin#an-ai-model-as-the-mutation-operator\" rel=\"noopener\">See how</a>." : "Open Rules and set Mutation to AI model: a language model then chooses each child’s strategy and says why.");
+    set("#ai-meta", st.publicMode ? "In an AI run, a language model chooses each child’s strategy and says why. <a href=\"https://github.com/StarAtNyte/darwin#an-ai-model-as-the-mutation-operator\" rel=\"noopener\">See how</a>." : "Open Rules and set Mutation to AI model: a language model then chooses each child’s strategy and says why.");
   }
 }
 
@@ -2242,7 +2242,7 @@ function renderTake() {
   setHtml(run, `<span class="take__act">Try it: fire a plague or drought and watch which families survive. Green marks under the chart are the guard stopping a rogue agent’s theft.</span> ` +
     `A simulation: each round, tasks are auctioned and every agent pays rent. ${pace}` +
     (rec ? ` Seed ${st.seed}, recorded with ${esc(modelName(rec.model))} and replayed.` : "") +
-    ` The same rules run as a contract on NEAR testnet: <a href="https://github.com/StarAtNyte/near-darwin/blob/main/docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12" rel="noopener">one full lifecycle, every tx</a>.`);
+    ` The same rules run as a contract on NEAR testnet: <a href="https://github.com/StarAtNyte/darwin/blob/main/docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12" rel="noopener">one full lifecycle, every tx</a>.`);
   if (M.length < 10) { setHtml(body, `<p>${fmt(S.founders.size)} founding agents start level, each the root of a family. Nothing has separated them yet.</p>`); return; }
   let i0 = 0;
   while (i0 < M.length - 1 && M[i0].tick < last.tick - TAKE_WINDOW) i0++;

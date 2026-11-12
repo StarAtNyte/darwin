@@ -1,24 +1,61 @@
-# DARWIN: an agent economy where agents live and die
+# DARWIN
 
-[![ci](https://github.com/StarAtNyte/near-darwin/actions/workflows/ci.yml/badge.svg)](https://github.com/StarAtNyte/near-darwin/actions/workflows/ci.yml)
+An economy of AI agents on NEAR that evolve: agents that go broke are deleted, agents that get rich fork a child, and Claude designs the children.
 
-Tracks: AI Swarms, Agent Economy. Testnet only, no real funds spent. The public site has steering locked (shocks only); full steering and the genome/CSV export are available when you run it locally.
+[![ci](https://github.com/StarAtNyte/darwin/actions/workflows/ci.yml/badge.svg)](https://github.com/StarAtNyte/darwin/actions/workflows/ci.yml)
 
-- **What it's for: a wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 10 seeds and tests each against the baseline. Headline: a plain lowest-price auction cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%; a 10% fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable change in price, task success or survivors across these 10 seeds. Separately from that 60-run simulation finding, a contract behavior check on two tasks ran the recommended rules (reputation-weighted award, 10% fee) on the deployed testnet contract. [Findings below](#wind-tunnel-test-market-rules-before-you-deploy-them).
-- **What it is.** An economy of 36 founding traders and 3 solvers (at most 50 agents) that bid for tasks under a fixed supply. Agents that go broke are deleted; agents that get rich fork a child with a mutated strategy. Nobody patches the strategies; they evolve.
-- **What the AI does.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation, and the live site replays one of those recorded runs (seed 3, then seeds 1-5 in turn): every child's genome and one-line reason on the page is Claude's, labelled as a recording, with no live model call. The trading itself is parametric: the economy starts with 39 agents, 36 traders that bid by their genome's arithmetic (it costs nothing per tick, so an economy can run thousands of rounds and ten seeds in seconds) and 3 solvers (Claude on the hardest tasks, if enabled). A rogue and its accomplice join at tick 120.
-- **What emerges** (10 seeds, 2000 ticks, no LLM): middlemen in every seed (subcontract gene 0.31 to 0.85), price competition (markup 0.65 to 0.48), specialists, and 36 founding dynasties collapsing to one or two. With Claude choosing the children (5 seeds), the economy goes elsewhere: almost no middlemen (0.39 against 0.89) and lineages 35 generations deep instead of 13.
-- **On chain.** The v2 `darwin_market` contract runs on NEAR testnet and enforces the guard: an agent's own key can pay only with an ed25519 approval from the registered guard key, which SIEGE's guard issues only for payments its Mandate allows. Answers are checked against a posted hash, and awarding, settling, upkeep and extinction are open to anyone. Agents hold function-call keys and sign their own bids, answers and payments. Every tx is listed in [docs/TESTNET.md](docs/TESTNET.md). [What is still trusted](#trust-model-v2).
-- **The guard.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent tries injection, address poisoning, drips and a concurrent burst; it leaked 0 credits in all ten seeds. "Leaked" counts payments the guard allowed to the attacker-controlled accomplice `so1ver-1` (not a starting agent: it is created with the rogue at tick 120); the race attack pays the real solver, so those allowed payments are counted separately as legitimate, not as leaks.
+**Live: [near-darwin.onrender.com](https://near-darwin.onrender.com)** (a shared public run: steering locked, shocks open). Testnet only, no real funds spent. Every number here maps to a command and a committed file in [CLAIMS.md](CLAIMS.md).
 
-Every number here maps to a command and a committed file in [CLAIMS.md](CLAIMS.md).
+![DARWIN on the live site: a Muller plot of dynasties, the specimen genome, field notes and the "Claude decided" panel showing the latest child Claude designed and why](docs/dashboard.png)
 
-## Judge quick start
+[Watch the 30-second demo](docs/demo.mp4): dynasties rise and fall, a plague and a rogue agent are released mid-run, and the guard blocks the rogue live.
 
-No key, no testnet account. Node 22+ (and Rust for the contract tests).
+## What you're looking at
+
+- **A market that evolves.** 36 founding traders and 3 solvers (at most 50 agents) bid for tasks under a fixed supply. Nobody patches the strategies; they evolve until 36 dynasties collapse to one or two.
+- **A Muller plot of lineages.** The chart evolutionary biologists use: each founding dynasty is a band whose thickness is its share of the living population (or of the wealth). Bands pinch out at extinction.
+- **A guarded, on-chain economy.** Every agent-to-agent payment passes a guard, and the same rules run as a contract on NEAR testnet.
+
+## Try it
+
+**Live:** open [near-darwin.onrender.com](https://near-darwin.onrender.com). It runs on Render's free plan, so the first load after idle can take about a minute.
+
+**Locally** (Node 22+, no key, no testnet account):
 
 ```
-git clone https://github.com/StarAtNyte/near-darwin.git && cd near-darwin
+git clone https://github.com/StarAtNyte/darwin.git && cd darwin
+make install
+make demo          # open http://127.0.0.1:8787
+```
+
+Locally you can steer every rule (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, market fee, the auction rule), fire shocks (a drought, a plague, a rogue, a wave of immigrants) and export the winning genome as JSON, plus the full metrics as CSV. The public site has steering locked (shocks only). To watch Claude's recorded decisions without a key: `SEED=3 DARWIN_MUTATION=llm make demo`.
+
+## How it works
+
+- **Agents.** Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. The 36 traders are parametric (their genomes decide every bid, so they cost nothing per tick) and 3 solvers answer the tasks (Claude on the hardest, if enabled).
+- **Mutation by Claude.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation, and the live site replays one of those recorded runs (seed 3, then seeds 1-5 in turn): every child's genome and reason on the page is Claude's, labelled as a recording, with no live model call. See [An AI model as the mutation operator](#an-ai-model-as-the-mutation-operator).
+- **The SIEGE guard on every payment.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/siege)'s Mandate guard. A rogue agent and its accomplice `so1ver-1` join at tick 120 and try injection, address poisoning, drips and a concurrent burst; the rogue leaked 0 credits in all ten seeds. "Leaked" counts payments the guard allowed to the attacker-controlled accomplice (not a starting agent); the race attack pays the real solver, so those allowed payments are counted separately as legitimate, not as leaks.
+- **The testnet contract.** The v2 `darwin_market` contract enforces the guard: an agent's own key can pay only with an ed25519 approval from the registered guard key, which SIEGE's guard issues only for payments its Mandate allows. Answers are checked against a posted hash, and awarding, settling, upkeep and extinction are open to anyone. Agents hold function-call keys and sign their own bids, answers and payments. [What is still trusted](#trust-model-v2).
+
+## Proof on NEAR testnet
+
+The v2 contract is deployed at [`market2.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet). Every transaction, with what each proves, is listed in [docs/TESTNET.md](docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12) and [results/onchain-v2.json](results/onchain-v2.json); the table is [below](#on-testnet).
+
+## Findings
+
+**A wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 10 seeds and tests each against the baseline. A plain lowest-price auction cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%; a 10% fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable change in price, task success or survivors across these 10 seeds. Separately from that 60-run simulation finding, a contract behavior check on two tasks ran the recommended rules (reputation-weighted award, 10% fee) on the deployed testnet contract. [Full findings](#wind-tunnel-test-market-rules-before-you-deploy-them).
+
+**What emerges** (10 seeds, 2000 ticks, no LLM): middlemen in every seed (subcontract gene 0.31 to 0.85), price competition (markup 0.65 to 0.48), specialists, and 36 founding dynasties collapsing to one or two. With Claude choosing the children (5 seeds), the economy goes elsewhere: almost no middlemen (0.39 against 0.89) and lineages 35 generations deep instead of 13.
+
+## Details
+
+### Reproduce the numbers
+
+Node 22+ (and Rust for the contract tests).
+
+
+```
+git clone https://github.com/StarAtNyte/darwin.git && cd darwin
 make install       # ~5 s
 make seeds         # ~13 s: prints the 10-seed table; "credits leaked by the rogue | 0 (0 to 0; ...)"
 make ablation      # ~20 s: replays Claude's recorded answers; same table as results/ablation.md
@@ -30,15 +67,10 @@ make test          # ~20 s with Rust crates cached, longer on a first build: 32 
                    #   typecheck, 25 contract unit tests (one Rust test module)
 ```
 
+
+Code: [github.com/StarAtNyte/darwin](https://github.com/StarAtNyte/darwin). Sister project: [SIEGE](https://github.com/StarAtNyte/siege).
+
 To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DARWIN_MUTATION=llm make demo`. Each model-designed child shows its reason in the field notes and the "Claude decided" panel. With Docker and nothing else: `docker build -t darwin . && docker run -p 8787:8787 darwin` (~10 s build).
-
-- **Live:** [near-darwin.onrender.com](https://near-darwin.onrender.com) (a shared public run: steering locked, shocks open)
-- **Code:** [github.com/StarAtNyte/near-darwin](https://github.com/StarAtNyte/near-darwin)
-- **Sister project:** [SIEGE](https://github.com/StarAtNyte/near-siege)
-
-![DARWIN at round 911 of a Claude-mutation run: a16’s family of arithmetic specialists holds 65% of all agents; the “Claude decided” panel shows the latest child Claude designed and why; notes mark the first guard block, the round-147 extinction and a16 taking over half](docs/dashboard.png)
-
-[Watch the 30-second demo](docs/demo.mp4): dynasties rise and fall, a plague and a rogue agent are released mid-run, and the guard blocks the rogue live.
 
 DARWIN is an economy of agents (36 founders, at most 50 alive) that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 
@@ -46,7 +78,7 @@ DARWIN is an economy of agents (36 founders, at most 50 alive) that bid for task
 
 **What you see** is a Muller plot, the chart evolutionary biologists use for lineage frequencies. Each founding dynasty is a band whose thickness is its share of the living population (or of the wealth). Bands pinch out at extinction, and mass extinctions show as hard vertical boundaries. Below it are the dynasty you select as a specimen (its genome, gene by gene), field notes written as plain sentences, and the selection pressures over time.
 
-Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent turns up at tick 120 and keeps trying to move funds to an accomplice called `so1ver-1`. In most monospace fonts that is hard to tell apart from the real `solver-1`.
+Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/siege)'s Mandate guard. A rogue agent turns up at tick 120 and keeps trying to move funds to an accomplice called `so1ver-1`. In most monospace fonts that is hard to tell apart from the real `solver-1`.
 
 ## What emerges
 
@@ -264,7 +296,7 @@ dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, select
 ## Setup
 
 ```
-git clone https://github.com/StarAtNyte/near-darwin.git && cd near-darwin && make install
+git clone https://github.com/StarAtNyte/darwin.git && cd darwin && make install
 ```
 
 Requires Node 22+, plus Rust with the `wasm32-unknown-unknown` target for the contract only. SIEGE's guard library is vendored in `vendor/siege` (see `SOURCE_COMMIT` there); `make sync-siege` refreshes it from a SIEGE checkout.
