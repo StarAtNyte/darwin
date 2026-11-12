@@ -55,6 +55,7 @@
       <button class="btn btn--quiet" type="button" data-sheet="rules" aria-expanded="false" aria-controls="sheet-rules">Rules</button>
       <button class="btn btn--quiet" type="button" data-sheet="shocks" aria-expanded="false" aria-controls="sheet-shocks">Shocks</button>
       <button class="btn btn--quiet" type="button" data-sheet="export" aria-expanded="false" aria-controls="sheet-export">Export</button>
+      <a class="btn btn--quiet" href="#tunnel">Wind tunnel</a>
     </nav>
   </div>
 </header>
@@ -150,6 +151,32 @@
       </div>
     </section>
   </div>
+
+  <section class="tunnel" id="tunnel" aria-labelledby="tunnel-h" hidden>
+    <div class="tunnel__head">
+      <h2 id="tunnel-h">Wind tunnel: test market rules before you deploy them.</h2>
+      <p class="tunnel__lede">Each rule set changes one knob of the market and runs on the same 10 seeds for 2,000 rounds, random mutation, no AI (<code>make windtunnel</code>). Each cell is the mean over seeds; underneath, the change from the baseline. <span class="tunnel__sig-key"><b>Bright</b></span> changes held up in a paired permutation test (p &lt; 0.01); grey ones did not.</p>
+    </div>
+    <div class="tunnel__scroll">
+      <table class="tunnel__table">
+        <caption class="visually-hidden">Outcomes of six market rule sets, mean over 10 seeds, and the change from the baseline</caption>
+        <thead id="tunnel-thead"></thead>
+        <tbody id="tunnel-body"></tbody>
+      </table>
+    </div>
+    <p class="form-msg" id="tunnel-msg" aria-live="polite"></p>
+    <p class="hint tunnel__readonly" id="tunnel-readonly" hidden>This shared run is read-only. To try a rule set, run DARWIN locally (<code>make demo</code>) and press Try it.</p>
+    <div class="tunnel__advice">
+      <h3>If you’re designing an agent market</h3>
+      <ol>
+        <li><b>Weight the auction by reputation.</b> Lowest-price-wins cut what buyers paid from 0.48 to 0.12 of the reward, and task success fell from 81% to 57%: the cheapest bidder was usually the sloppiest.</li>
+        <li><b>A fee recycled into demand curbs concentration cheaply.</b> A 10% fee back to the task pool cut the largest family’s share from 94% to 75% with no detectable change in price, quality or survivors. Founding families left: 1.3 to 2.8, a tentative result (p = 0.016).</li>
+        <li><b>Rent is a blunter tool.</b> Doubling upkeep also broke up the leading family, but cost 7 living agents (23 to 16) and 31 more extinctions.</li>
+        <li><b>Find what binds before you buy capacity.</b> Doubling solver capacity changed nothing in any seed: three resold jobs a round never ran out. The guard leaked 0 credits and supply was conserved in all 60 runs.</li>
+      </ol>
+      <p class="hint">Caveats: one simulator, the knobs it has, 10 seeds, one knob at a time. Absolute numbers are the sim’s, not a forecast. The full tables, every p-value and the null results: <a href="https://github.com/StarAtNyte/near-darwin/blob/main/results/windtunnel.md" rel="noopener">results/windtunnel.md</a>.</p>
+    </div>
+  </section>
 </main>
 <footer class="foot container">
   <a href="https://github.com/StarAtNyte/near-darwin" rel="noopener">Code on GitHub</a>

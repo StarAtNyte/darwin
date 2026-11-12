@@ -254,6 +254,58 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .feed li:not(.quiet) p:not(.mark) { color: var(--color-ink-2); }
 .feed .id { font-family: var(--font-mono); font-size: 0.95em; }
 
+/* Wind tunnel: rule sets compared against the baseline, one row each */
+.tunnel { padding-block: var(--space-xl) var(--space-2xl); border-top: 1px solid var(--color-rule-soft); scroll-margin-top: var(--space-xl); }
+.tunnel__head { display: grid; gap: var(--space-xs); max-width: 62rem; margin-bottom: var(--space-lg); }
+.tunnel__head h2 { font-size: var(--text-2xl); line-height: 1.1; }
+.tunnel__lede { color: var(--color-ink-2); font-size: var(--text-sm); }
+.tunnel__lede b { color: var(--color-ink); }
+.tunnel code, .tunnel__advice code { font-family: var(--font-mono); font-size: 0.92em; }
+.tunnel__table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tunnel__table thead th { text-align: right; vertical-align: bottom; padding: 0 var(--space-sm) var(--space-xs); border-bottom: 1px solid var(--color-rule); font-weight: 600; font-size: var(--text-sm); line-height: 1.2; }
+.tunnel__table thead th:first-child { text-align: left; padding-left: 0; }
+.tunnel__table thead small { display: block; font-weight: 400; font-size: var(--text-xs); color: var(--color-muted); }
+.tunnel__table tbody tr { border-bottom: 1px solid var(--color-rule-soft); }
+.tunnel__table tbody th { text-align: left; font-weight: 400; padding: var(--space-sm) var(--space-sm) var(--space-sm) 0; vertical-align: top; width: 24%; }
+.tunnel__table .tn { display: block; font-family: var(--font-display); font-stretch: var(--stretch-display); font-weight: 700; font-size: var(--text-lg); line-height: 1.15; }
+.tunnel__table .tr { display: block; color: var(--color-muted); font-size: var(--text-xs); margin: var(--space-3xs) 0 var(--space-xs); }
+.tunnel__table td { text-align: right; vertical-align: top; padding: var(--space-sm); }
+.tunnel__table .tv { display: block; font-weight: 600; font-size: var(--text-lg); line-height: 1.2; color: var(--color-muted); }
+.tunnel__table .td { display: block; font-size: var(--text-xs); color: var(--color-muted); }
+.tunnel__table .is-base .tv { color: var(--color-ink); }
+.tunnel__table .is-sig .tv { color: var(--color-ink); }
+.tunnel__table .is-sig .td { color: var(--color-ink); font-weight: 600; }
+/* A centred bar: right of centre is up, left is down; length is the change relative to the largest in its column. */
+.tbar { position: relative; display: block; width: 6rem; height: 4px; margin: var(--space-2xs) 0 0 auto; background: var(--color-rule-soft); }
+.tbar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--color-muted); }
+.tbar i { position: absolute; top: 0; bottom: 0; left: 50%; background: var(--color-rule); }
+.tbar--neg i { left: auto; right: 50%; }
+.is-sig .tbar i { background: var(--color-ink); }
+.tunnel__readonly { margin-top: var(--space-sm); }
+.tunnel__advice { margin-top: var(--space-lg); padding: var(--space-md) var(--space-lg); border: 1px solid var(--color-rule); border-radius: var(--radius-card); max-width: 62rem; }
+.tunnel__advice h3 { font-size: var(--text-xl); margin-bottom: var(--space-xs); }
+.tunnel__advice ol { margin: 0 0 var(--space-sm); padding-left: 1.4em; display: grid; gap: var(--space-xs); }
+.tunnel__advice li { font-size: var(--text-sm); color: var(--color-ink-2); }
+.tunnel__advice li b { color: var(--color-ink); }
+.tunnel__advice a { color: var(--color-ink); }
+@media (max-width: 60rem) {
+  /* Phones and narrow tablets: one card per rule set, metrics in a two-column grid. */
+  .tunnel__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .tunnel__table, .tunnel__table tbody, .tunnel__table tr { display: block; }
+  .tunnel__table tbody tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-sm) var(--space-md); padding: var(--space-md) 0; }
+  .tunnel__table tbody th { grid-column: 1 / -1; width: auto; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3xs) var(--space-sm); }
+  .tunnel__table .tr { margin: 0; flex: 1 1 12rem; }
+  .tunnel__try { margin-left: auto; }
+  .tunnel__table td { display: block; padding: 0; text-align: left; }
+  .tunnel__table td::before { content: attr(data-label); display: block; font-size: var(--text-xs); color: var(--color-muted); }
+  .tbar { margin-left: 0; }
+}
+@media (max-width: 40rem) {
+  .tunnel__table tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tunnel__advice { padding: var(--space-md); }
+  .tunnel__head h2 { font-size: var(--text-xl); }
+}
+
 /* Selection pressures */
 .figs { display: grid; gap: 0; margin: 0; }
 .fig { display: grid; grid-template-columns: minmax(0, 1fr) 5.5rem 7.5rem; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; border-bottom: 1px solid var(--color-rule-soft); }

@@ -366,6 +366,7 @@ function renderChrome() {
   const shared = !!st.publicMode;
   $("#shared").hidden = !shared;
   $('[data-sheet="rules"]').hidden = shared;
+  renderTunnelMode();
   if (shared && openSheet?.id === "sheet-rules") closeSheet(true);
   if (st !== seenState) {
     seenState = st;
@@ -1900,6 +1901,7 @@ const RULES = [
   { k: "forkShare", label: "Fork share", min: 0.05, max: 0.9, step: 0.01, help: "The share of a parent’s balance its child starts with.", show: (v) => `${Math.round(v * 100)}%` },
   { k: "mutationSigma", label: "Random mutation size", min: 0, max: 0.5, step: 0.01, help: "How far a child’s genes drift from its parent’s. Zero makes clones.", show: (v) => Number(v).toFixed(2) },
   { k: "solverSubCap", label: "Solver subcontract cap", min: 0, max: 20, step: 1, help: "Resold tasks each solver takes per round. Zero shuts the middlemen out.", show: (v) => fmt(v) },
+  { k: "marketFee", label: "Market fee", min: 0, max: 0.5, step: 0.01, help: "Share of each paid price the market takes back into the task pool.", show: (v) => `${Math.round(v * 100)}%` },
   { k: "maxPop", label: "Population cap", min: 10, max: 120, step: 1, help: "Forking stops while this many agents are alive.", show: (v) => fmt(v) },
 ];
 
@@ -2279,6 +2281,89 @@ addEventListener("resize", placeTourPins);
 addEventListener("scroll", placeTourPins, { passive: true });
 function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch { return true; } }
 
+// ---------- wind tunnel ----------
+const pts = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x) < 0.01 ? Math.abs(x * 100).toFixed(1) : Math.abs(Math.round(x * 100))} pts`;
+const TUNNEL_COLS = [
+  { k: "topFamilyShare", label: "Largest family", sub: "share of agents", f: (x) => `${Math.round(x * 100)}%`, d: pts },
+  { k: "middlemanShare", label: "Resold", sub: "tasks done by middlemen", f: (x) => `${Math.round(x * 100)}%`, d: pts },
+  { k: "priceRatio", label: "Price paid", sub: "share of the reward", f: (x) => x.toFixed(2), d: (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(2)}` },
+  { k: "taskSuccess", label: "Task success", sub: "answers correct", f: (x) => `${Math.round(x * 100)}%`, d: pts },
+  { k: "population", label: "Agents alive", sub: "at round 2,000", f: (x) => x.toFixed(0), d: (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(0)}` },
+  { k: "extinctions", label: "Extinctions", sub: "over the run", f: (x) => x.toFixed(0), d: (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(0)}` },
+];
+let tunnel = null;
+let tunnelArmed = null;
+const RULE_WORDS = { auction: (v) => `auction: ${v === "price" ? "lowest price" : v}`, marketFee: (v) => `fee ${Math.round(v * 100)}%`, upkeep: (v) => `rent ${fmt(v)} micro`, tasksPerTick: (v) => `${v} tasks a round`, solverSubCap: (v) => `solver cap ${v}` };
+function tunnelRules(set) {
+  const e = Object.entries(set.rules);
+  return e.length ? e.map(([k, v]) => (RULE_WORDS[k] ? RULE_WORDS[k](v) : `${k} ${v}`)).join(", ") : "the defaults";
+}
+async function loadTunnel() {
+  try {
+    const r = await fetch("/api/windtunnel", { cache: "no-store" });
+    if (!r.ok) return;
+    tunnel = await r.json();
+  } catch { return; }
+  $("#tunnel-thead").innerHTML = `<tr><th scope="col">Rule set</th>${TUNNEL_COLS.map((c) => `<th scope="col"><span>${c.label}</span><small>${c.sub}</small></th>`).join("")}</tr>`;
+  const maxAbs = Object.fromEntries(TUNNEL_COLS.map((c) => [c.k, Math.max(1e-9, ...tunnel.ruleSets.slice(1).map((s) => Math.abs(tunnel.vsBaseline[s.id][c.k].diff)))]));
+  $("#tunnel-body").innerHTML = tunnel.ruleSets.map((s, i) => {
+    const cells = TUNNEL_COLS.map((c) => {
+      const m = tunnel.summary[s.id][c.k];
+      const range = `${c.f(m.min)} to ${c.f(m.max)} over ${tunnel.seeds.length} seeds`;
+      if (!i) return `<td data-label="${c.label}"><span class="tv" title="${range}">${c.f(m.mean)}</span><span class="td td--base">baseline</span></td>`;
+      const v = tunnel.vsBaseline[s.id][c.k];
+      const sig = v.p < 0.01;
+      const w = Math.round((Math.abs(v.diff) / maxAbs[c.k]) * 100);
+      const zero = Math.abs(v.diff) < 1e-9;
+      return `<td data-label="${c.label}" class="${sig ? "is-sig" : ""}"><span class="tv" title="${range}">${c.f(m.mean)}</span>` +
+        `<span class="td">${zero ? "no change" : c.d(v.diff)}<span class="visually-hidden">${sig ? ", significant" : ", not significant"} (p = ${v.p.toFixed(3)})</span></span>` +
+        `<span class="tbar${v.diff < 0 ? " tbar--neg" : ""}" aria-hidden="true"><i style="width:${zero ? 0 : Math.max(4, w / 2)}%"></i></span></td>`;
+    }).join("");
+    return `<tr${i ? "" : ' class="is-base"'}><th scope="row"><span class="tn">${s.label}</span><span class="tr">${esc(tunnelRules(s))}</span>` +
+      `<button class="btn btn--quiet btn--small tunnel__try" type="button" data-set="${s.id}">Try it</button></th>${cells}</tr>`;
+  }).join("");
+  $$(".tunnel__try").forEach((b) => b.addEventListener("click", () => tryRuleSet(b)));
+  $("#tunnel").hidden = false;
+  renderTunnelMode();
+}
+function renderTunnelMode() {
+  if (!tunnel) return;
+  const shared = !!S.state?.publicMode;
+  $$(".tunnel__try").forEach((b) => (b.hidden = shared));
+  $("#tunnel-readonly").hidden = !shared;
+}
+async function tryRuleSet(b) {
+  const set = tunnel.ruleSets.find((s) => s.id === b.dataset.set);
+  const msg = $("#tunnel-msg");
+  const tick = S.state?.tick ?? 0;
+  if (tunnelArmed !== b && tick > 0 && !S.state?.finished) {
+    $$(".tunnel__try").forEach((x) => (x.textContent = "Try it"));
+    tunnelArmed = b;
+    b.textContent = "Discard and try";
+    msg.classList.remove("is-error");
+    msg.textContent = `Trying ${set.label} restarts the run from round 0 with seed ${S.state.seed}; round ${tick} is discarded. Press again to confirm.`;
+    return;
+  }
+  tunnelArmed = null;
+  b.textContent = "Try it";
+  b.setAttribute("aria-busy", "true");
+  try {
+    const rules = { ...set.rules };
+    if (S.state?.rules?.mutation) rules.mutation = S.state.rules.mutation;
+    const st = await post("/api/reset", { seed: S.state?.seed ?? 1, rules });
+    S.state = st;
+    schedule("chrome");
+    msg.classList.remove("is-error");
+    msg.textContent = `Running ${set.label} (${tunnelRules(set)}) on seed ${st.seed}. Watch the families above.`;
+    window.scrollTo({ top: 0, behavior: reduceMotion.matches ? "auto" : "smooth" });
+  } catch (err) {
+    msg.classList.add("is-error");
+    msg.textContent = err.message;
+  } finally {
+    b.removeAttribute("aria-busy");
+  }
+}
+
 // ---------- boot ----------
 function boot() {
   readTokens();
@@ -2293,6 +2378,7 @@ function boot() {
   reduceMotion.addEventListener?.("change", () => schedule("all"));
   // Headless Chrome screenshots (docs/dashboard.png) never finish while a stream is open: render the history once instead.
   const still = /HeadlessChrome/.test(navigator.userAgent);
+  loadTunnel();
   loadHistory().catch(() => { S.status = "disconnected"; schedule("chrome"); }).finally(() => {
     if (!still) connect();
     if (!tourSeen() && !sheetBtn) requestAnimationFrame(() => requestAnimationFrame(openTour));
