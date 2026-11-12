@@ -1,7 +1,7 @@
-// Tier-2 solver: Claude (cheapest tier) for the hardest reasoning tasks, under the shared hard budget.
+// Tier-2 solver: Claude (cheapest tier) for the hardest reasoning tasks, under DARWIN's hard budget (budget.ts).
 // Off unless ANTHROPIC_API_KEY is set and DARWIN_LLM=1; the scripted solver is used otherwise.
 import Anthropic from "@anthropic-ai/sdk";
-import { budget, JUDGE_MODEL } from "siege";
+import { budget, MODEL } from "./budget.ts";
 import type { Task } from "./tasks.ts";
 
 const MAX_CALLS = Number(process.env.DARWIN_LLM_MAX_CALLS ?? 60);
@@ -16,7 +16,7 @@ export async function llmSolve(t: Task): Promise<string | undefined> {
     calls++;
     client ??= new Anthropic();
     const res = await client.messages.create({
-      model: JUDGE_MODEL,
+      model: MODEL,
       max_tokens: 64,
       output_config: { effort: "low" },
       system: "Answer with only the final answer, no words.",

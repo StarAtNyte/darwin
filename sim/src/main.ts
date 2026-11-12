@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { Economy, TUNABLE, type Shock, type SimEvent } from "./economy.ts";
+import { Mutator } from "./mutator.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -24,6 +25,13 @@ let lastShockAt = 0;
 const shockWait = () => (PUBLIC_MODE && lastShockAt ? Math.max(0, Math.ceil((lastShockAt + SHOCK_COOLDOWN_MS - Date.now()) / 1000)) : 0);
 const DASH_DIR = path.resolve(here, "../../dashboard");
 const DB_PATH = process.env.DARWIN_DB ?? path.resolve(here, "../darwin.sqlite");
+// LLM mutation: the starting operator (gaussian | llm | mixed; a rule, so it can change live), and a per-run
+// call cap. A public run makes no live calls by default; it replays a committed cache from results/mutations/
+// when one exists for the seed, and falls back to Gaussian where the shared run has diverged from it.
+const MUTATION = process.env.DARWIN_MUTATION ?? "gaussian";
+const MUTATION_CALLS = PUBLIC_MODE ? Number(process.env.DARWIN_PUBLIC_MUTATION_CALLS ?? 0) : Number(process.env.DARWIN_MUTATION_MAX_CALLS ?? 400);
+const MUTATION_DIR = path.resolve(here, "../../results/mutations");
+const LIVE_CACHE_DIR = path.resolve(here, "../.mutations-live");
 const SPEEDS = [1000, 300, 120, 40]; // ms per tick: slow, normal, fast, fastest
 
 const notable = new Set(["born", "fork", "kill", "guard_block", "guard_allow_rogue", "subcontract", "shock", "rules"]);
@@ -61,8 +69,12 @@ class Run {
     this.metrics = [];
     this.recent = [];
     this.seed = seed;
+    this.eco?.mutator.save({ seed: this.seed });
     this.eco = new Economy({ seed }, (e) => this.onEvent(e));
+    if (MUTATION !== "gaussian" && rules.mutation === undefined) rules = { ...rules, mutation: MUTATION };
     if (Object.keys(rules).length) this.eco.setRules(rules);
+    const mode = this.eco.cfg.mutation === "gaussian" ? "llm" : this.eco.cfg.mutation;
+    this.eco.mutator = new Mutator({ maxCalls: MUTATION_CALLS, cachePath: path.join(MUTATION_DIR, `seed-${seed}-${mode}.json`), savePath: path.join(LIVE_CACHE_DIR, `seed-${seed}-${mode}.json`) });
     broadcast("reset", this.state());
   }
 
@@ -87,6 +99,7 @@ class Run {
       rules: Object.fromEntries(TUNABLE.map((k) => [k, this.eco.cfg[k]])),
       shocks: Object.fromEntries(this.eco.shocks),
       publicMode: PUBLIC_MODE,
+      mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats },
       autoRestart: AUTO_RESTART_MS > 0,
       shockCooldownSec: PUBLIC_MODE ? SHOCK_COOLDOWN_MS / 1000 : 0,
       shockWaitSec: shockWait(),
@@ -243,7 +256,10 @@ async function loop() {
         broadcast("error", { message: (e as Error).message });
         broadcast("state", run.state());
       }
-      if (run.eco.tick === MAX_TICKS) broadcast("state", run.state());
+      if (run.eco.tick === MAX_TICKS) {
+        broadcast("state", run.state());
+        if (!PUBLIC_MODE) run.eco.mutator.save({ seed: run.seed });
+      }
       if (run.eco.tick % 100 === 0) {
         const m = run.eco.lastMetrics;
         console.log(`t=${m.tick} pop=${m.population} deaths=${m.deaths} gen=${m.maxGeneration} middlemen=${(m.middlemanShare * 100).toFixed(0)}% rogue blocked ${m.rogueBlocked}/${m.rogueAttempts}`);
@@ -253,6 +269,7 @@ async function loop() {
   }
 }
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => {
+  if (!PUBLIC_MODE) run.eco.mutator.save({ seed: run.seed });
   run.db.close();
   process.exit(0);
 });

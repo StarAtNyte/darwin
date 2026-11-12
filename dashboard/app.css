@@ -226,6 +226,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .feed .mark--guard::before { background: var(--color-accent); }
 .feed .mark--shock::before { background: var(--color-ink-2); }
 .feed .mark--extinct::before { background: var(--color-error); }
+.feed .mark--llm::before { background: var(--color-ink-3, var(--color-ink-2)); }
 .feed li:not(.quiet) p:not(.mark) { color: var(--color-ink-2); }
 .feed .id { font-family: var(--font-mono); font-size: 0.95em; }
 

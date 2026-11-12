@@ -12,3 +12,4 @@ results/*.sqlite
 *.sqlite-*
 !.env.example
 **/.hallmark/shots/
+.mutations-live/

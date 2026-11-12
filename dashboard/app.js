@@ -33,6 +33,7 @@ const S = {
   founders: new Map(), // founder -> { idx, first }
   derived: [], // per metrics index: { ended: [founders], deaths, blocked, leaked }
   notes: new Map(), // tick -> group
+  designs: [], // forks whose child genome Claude chose: { tick, parent, child, rationale }
   shockMarks: [], // instant shocks { tick, kind }
   exportInfo: null,
   exportTick: -1,
@@ -127,6 +128,10 @@ function noteGroup(tick) {
 function ingestEvent(e) {
   if (e.event === "born") {
     S.genomes.set(e.agent, e.genome);
+    if (e.rationale && e.parent) {
+      S.designs.push({ tick: e.tick, parent: e.parent, child: e.agent, founder: e.founder, rationale: e.rationale });
+      if (S.designs.length > 300) S.designs.shift();
+    }
     if (e.tick > 0 && !e.parent) {
       if (e.role === "rogue") noteGroup(e.tick).rogues.push(e.agent);
       else if (e.role === "parametric") noteGroup(e.tick).arrivals.push(e.agent);
@@ -154,6 +159,7 @@ function clearAll() {
   S.genomes.clear();
   S.founders.clear();
   S.notes.clear();
+  S.designs = [];
   S.shockMarks = [];
   S.exportInfo = null;
   S.exportTick = -1;
@@ -1363,6 +1369,16 @@ function edgeSentence(mk, mkAvg, sub, subAvg) {
   return `<p class="spec__edge">${out.charAt(0).toUpperCase() + out.slice(1)}.</p>`;
 }
 
+// Members whose genes Claude chose as the mutation operator, and its latest reason in this dynasty.
+function designSentence(f, living) {
+  const byClaude = living.filter((a) => a.origin === "llm").length;
+  const last = [...S.designs].reverse().find((d) => d.founder === f);
+  if (!byClaude && !last) return "";
+  const head = byClaude ? `Claude chose the genes of ${byClaude} of its ${living.length} living ${plural(living.length, "member")}.` : "";
+  const why = last ? ` Latest, at tick ${last.tick}: ${esc(short(last.parent))} forked ${esc(short(last.child))}, “${esc(last.rationale)}”` : "";
+  return `<p class="spec__edge spec__llm">${head}${why}</p>`;
+}
+
 function renderSpecimen() {
   const body = $("#spec-body");
   const sub = $("#spec-sub");
@@ -1424,6 +1440,7 @@ function renderSpecimen() {
     `<div class="spec__name"><span class="spec__swatch" style="background:${colour}"></span><h3>${esc(short(f))}’s dynasty</h3></div>` +
     (strategyOf(f) ? `<p class="spec__strategy">Strategy: ${esc(strategyOf(f))}</p>` : "") +
     edgeSentence(mean("markup"), avg("markup"), mean("subcontract"), avg("subcontract")) +
+    designSentence(f, living) +
     `<dl class="spec__facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` +
     `<dl class="genes">` +
     gene("Markup", "share of the reward it asks; lower wins more", mean("markup"), 1, mean("markup").toFixed(2), avg("markup")) +
@@ -1555,6 +1572,11 @@ function renderNotes() {
   const wins = [...windows].sort((a, b) => a[0] - b[0]);
   for (const [w, win] of new Set([wins[0], wins.at(-1)].filter(Boolean))) {
     entries.push({ t: win.last + 0.5, from: w, to: win.last, ss: [subsSentence(win.subs)], quiet: true });
+  }
+  // Forks where Claude chose the child's genes: the first one, and the latest three, each with its one-line reason.
+  const ds = S.designs;
+  for (const d of new Set([ds[0], ...ds.slice(-3)].filter(Boolean))) {
+    entries.push({ t: d.tick + 0.4, from: d.tick, to: d.tick, ss: [mark("llm", `${esc(short(d.parent))} forked ${esc(short(d.child))}, and Claude chose the child’s genes: “${esc(d.rationale)}”`)] });
   }
   // A routine window sorts at its last tick, below any notable note from that same tick.
   for (const r of routine.values()) entries.push({ t: r.to - 0.25, from: r.from, to: r.to, ss: [routineSentence(r)], routine: true });
@@ -1701,19 +1723,25 @@ function buildRules() {
     `<fieldset class="rule" data-rule="auction"><legend>Auction</legend><div class="seg seg--small">` +
     `<input type="radio" name="auction" id="a-rep" value="reputation"><label for="a-rep">Reputation</label>` +
     `<input type="radio" name="auction" id="a-price" value="price"><label for="a-price">Price</label></div>` +
-    `<p class="hint" id="h-auction">Reputation divides each bid by the bidder’s reputation; price takes the lowest bid.</p><p class="err" id="e-auction" aria-live="polite"></p></fieldset>`;
+    `<p class="hint" id="h-auction">Reputation divides each bid by the bidder’s reputation; price takes the lowest bid.</p><p class="err" id="e-auction" aria-live="polite"></p></fieldset>` +
+    `<fieldset class="rule" data-rule="mutation"><legend>Mutation operator</legend><div class="seg seg--small">` +
+    `<input type="radio" name="mutation" id="m-gauss" value="gaussian"><label for="m-gauss">Random</label>` +
+    `<input type="radio" name="mutation" id="m-llm" value="llm"><label for="m-llm">Claude</label>` +
+    `<input type="radio" name="mutation" id="m-mixed" value="mixed"><label for="m-mixed">Mixed</label></div>` +
+    `<p class="hint" id="h-mutation">Random adds Gaussian noise to the parent’s genes. Claude reads the parent’s record and the market, then picks the child’s genes and says why. Mixed flips a coin per fork. Without an API key, or past the run’s call cap, Claude forks fall back to random.</p><p class="err" id="e-mutation" aria-live="polite"></p></fieldset>`;
   $("#rules-fields").innerHTML = html;
   for (const r of RULES) {
     const inp = $(`#r-${r.k}`);
     inp.addEventListener("input", () => { $(`#o-${r.k}`).textContent = r.show(inp.value); markChanged(); });
   }
-  $$('input[name="auction"]').forEach((i) => i.addEventListener("change", markChanged));
+  $$('input[name="auction"], input[name="mutation"]').forEach((i) => i.addEventListener("change", markChanged));
 }
 
 function formRules() {
   const out = {};
   for (const r of RULES) out[r.k] = Number($(`#r-${r.k}`).value);
   out.auction = $('input[name="auction"]:checked')?.value;
+  out.mutation = $('input[name="mutation"]:checked')?.value;
   return out;
 }
 function changedRules() {
@@ -1741,6 +1769,8 @@ function syncRules(force) {
   }
   const a = $(`input[name="auction"][value="${cur.auction}"]`);
   if (a) a.checked = true;
+  const mu = $(`input[name="mutation"][value="${cur.mutation}"]`);
+  if (mu) mu.checked = true;
   if (!$("#seed").value) $("#seed").value = S.state.seed;
   if (force) markChanged();
 }

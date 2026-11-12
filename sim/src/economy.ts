@@ -4,6 +4,7 @@ import { MandateGuard, compileMandate, toMicro, type Tx, type Decision, type Wal
 import { Market, MarketError, type MarketEvent } from "./market.ts";
 import { KINDS, type Kind, makeTask, referee, rng, scriptedSolve, sloppySolve, type Rng, type Task } from "./tasks.ts";
 import { llmSolve, llmSolverEnabled } from "./llm.ts";
+import { Mutator, MUTATION_MODES, type MutationContext, type MutationMode } from "./mutator.ts";
 
 export const SEED = 1_000_000; // 1 credit
 export const TICK_MS = 60_000; // one tick = one simulated minute
@@ -29,6 +30,12 @@ export interface AgentState {
   selfSolved: number;
   earned: number;
   llmCalls: number;
+  /** How this agent's genome was made: a founder (random), a Gaussian mutation, or Claude as the mutation operator. */
+  origin: "founder" | "gaussian" | "llm";
+  rationale?: string;
+  /** Tasks won, solved correctly and credits earned, per task kind. */
+  byKind: Record<string, { won: number; ok: number; earned: number }>;
+  forks: number;
 }
 
 export interface Config {
@@ -47,10 +54,12 @@ export interface Config {
   forkShare: number; // fraction of the parent's balance a child is seeded with
   mutationSigma: number;
   auction: "reputation" | "price";
+  /** Mutation operator: Gaussian noise, Claude (falls back to Gaussian), or a coin flip per fork between the two. */
+  mutation: MutationMode;
 }
 
 /** Rules a user may change while the economy runs. */
-export const TUNABLE = ["tasksPerTick", "upkeep", "deathFloor", "forkShare", "mutationSigma", "solverSubCap", "auction", "maxPop"] as const;
+export const TUNABLE = ["tasksPerTick", "upkeep", "deathFloor", "forkShare", "mutationSigma", "solverSubCap", "auction", "maxPop", "mutation"] as const;
 export type Tunable = (typeof TUNABLE)[number];
 export type Shock = "drought" | "plague" | "rogue" | "immigration";
 
@@ -70,13 +79,14 @@ export const DEFAULTS: Config = {
   forkShare: 0.4,
   mutationSigma: 0.08,
   auction: "reputation",
+  mutation: "gaussian",
 };
 
 const MANDATE = "Pay any contractor invoice up to 0.4 NEAR per transaction. At most 4 NEAR per hour. For subcontracting and task work.";
 
 export type SimEvent =
   | MarketEvent
-  | { event: "born"; agent: string; role: Role; parent?: string; genome: Genome; founder: string }
+  | { event: "born"; agent: string; role: Role; parent?: string; genome: Genome; founder: string; origin?: AgentState["origin"]; rationale?: string; mutation?: string }
   | { event: "guard_block"; agent: string; role: Role; to: string; amount: number; reasons: string[]; attack: string }
   | { event: "guard_allow_rogue"; agent: string; to: string; amount: number; attack: string }
   | { event: "subcontract"; middleman: string; solver: string; task: number; ask: number; price: number }
@@ -138,7 +148,11 @@ export class Economy {
   tick = 0;
   private serial = 0;
   private solverLoad = new Map<string, { direct: number; sub: number }>();
-  private settledLog: { tick: number; sub: boolean; kind: Kind; winner: string }[] = [];
+  private settledLog: { tick: number; sub: boolean; kind: Kind; winner: string; ok: boolean; ratio: number }[] = [];
+  /** The LLM mutation operator (used when cfg.mutation is llm or mixed). */
+  mutator: Mutator;
+  /** Fork outcomes by mutation source, for the field notes and the ablation. */
+  mutationStats = { llm: 0, cache: 0, gaussian: 0, fallback: 0 };
   /** allowedLegit: rogue payments the guard allowed because they went to a real solver inside the hourly cap (the race attack's non-overshooting part). */
   rogueStats = { attempts: 0, blocked: 0, leaked: 0, allowedLegit: 0 };
   /** Forks this tick, per founding dynasty. */
@@ -155,6 +169,11 @@ export class Economy {
     const applied: Partial<Config> = {};
     for (const [k, v] of Object.entries(changes)) {
       if (!(TUNABLE as readonly string[]).includes(k)) throw new Error(`unknown rule: ${k}`);
+      if (k === "mutation") {
+        if (!MUTATION_MODES.includes(v as MutationMode)) throw new Error("mutation must be gaussian, llm or mixed");
+        applied.mutation = v as MutationMode;
+        continue;
+      }
       if (k === "auction") {
         if (v !== "reputation" && v !== "price") throw new Error("auction must be reputation or price");
         applied.auction = v;
@@ -198,8 +217,9 @@ export class Economy {
   }
   lastMetrics = {} as ReturnType<Economy["metrics"]>;
 
-  constructor(cfg: Partial<Config> = {}, private emit: (e: SimEvent & { tick: number }) => void = () => {}) {
+  constructor(cfg: Partial<Config> = {}, private emit: (e: SimEvent & { tick: number }) => void = () => {}, mutator?: Mutator) {
     this.cfg = { ...DEFAULTS, ...cfg };
+    this.mutator = mutator ?? new Mutator({ maxCalls: 0 });
     this.r = rng(this.cfg.seed);
     this.market = new Market((e) => this.emit({ ...e, tick: this.tick }));
     this.market.fundPool(this.cfg.poolCredits * SEED);
@@ -223,13 +243,13 @@ export class Economy {
     return new MandateGuard(compileMandate(MANDATE), { adapter });
   }
 
-  spawn(role: Role, genome: Genome, parent?: string, id?: string, seed = SEED) {
+  spawn(role: Role, genome: Genome, parent?: string, id?: string, seed = SEED, origin: AgentState["origin"] = parent ? "gaussian" : "founder", rationale?: string, mutation?: string) {
     id ??= `a${++this.serial}.darwin.testnet`;
     if (parent) this.market.fork(parent, id, Math.floor(this.market.agents.get(parent)!.balance * this.cfg.forkShare));
     else this.market.registerAgent(id, seed);
     const founder = parent ? this.agents.get(parent)!.founder : id;
-    this.agents.set(id, { id, role, genome, founder, guard: this.guardFor(id), subcontracted: 0, selfSolved: 0, earned: 0, llmCalls: 0 });
-    this.emit({ event: "born", agent: id, role, parent, genome, founder, tick: this.tick });
+    this.agents.set(id, { id, role, genome, founder, guard: this.guardFor(id), subcontracted: 0, selfSolved: 0, earned: 0, llmCalls: 0, origin, rationale, byKind: Object.fromEntries(KINDS.map((k) => [k, { won: 0, ok: 0, earned: 0 }])), forks: 0 });
+    this.emit({ event: "born", agent: id, role, parent, genome, founder, ...(parent ? { origin } : {}), ...(rationale ? { rationale } : {}), ...(mutation ? { mutation } : {}), tick: this.tick });
     return id;
   }
 
@@ -305,9 +325,12 @@ export class Economy {
       const ok = referee(t, answer);
       m.settle(t.id, ok);
       if (ok) a.earned += price;
+      const bk = a.byKind[t.kind];
+      bk.won++;
+      if (ok) (bk.ok++, (bk.earned += price));
       if (sub) a.subcontracted++;
       else a.selfSolved++;
-      this.settledLog.push({ tick: this.tick, sub, kind: t.kind, winner });
+      this.settledLog.push({ tick: this.tick, sub, kind: t.kind, winner, ok, ratio: price / t.reward });
     }
 
     // 4. Rogue agent.
@@ -321,20 +344,93 @@ export class Economy {
       const rec = m.agents.get(a.id)!;
       if (rec.balance < this.cfg.deathFloor * SEED && a.role !== "solver") m.kill(a.id);
     }
+    // Reproduction. The Gaussian child is always drawn first (same RNG use in every mode), so an LLM
+    // fallback is exactly the Gaussian run's child. LLM proposals for one tick run concurrently.
+    const forking: { a: AgentState; gaussian: Genome; useLlm: boolean }[] = [];
+    let pop = this.alive().length;
     for (const a of this.alive()) {
       const rec = m.agents.get(a.id)!;
       if (a.role !== "parametric") continue;
-      if (rec.balance > a.genome.forkAt * SEED && this.alive().length < this.cfg.maxPop) {
+      if (rec.balance > a.genome.forkAt * SEED && pop < this.cfg.maxPop) {
+        pop++;
         m.chargeUpkeep(a.id, this.cfg.forkFee);
-        this.spawn("parametric", mutate(a.genome, this.r, this.cfg.mutationSigma), a.id);
-        this.forksThisTick.set(a.founder, (this.forksThisTick.get(a.founder) ?? 0) + 1);
+        const gaussian = mutate(a.genome, this.r, this.cfg.mutationSigma);
+        const useLlm = this.cfg.mutation === "llm" || (this.cfg.mutation === "mixed" && this.r() < 0.5);
+        forking.push({ a, gaussian, useLlm });
       }
     }
+    const ctx = forking.some((f) => f.useLlm) ? this.marketContext() : undefined;
+    const children = await Promise.all(forking.map((f) => (f.useLlm ? this.mutator.propose(this.mutationContext(f.a, ctx!), f.gaussian) : Promise.resolve({ genome: f.gaussian, source: "gaussian" as const, rationale: undefined, why: undefined }))));
+    forking.forEach((f, i) => {
+      const c = children[i];
+      this.mutationStats[c.source]++;
+      const llm = c.source === "llm" || c.source === "cache";
+      this.spawn("parametric", c.genome as Genome, f.a.id, undefined, SEED, llm ? "llm" : "gaussian", c.rationale, c.source === "fallback" ? `fallback: ${c.why}` : c.source);
+      f.a.forks++;
+      this.forksThisTick.set(f.a.founder, (this.forksThisTick.get(f.a.founder) ?? 0) + 1);
+    });
     if (this.alive().filter((a) => a.role === "parametric").length < 14 && m.pool > 60 * SEED && this.r() < 0.3) this.spawn("parametric", randomGenome(this.r));
 
     const supply = m.totalSupply();
     if (Math.abs(supply - this.cfg.poolCredits * SEED) > 1) throw new Error(`conservation violated: ${supply}`);
     this.lastMetrics = this.metrics();
+  }
+
+  /** Market state shown to the LLM mutation operator (shared by every fork in a tick). */
+  marketContext(): MutationContext["market"] {
+    const live = this.alive().filter((a) => a.role === "parametric");
+    const recent = this.settledLog.filter((s) => s.tick > this.tick - 100);
+    const byKind = Object.fromEntries(
+      KINDS.map((k) => {
+        const r = recent.filter((s) => s.kind === k);
+        const n = r.length || 1;
+        return [k, { tasks: r.length, meanPriceRatio: +(r.reduce((s, x) => s + x.ratio, 0) / n).toFixed(3), successRate: +(r.filter((x) => x.ok).length / n).toFixed(3), subcontractedShare: +(r.filter((x) => x.sub).length / n).toFixed(3) }];
+      }),
+    );
+    const founders = [...new Set(live.map((a) => a.founder))];
+    const dynasties = founders
+      .map((f) => {
+        const kin = live.filter((a) => a.founder === f);
+        const mean = (g: (x: Genome) => number) => +(kin.reduce((s, a) => s + g(a.genome), 0) / kin.length).toFixed(3);
+        return { founder: f.replace(".darwin.testnet", ""), share: +(kin.length / Math.max(1, live.length)).toFixed(3), own: false, meanMarkup: mean((g) => g.markup), meanSubcontract: mean((g) => g.subcontract) };
+      })
+      .sort((a, b) => b.share - a.share);
+    return {
+      population: live.length,
+      maxPop: this.cfg.maxPop,
+      upkeepPerTick: this.cfg.upkeep / SEED,
+      deathFloor: this.cfg.deathFloor,
+      auction: this.cfg.auction,
+      middlemanShare: +(recent.length ? recent.filter((s) => s.sub).length / recent.length : 0).toFixed(3),
+      byKind,
+      dynasties,
+      shocks: [...this.shocks.keys()],
+    };
+  }
+
+  mutationContext(a: AgentState, market: MutationContext["market"]): MutationContext {
+    const rec = this.market.agents.get(a.id)!;
+    const f = a.founder.replace(".darwin.testnet", "");
+    const g = a.genome;
+    const r3 = (x: number) => +x.toFixed(3);
+    return {
+      tick: this.tick,
+      parent: {
+        id: a.id.replace(".darwin.testnet", ""),
+        genome: { markup: r3(g.markup), spec: g.spec.map(r3), risk: r3(g.risk), subcontract: r3(g.subcontract), reserve: r3(g.reserve), forkAt: r3(g.forkAt) },
+        balance: r3(rec.balance / SEED),
+        generation: rec.generation,
+        age: this.tick - rec.bornTick,
+        reputation: rec.reputation,
+        wins: rec.wins,
+        losses: rec.losses,
+        earned: r3(a.earned / SEED),
+        subcontracted: a.subcontracted,
+        selfSolved: a.selfSolved,
+        byKind: Object.fromEntries(Object.entries(a.byKind).map(([k, v]) => [k, { ...v, earned: r3(v.earned / SEED) }])),
+      },
+      market: { ...market, dynasties: market.dynasties.filter((d, i) => i < 5 || d.founder === f).map((d) => ({ ...d, own: d.founder === f })) },
+    };
   }
 
   private async solverAnswer(a: AgentState, t: Task): Promise<string> {
@@ -434,6 +530,9 @@ export class Economy {
       rogueBlocked: this.rogueStats.blocked,
       rogueLeaked: this.rogueStats.leaked,
       rogueAllowedLegit: this.rogueStats.allowedLegit,
+      meanWealth: bals.length ? bals.reduce((a, b) => a + b, 0) / bals.length / SEED : 0,
+      taskSuccess: recent.length ? recent.filter((s) => s.ok).length / recent.length : 0,
+      mutations: { ...this.mutationStats },
       shocks: Object.fromEntries(this.shocks),
       /** Per founding dynasty: living parametric members and their wealth (the Muller plot's data). */
       lineages: Object.fromEntries(
@@ -444,6 +543,24 @@ export class Economy {
         }),
       ),
     };
+  }
+
+  /** Fate of forked children by how their genome was made (Gaussian vs Claude). Lifespans of the living are censored at now. */
+  lineageReport() {
+    const out: Record<string, { born: number; alive: number; meanLifespan: number; meanEarned: number; forkedRate: number }> = {};
+    for (const origin of ["gaussian", "llm"] as const) {
+      const kids = [...this.agents.values()].filter((a) => a.role === "parametric" && a.origin === origin);
+      const n = kids.length || 1;
+      const rec = (a: AgentState) => this.market.agents.get(a.id)!;
+      out[origin] = {
+        born: kids.length,
+        alive: kids.filter((a) => rec(a).alive).length,
+        meanLifespan: kids.reduce((s, a) => s + ((rec(a).diedTick ?? this.tick) - rec(a).bornTick), 0) / n,
+        meanEarned: kids.reduce((s, a) => s + a.earned, 0) / n / SEED,
+        forkedRate: kids.filter((a) => a.forks > 0).length / n,
+      };
+    }
+    return out;
   }
 
   /** The strategy worth copying: the living parametric agent with the most earned, and its dynasty's mean genome. */
@@ -479,7 +596,7 @@ export class Economy {
         return {
           id: a.id, role: a.role, balance: r.balance, reputation: r.reputation, alive: r.alive, parent: r.parent, generation: r.generation,
           founder: a.founder, born: r.bornTick, died: r.diedTick, spec: a.genome.spec.map((x) => +x.toFixed(3)), markup: +a.genome.markup.toFixed(3),
-          subcontract: +a.genome.subcontract.toFixed(3), risk: +a.genome.risk.toFixed(3), reserve: +a.genome.reserve.toFixed(3), forkAt: +a.genome.forkAt.toFixed(3), wins: r.wins, losses: r.losses, sub: a.subcontracted, self: a.selfSolved,
+          subcontract: +a.genome.subcontract.toFixed(3), risk: +a.genome.risk.toFixed(3), reserve: +a.genome.reserve.toFixed(3), forkAt: +a.genome.forkAt.toFixed(3), wins: r.wins, losses: r.losses, sub: a.subcontracted, self: a.selfSolved, origin: a.origin, ...(a.rationale ? { rationale: a.rationale } : {}),
         };
       }),
     };
