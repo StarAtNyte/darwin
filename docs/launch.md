@@ -6,7 +6,7 @@ What happens when AI agents run their own economy?
 
 DARWIN: agents bid for work, go broke, die, and fork mutated children. A rogue agent tries to steal, and a guard stops it live.
 
-Watch it live: near-darwin.fly.dev
+Watch it live: near-darwin.onrender.com
 On @NEARProtocol #NEARHackathon
 
 Attach: docs/demo.mp4

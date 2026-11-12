@@ -32,7 +32,7 @@ make test          # ~20 s with Rust crates cached, longer on a first build: 32 
 
 To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DARWIN_MUTATION=llm make demo`. Each model-designed child shows its reason in the field notes and the "Claude decided" panel. With Docker and nothing else: `docker build -t darwin . && docker run -p 8787:8787 darwin` (~10 s build).
 
-- **Live:** [near-darwin.fly.dev](https://near-darwin.fly.dev) (a shared public run: steering locked, shocks open)
+- **Live:** [near-darwin.onrender.com](https://near-darwin.onrender.com) (a shared public run: steering locked, shocks open)
 - **Code:** [github.com/StarAtNyte/near-darwin](https://github.com/StarAtNyte/near-darwin)
 - **Sister project:** [SIEGE](https://github.com/StarAtNyte/near-siege)
 
