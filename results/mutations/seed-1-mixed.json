@@ -1,0 +1,1529 @@
+{
+ "format": "darwin-mutations/1",
+ "model": "claude-haiku-5-5",
+ "seed": 1,
+ "mode": "mixed",
+ "ticks": 2000,
+ "entries": {
+  "31:a3:1nitclm": {
+   "genome": {
+    "markup": 0.426,
+    "spec": [
+     0.147,
+     0.027,
+     0.345,
+     0.481
+    ],
+    "risk": 0.143,
+    "subcontract": 0.594,
+    "reserve": 0.287,
+    "forkAt": 2.405
+   },
+   "rationale": "Parent's reason and classify work succeeds well and subcontracting earns reasonably; keeping genes near-identical preserves that proven strategy."
+  },
+  "63:a131:1e1m1ss": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is profitable with strong classify and reason specialization and high reputation, so keep genes near current values to preserve the winning profile."
+  },
+  "92:a131:1e1m1ss": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization yields the best success and earnings, so keep the genome nearly unchanged."
+  },
+  "119:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.53,
+     0.45
+    ],
+    "risk": 0.07,
+    "subcontract": 0.72,
+    "reserve": 0.03,
+    "forkAt": 2.1
+   },
+   "rationale": "Parent's classify and reason specialism wins most work with 0.8 success, so keep that focus and fork a bit earlier."
+  },
+  "145:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason work wins most and earns best; keep specialist spec and genes, nothing to move."
+  },
+  "182:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization yields most earnings with high success rates, so keep genome nearly unchanged."
+  },
+  "195:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.561,
+     0.419
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Classify and reason earn most with high success, so shift spec slightly toward classify while keeping the proven genome."
+  },
+  "227:a24:19shp71": {
+   "genome": {
+    "markup": 0.55,
+    "spec": [
+     0.5,
+     0.332,
+     0.095,
+     0.074
+    ],
+    "risk": 0.35,
+    "subcontract": 0.45,
+    "reserve": 0.05,
+    "forkAt": 2.2
+   },
+   "rationale": "Dynasty a3 dominates via high subcontracting and low markup, so the child moves toward lower markup and more reselling while keeping arith/extract specialty."
+  },
+  "229:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization earns most, and the dynasty holds 57% share, so keep the genome nearly unchanged."
+  },
+  "242:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.52,
+     0.46
+    ],
+    "risk": 0.08,
+    "subcontract": 0.68,
+    "reserve": 0.04,
+    "forkAt": 2.1
+   },
+   "rationale": "Parent's classify and reason specialism earns most with high success; keep genes near-identical and lower forkAt slightly to reproduce faster."
+  },
+  "256:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.56,
+     0.42
+    ],
+    "risk": 0.07,
+    "subcontract": 0.68,
+    "reserve": 0.04,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's classify and reason specialism earns most; keep its genes near-identical with slight forkAt drop, since dynasty a3 holds 62% share."
+  },
+  "285:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is a specialist in classify and reason with high reputation, and its dynasty dominates; keeping its genome preserves that proven winning strategy."
+  },
+  "291:a708:wyl81n": {
+   "genome": {
+    "markup": 0.539,
+    "spec": [
+     0.478,
+     0.364,
+     0.103,
+     0.055
+    ],
+    "risk": 0.393,
+    "subcontract": 0.522,
+    "reserve": 0.006,
+    "forkAt": 2.224
+   },
+   "rationale": "Parent survives with 29 wins and rising reputation; keeping genes stable, since arith and extract specialization is working and classify/reason are unclaimed."
+  },
+  "310:a157:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.519,
+     0.461
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason wins are its earnings core and its dynasty holds 59% share, so keep the genome nearly unchanged."
+  },
+  "328:a708:wyl81n": {
+   "genome": {
+    "markup": 0.52,
+    "spec": [
+     0.6,
+     0.3,
+     0.05,
+     0.05
+    ],
+    "risk": 0.3,
+    "subcontract": 0.45,
+    "reserve": 0.05,
+    "forkAt": 2
+   },
+   "rationale": "Parent wins mostly arith and extract with high success there; dominant rival a3 subcontracts heavily, so specialize in arith/extract and keep a moderate subcont"
+  },
+  "392:a708:wyl81n": {
+   "genome": {
+    "markup": 0.539,
+    "spec": [
+     0.478,
+     0.364,
+     0.103,
+     0.055
+    ],
+    "risk": 0.393,
+    "subcontract": 0.522,
+    "reserve": 0.006,
+    "forkAt": 2.224
+   },
+   "rationale": "Parent a708 is dominant in arith and extract with strong reputation; the reason and classify kinds are weak, so the child keeps the proven genome and only nudge"
+  },
+  "404:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent balance 2.3 sits below forkAt and it has strong classify/reason specialization with good success; keep genes nearly unchanged, slightly lowering forkAt t"
+  },
+  "414:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.6,
+     0.38
+    ],
+    "risk": 0.07,
+    "subcontract": 0.7,
+    "reserve": 0.04,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's classify and reason wins are strong and its balance is near fork level, so keep specialty and subcontract genes and lower forkAt slightly."
+  },
+  "447:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.353,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is profitable and reputation-strong; its specialists hold classify and reason, so keep genes nearly unchanged."
+  },
+  "455:a1092:wyl81n": {
+   "genome": {
+    "markup": 0.52,
+    "spec": [
+     0.478,
+     0.364,
+     0.103,
+     0.055
+    ],
+    "risk": 0.393,
+    "subcontract": 0.522,
+    "reserve": 0.006,
+    "forkAt": 2.224
+   },
+   "rationale": "Parent is solvent with strong arith and extract success; classify and reason earn nothing, so reserve and forkAt stay near current values with a small markup tr"
+  },
+  "460:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.33,
+    "spec": [
+     0.01,
+     0.01,
+     0.589,
+     0.391
+    ],
+    "risk": 0.07,
+    "subcontract": 0.72,
+    "reserve": 0.03,
+    "forkAt": 2.1
+   },
+   "rationale": "Parent's classify and reason wins drive earnings; keep specialty and subcontracting, nudge toward classify, lower forkAt to reproduce sooner."
+  },
+  "473:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.49,
+     0.49
+    ],
+    "risk": 0.07,
+    "subcontract": 0.72,
+    "reserve": 0.03,
+    "forkAt": 2.1
+   },
+   "rationale": "Parent's classify and reason specialism earns most; keep that focus and fork slightly earlier while balance is low."
+  },
+  "482:a1092:wyl81n": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.418,
+     0.364,
+     0.173,
+     0.045
+    ],
+    "risk": 0.35,
+    "subcontract": 0.6,
+    "reserve": 0.05,
+    "forkAt": 2
+   },
+   "rationale": "Classify and reason go unclaimed by us and show low price ratios; a dominant rival dynasty resells heavily, so we shift toward classify while keeping subcontrac"
+  },
+  "484:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.35,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.088,
+    "subcontract": 0.7,
+    "reserve": 0.04,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's classify and reason specialization wins most work with high subcontract yield, so keep genes near-identical and lower forkAt to reproduce sooner."
+  },
+  "493:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent holds dominant dynasty share with a stable specialty in classify and reason; keeping genome nearly unchanged preserves that edge."
+  },
+  "496:a1092:wyl81n": {
+   "genome": {
+    "markup": 0.52,
+    "spec": [
+     0.42,
+     0.34,
+     0.17,
+     0.07
+    ],
+    "risk": 0.35,
+    "subcontract": 0.55,
+    "reserve": 0.02,
+    "forkAt": 2
+   },
+   "rationale": "Parent has near-zero classify/reason wins and a thin balance; shift weight toward classify and reason, moderate forkAt, and keep subcontracting near the dominan"
+  },
+  "503:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.51,
+     0.47
+    ],
+    "risk": 0.08,
+    "subcontract": 0.7,
+    "reserve": 0.04,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's classify and reason specialization earns well with high reputation; keep genes near-identical and fork slightly earlier to grow share."
+  },
+  "508:a1092:wyl81n": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.418,
+     0.364,
+     0.173,
+     0.045
+    ],
+    "risk": 0.343,
+    "subcontract": 0.522,
+    "reserve": 0.006,
+    "forkAt": 2.224
+   },
+   "rationale": "Parent is fragile at 2.2 credits with near-zero reserve; keep fork threshold, lower markup to win auctions, shift spec toward classify and reason where prices a"
+  },
+  "517:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.511,
+     0.469
+    ],
+    "risk": 0.07,
+    "subcontract": 0.72,
+    "reserve": 0.03,
+    "forkAt": 2.1
+   },
+   "rationale": "Parent's classify and reason specialty earns steadily, and its subcontracting share is strong, so keep genes near current values with a slightly lower fork thre"
+  },
+  "522:a1092:wyl81n": {
+   "genome": {
+    "markup": 0.52,
+    "spec": [
+     0.45,
+     0.37,
+     0.13,
+     0.05
+    ],
+    "risk": 0.35,
+    "subcontract": 0.52,
+    "reserve": 0.05,
+    "forkAt": 2
+   },
+   "rationale": "Parent's arith and extract tasks succeed and earn steadily, while classify and reason are unclaimed; keep specialty and modestly lower forkAt for growth."
+  },
+  "559:a604:13kdbh3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.49,
+     0.49
+    ],
+    "risk": 0.07,
+    "subcontract": 0.7,
+    "reserve": 0.04,
+    "forkAt": 2
+   },
+   "rationale": "Parent balance is low at 2.33 and reason/classify are its earners; lowering forkAt and keeping specialization should sustain growth."
+  },
+  "576:a1471:r5v5ai": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.318,
+     0.294,
+     0.25,
+     0.138
+    ],
+    "risk": 0.3,
+    "subcontract": 0.45,
+    "reserve": 0.1,
+    "forkAt": 2
+   },
+   "rationale": "Classify and reason tasks show low price ratios and zero wins for us, so the child shifts skill toward them and keeps reserve above the death floor."
+  },
+  "611:a1471:r5v5ai": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.35,
+     0.33,
+     0.25,
+     0.07
+    ],
+    "risk": 0.3,
+    "subcontract": 0.45,
+    "reserve": 0.05,
+    "forkAt": 2
+   },
+   "rationale": "Parent wins only arith and extract, while classify and reason tasks are plentiful and unclaimed, so the child diversifies toward them and lowers markup to win m"
+  },
+  "643:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent has strong reason-classify specialization and a dominant dynasty share; keep genes near-identical to preserve survival."
+  },
+  "664:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.539,
+     0.441
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason earnings lead and population is below max; keep genes near parent with slight classify tilt."
+  },
+  "674:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's specialization in classify and reason yields best earnings, so the child keeps its genome nearly unchanged."
+  },
+  "713:a1471:r5v5ai": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.418,
+     0.364,
+     0.173,
+     0.045
+    ],
+    "risk": 0.3,
+    "subcontract": 0.55,
+    "reserve": 0.02,
+    "forkAt": 2
+   },
+   "rationale": "Parent earns mostly arith and extract, but rival dynasty a3 holds 64% share with higher subcontracting; keep specialization, lower markup slightly, and fork ear"
+  },
+  "735:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify/reason specialization is earning steadily with high reputation, so keep genes unchanged to preserve the winning profile and survival."
+  },
+  "748:a1471:r5v5ai": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.35,
+     0.3,
+     0.18,
+     0.17
+    ],
+    "risk": 0.3,
+    "subcontract": 0.45,
+    "reserve": 0.05,
+    "forkAt": 2
+   },
+   "rationale": "Parent won no reason tasks and reason has the highest subcontract share, so shifting spec toward reason and classify."
+  },
+  "770:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent earns mostly on classify and reason with high reputation, and the dynasty is stable, so keep the genome nearly unchanged."
+  },
+  "785:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization earns most, with subcontracting, so the child keeps this proven genome unchanged."
+  },
+  "798:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.499,
+     0.481
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is profitable on classify and reason with high reputation; keeping its proven genome with minimal spec drift."
+  },
+  "822:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent holds a classify/reason specialty with high win and success rates, so keeping its proven genome preserves earnings while avoiding risky changes."
+  },
+  "833:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization wins most earnings; rival dynasty runs higher markup, so keeping the proven genome with a small reserve lift for sur"
+  },
+  "860:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is alive and specialized in classify/reason with strong success; keeping genes stable to preserve its win rate and balance."
+  },
+  "868:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.6,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent earns mostly from classify and reason with high reputation; keep specialty, trim subcontracting slightly to protect reputation."
+  },
+  "883:a1670:1a9nq7t": {
+   "genome": {
+    "markup": 0.46,
+    "spec": [
+     0.262,
+     0.562,
+     0.012,
+     0.164
+    ],
+    "risk": 0.357,
+    "subcontract": 0.6,
+    "reserve": 0.202,
+    "forkAt": 1.996
+   },
+   "rationale": "Parent earns mainly via subcontract spread and rival dynasty a3 holds majority share, so modestly raise subcontract while keeping specialization and fork thresh"
+  },
+  "901:a1670:1a9nq7t": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.2,
+     0.5,
+     0.2,
+     0.1
+    ],
+    "risk": 0.3,
+    "subcontract": 0.5,
+    "reserve": 0.2,
+    "forkAt": 1.8
+   },
+   "rationale": "Parent wins nothing in classify or reason yet, so shifting spec toward classify while keeping extract strength, given high success rates there."
+  },
+  "911:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization earns steadily with strong reputation; keeping genes near-identical preserves that proven edge while surviving upkee"
+  },
+  "912:a1670:1a9nq7t": {
+   "genome": {
+    "markup": 0.508,
+    "spec": [
+     0.2,
+     0.5,
+     0.2,
+     0.1
+    ],
+    "risk": 0.3,
+    "subcontract": 0.5,
+    "reserve": 0.2,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent wins only arith and extract, while classify and reason show high success rates and low price ratios, so diversify spec."
+  },
+  "920:a1670:1a9nq7t": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.322,
+     0.563,
+     0.012,
+     0.103
+    ],
+    "risk": 0.357,
+    "subcontract": 0.512,
+    "reserve": 0.202,
+    "forkAt": 1.996
+   },
+   "rationale": "Classify and reason go unwon by us and their tasks pay lowest ratios, so shift spec weight toward classify modestly while keeping extract strength and lowering "
+  },
+  "926:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent has balance near forkAt and specialist classify/reason wins; hold genes steady, avoiding risky moves on low balance."
+  },
+  "946:a1670:1a9nq7t": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.22,
+     0.48,
+     0.19,
+     0.11
+    ],
+    "risk": 0.35,
+    "subcontract": 0.45,
+    "reserve": 0.2,
+    "forkAt": 1.9
+   },
+   "rationale": "Classify and reason are unclaimed by specialists, so shifting spec weight toward classify diversifies while keeping the proven extract edge."
+  },
+  "955:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.05,
+     0.05,
+     0.45,
+     0.45
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason wins are strong and it is near its fork threshold, so keep genes stable with a slight arith/extract spread for diversity."
+  },
+  "964:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.38,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.06,
+    "forkAt": 2.1
+   },
+   "rationale": "Parent's classify and reason wins drive most earnings at 80%+ success, so keep specialization and lower forkAt to fork sooner."
+  },
+  "975:a1670:1a9nq7t": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.22,
+     0.5,
+     0.25,
+     0.03
+    ],
+    "risk": 0.4,
+    "subcontract": 0.5,
+    "reserve": 0.2,
+    "forkAt": 2
+   },
+   "rationale": "Parent wins mostly arith and extract with zero classify wins, while classify has high subcontract share, so I shift spec toward classify."
+  },
+  "999:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization earns most credits; keeping its proven genome preserves survival and share against rival dynasty a24."
+  },
+  "1002:a1670:1a9nq7t": {
+   "genome": {
+    "markup": 0.52,
+    "spec": [
+     0.3,
+     0.5,
+     0.1,
+     0.1
+    ],
+    "risk": 0.3,
+    "subcontract": 0.5,
+    "reserve": 0.2,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's extract and arith wins carry its earnings, while classify and reason see no wins, so I widen those slightly."
+  },
+  "1011:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialty earns steadily; arith and extract are weak, so keep the genome nearly unchanged for stable survival."
+  },
+  "1021:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialism earns most; arith and extract are unprofitable, so the genome stays nearly unchanged.}"
+  },
+  "1042:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization wins most credited work with high reputation, so keep genes nearly unchanged to avoid losing accuracy."
+  },
+  "1067:a1439:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify/reason specialism earns steadily and its subcontract resale holds dynasty share, so the genome stays unchanged."
+  },
+  "1096:a1876:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is a surviving specialist with steady wins; the child inherits its proven genome, unchanged, to keep the lineage stable."
+  },
+  "1105:a2427:1nh1gjn": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.3,
+     0.4,
+     0.2,
+     0.1
+    ],
+    "risk": 0.3,
+    "subcontract": 0.6,
+    "reserve": 0.2,
+    "forkAt": 2.2
+   },
+   "rationale": "Rival dynasty a3 dominates at 79% share with low markup, so undercut modestly and diversify toward classify and reason where prices are lower."
+  },
+  "1115:a1876:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent survives with balance near forkAt and strong classify/reason wins; keep genes nearly unchanged, slightly raising forkAt for safety."
+  },
+  "1138:a2424:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialism earns well with high reputation, so the child keeps the proven genome with minor tweaks."
+  },
+  "1152:a2580:j4mk4b": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.25,
+     0.45,
+     0.2,
+     0.1
+    ],
+    "risk": 0.2,
+    "subcontract": 0.5,
+    "reserve": 0.08,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent wins only arith and extract, and its markup is above rival a3's, so I lower markup and diversify spec toward classify."
+  },
+  "1154:a2424:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent keeps 0.85+ accuracy in classify and reason with healthy reputation; keep genes stable, small tweak to forkAt for survival."
+  },
+  "1199:a2424:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.05,
+     0.05,
+     0.48,
+     0.42
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is profitable in classify and reason with high subcontracting; population is small, so I keep its genome and only nudge arith and extract weight."
+  },
+  "1220:a2424:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.02,
+     0.02,
+     0.49,
+     0.47
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is profitable with high reputation and strong classify/reason accuracy; keep genome, minimal drift to specialize slightly more."
+  },
+  "1266:a2785:5bhikw": {
+   "genome": {
+    "markup": 0.47,
+    "spec": [
+     0.4,
+     0.5,
+     0.05,
+     0.05
+    ],
+    "risk": 0.12,
+    "subcontract": 0.45,
+    "reserve": 0.1,
+    "forkAt": 2.9
+   },
+   "rationale": "Parent earns mainly arith and extract with high subcontracting; classify and reason are unprofitable, so keep specializing while nudging subcontract up for midd"
+  },
+  "1304:a2785:5bhikw": {
+   "genome": {
+    "markup": 0.456,
+    "spec": [
+     0.355,
+     0.522,
+     0.053,
+     0.07
+    ],
+    "risk": 0.132,
+    "subcontract": 0.411,
+    "reserve": 0.106,
+    "forkAt": 2.8
+   },
+   "rationale": "Population is low at 18 of 50, so forking earlier at 2.8 credits and nudging spec toward classify and reason."
+  },
+  "1352:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization earns steadily and population is low, so keep the proven genome nearly unchanged."
+  },
+  "1364:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialization earns steadily and its population is thriving, so a near-copy keeps the proven strategy."
+  },
+  "1377:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason work has the best earnings and reputation; keeping its specialist genome avoids drift while market stays stable."
+  },
+  "1397:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.5,
+     0.48
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialism wins most; rival dynasty has higher markup and lower subcontract, so keep the proven genome nearly unchanged."
+  },
+  "1409:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialty earns most, with subcontracting high; keep genes near-identical to preserve the winning profile."
+  },
+  "1418:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent earns steadily from classify and reason wins with high subcontract share; small tweaks keep the proven specialist mix."
+  },
+  "1490:a3138:1pwirwi": {
+   "genome": {
+    "markup": 0.32,
+    "spec": [
+     0.45,
+     0.45,
+     0.05,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.55,
+    "reserve": 0.13,
+    "forkAt": 2.6
+   },
+   "rationale": "Arith and extract earn best with high success; classify and reason go unwon, so keep specialists and lower forkAt to reproduce sooner."
+  },
+  "1513:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent has high reputation and earns mostly from classify and reason; keeping its specialist profile with minimal changes is safest."
+  },
+  "1523:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialism earns most with high win rates, so keep its genome nearly unchanged to preserve survival and income."
+  },
+  "1550:a3338:9cng6r": {
+   "genome": {
+    "markup": 0.3,
+    "spec": [
+     0.4,
+     0.4,
+     0.1,
+     0.1
+    ],
+    "risk": 0.25,
+    "subcontract": 0.6,
+    "reserve": 0.13,
+    "forkAt": 2.6
+   },
+   "rationale": "Parent wins arith and extract well but classify and reason go unclaimed; a modest diversification toward those kinds is worth trying."
+  },
+  "1558:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent holds specialist classify/reason spec with strong win rate and balance near fork; keeping genes stable, with a slight safety margin on forkAt."
+  },
+  "1580:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent is the surviving specialist with strong classify/reason earnings; a conservative clone near its genome preserves the working strategy while keeping balan"
+  },
+  "1614:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent's classify and reason specialism earns most; keeping its proven genome, with forkAt unchanged, avoids drift from a working lineage."
+  },
+  "1624:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent has high reputation and a mature specialist profile in classify and reason; keeping its genome avoids churn while the population is still below maxPop."
+  },
+  "1647:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.04,
+    "forkAt": 2.368
+   },
+   "rationale": "Parent survives with high reason/classify win rates and strong subcontract income; keeping genes near-stable, child mirrors parent to avoid drift."
+  },
+  "1661:a2739:16lrb2f": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.509,
+     0.471
+    ],
+    "risk": 0.088,
+    "subcontract": 0.696,
+    "reserve": 0.05,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's specialist classify/reason spec wins most work and survives; keep genes stable, nudging reserve and forkAt for safer growth."
+  },
+  "1699:a3469:t1ibq3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.539,
+     0.441
+    ],
+    "risk": 0.093,
+    "subcontract": 0.717,
+    "reserve": 0.124,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent dominates its dynasty share with reason and classify wins; keep genes stable, lower forkAt to reproduce sooner."
+  },
+  "1730:a3469:t1ibq3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.539,
+     0.441
+    ],
+    "risk": 0.093,
+    "subcontract": 0.717,
+    "reserve": 0.124,
+    "forkAt": 2.645
+   },
+   "rationale": "Parent holds 70% share with strong reason/classify earnings; mutating little keeps proven genome while survival is secure."
+  },
+  "1768:a2785:5bhikw": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.45,
+     0.5,
+     0.02,
+     0.03
+    ],
+    "risk": 0.12,
+    "subcontract": 0.45,
+    "reserve": 0.1,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent balance near 3 with thin reserves; rival a3 dominates at 71% share, so lower forkAt and keep arith/extract specialty.}"
+  },
+  "1854:a3897:jywqwp": {
+   "genome": {
+    "markup": 0.38,
+    "spec": [
+     0.3,
+     0.35,
+     0.25,
+     0.1
+    ],
+    "risk": 0.25,
+    "subcontract": 0.45,
+    "reserve": 0.1,
+    "forkAt": 2.4
+   },
+   "rationale": "Parent wins only arith and extract, while classify and reason show high success and subcontract demand, so the child shifts skill toward them."
+  },
+  "1887:a3897:jywqwp": {
+   "genome": {
+    "markup": 0.38,
+    "spec": [
+     0.3,
+     0.35,
+     0.25,
+     0.1
+    ],
+    "risk": 0.2,
+    "subcontract": 0.42,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify and reason show high subcontract share and zero wins for us, so shift spec weight toward them while keeping the resale strategy."
+  },
+  "1921:a3469:t1ibq3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.539,
+     0.441
+    ],
+    "risk": 0.093,
+    "subcontract": 0.717,
+    "reserve": 0.124,
+    "forkAt": 2.645
+   },
+   "rationale": "Parent is solvent with strong classify/reason earnings and high subcontract share; keep genome, avoid risky drift while balance is thin."
+  },
+  "1960:a3469:t1ibq3": {
+   "genome": {
+    "markup": 0.36,
+    "spec": [
+     0.01,
+     0.01,
+     0.54,
+     0.44
+    ],
+    "risk": 0.093,
+    "subcontract": 0.717,
+    "reserve": 0.124,
+    "forkAt": 2.645
+   },
+   "rationale": "Parent holds dominant dynasty share with strong classify and reason results; stable genes preserve that edge."
+  }
+ }
+}

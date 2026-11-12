@@ -1,0 +1,2329 @@
+{
+ "format": "darwin-mutations/1",
+ "model": "claude-haiku-5-5",
+ "seed": 3,
+ "mode": "mixed",
+ "ticks": 2000,
+ "entries": {
+  "115:a127:16j69jn": {
+   "genome": {
+    "markup": 0.418,
+    "spec": [
+     0.543,
+     0.224,
+     0.11,
+     0.123
+    ],
+    "risk": 0.527,
+    "subcontract": 0.604,
+    "reserve": 0.354,
+    "forkAt": 2.961
+   },
+   "rationale": "Parent has positive earnings and reputation; keeping genes near-stable preserves survival, with only a small forkAt reduction to reproduce sooner."
+  },
+  "139:a6:bxekjj": {
+   "genome": {
+    "markup": 0.55,
+    "spec": [
+     0.172,
+     0.333,
+     0.076,
+     0.419
+    ],
+    "risk": 0.386,
+    "subcontract": 0.45,
+    "reserve": 0.308,
+    "forkAt": 1.722
+   },
+   "rationale": "Rivals with low markup dominate share, and my parent's balance is near forkAt, so I lower markup modestly to win more bids."
+  },
+  "153:a296:mqs2lf": {
+   "genome": {
+    "markup": 0.52,
+    "spec": [
+     0.12,
+     0.62,
+     0.03,
+     0.23
+    ],
+    "risk": 0.25,
+    "subcontract": 0.42,
+    "reserve": 0.24,
+    "forkAt": 1.45
+   },
+   "rationale": "Parent's extract wins succeed fully while arith and classify lag, so I shift weight toward extract and cut markup to win more."
+  },
+  "198:a34:yja4nj": {
+   "genome": {
+    "markup": 0.7,
+    "spec": [
+     0.404,
+     0.223,
+     0.035,
+     0.337
+    ],
+    "risk": 0.119,
+    "subcontract": 0.299,
+    "reserve": 0.184,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent balance 2.75 is above forkAt, but rivals' lower markups dominate share, so trim markup and fork earlier to grow population."
+  },
+  "213:a355:1w1whm7": {
+   "genome": {
+    "markup": 0.496,
+    "spec": [
+     0.01,
+     0.715,
+     0.01,
+     0.265
+    ],
+    "risk": 0.373,
+    "subcontract": 0.392,
+    "reserve": 0.165,
+    "forkAt": 1.5
+   },
+   "rationale": "Parent holds balance 1.43 near forkAt 1.5 with a sound extract specialty; keep genes stable to avoid losing accuracy."
+  },
+  "218:a355:1w1whm7": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.01,
+     0.715,
+     0.01,
+     0.265
+    ],
+    "risk": 0.25,
+    "subcontract": 0.35,
+    "reserve": 0.165,
+    "forkAt": 1.5
+   },
+   "rationale": "Parent earns mostly from extract and reason wins with high upkeep pressure; slightly lower markup and risk should lift win rate while keeping specialist weights"
+  },
+  "239:a428:yemd56": {
+   "genome": {
+    "markup": 0.55,
+    "spec": [
+     0.01,
+     0.717,
+     0.01,
+     0.263
+    ],
+    "risk": 0.25,
+    "subcontract": 0.42,
+    "reserve": 0.25,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent's extract specialization earned best, with reasoning weaker; keep spec near parent, slight markup and reserve tweaks for survival."
+  },
+  "291:a625:gz414g": {
+   "genome": {
+    "markup": 0.52,
+    "spec": [
+     0.081,
+     0.643,
+     0.249,
+     0.027
+    ],
+    "risk": 0.193,
+    "subcontract": 0.451,
+    "reserve": 0.051,
+    "forkAt": 1.962
+   },
+   "rationale": "Parent a625 has strong extract success and balance near forkAt; keep genes mostly stable, slight fork-threshold tweak for survival."
+  },
+  "312:a687:1bmmkvx": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent survives with thin balance; keep genes near proven extract specialism and add slight reserve to protect against death floor."
+  },
+  "332:a769:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent dominates by share 0.69 with strong extract success; keeping genes near-identical preserves the winning profile."
+  },
+  "341:a426:1w43i13": {
+   "genome": {
+    "markup": 0.7,
+    "spec": [
+     0.404,
+     0.223,
+     0.035,
+     0.337
+    ],
+    "risk": 0.119,
+    "subcontract": 0.299,
+    "reserve": 0.184,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent balance is near forkAt and its arith specialty earns best; keep genes stable, lower forkAt slightly to reproduce sooner."
+  },
+  "354:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent balance is low at 1.99 and near forkAt, and its extract-specialist genes earn well with 92% success, so keep them and avoid risky moves."
+  },
+  "359:a368:1701rms": {
+   "genome": {
+    "markup": 0.616,
+    "spec": [
+     0.043,
+     0.703,
+     0.01,
+     0.245
+    ],
+    "risk": 0.169,
+    "subcontract": 0.541,
+    "reserve": 0.146,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent balance near fork threshold with strong reason and extract results; keep genes nearly unchanged to preserve survival and earnings."
+  },
+  "378:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.844,
+     0.105,
+     0.038
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent excels at extract (95% success, 49 of 50 ok) while reason and arith lag, so shift spec toward extract."
+  },
+  "385:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.46,
+    "spec": [
+     0.05,
+     0.75,
+     0.1,
+     0.1
+    ],
+    "risk": 0.2,
+    "subcontract": 0.5,
+    "reserve": 0.05,
+    "forkAt": 2
+   },
+   "rationale": "Extract is the parent's proven, high-success niche (95%), so keep extract specialization and modest markup while the balance is still low."
+  },
+  "399:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent holds a dominant 74% share with strong extract success, so the child keeps its near-identical genome, with balance near forkAt so no fork change."
+  },
+  "420:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent is profitable on extract with 96.6% success and dominant share 0.727, so keeping genes stable preserves the edge."
+  },
+  "426:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 1.5
+   },
+   "rationale": "Parent balance 2.06 sits near forkAt 2.07 and dominant dynasty a6 holds 73% share, so lowering forkAt to 1.5 lets the child spawn sooner while keeping the prove"
+  },
+  "449:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.844,
+     0.055,
+     0.088
+    ],
+    "risk": 0.2,
+    "subcontract": 0.5,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent's extract specialization earns most credits, so I push spec toward extract while keeping its balance and fork level."
+  },
+  "485:a835:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent dominates with 82% share and extract success 0.97; keep genes near-identical to preserve the winning profile."
+  },
+  "523:a1304:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.744,
+     0.105,
+     0.138
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Parent is a dominant extract specialist with 95% success and rising earnings, so the child keeps its genome nearly unchanged."
+  },
+  "534:a1304:8f3hgf": {
+   "genome": {
+    "markup": 0.474,
+    "spec": [
+     0.013,
+     0.844,
+     0.105,
+     0.038
+    ],
+    "risk": 0.246,
+    "subcontract": 0.525,
+    "reserve": 0.05,
+    "forkAt": 2.066
+   },
+   "rationale": "Extract is the parent's strongest kind with 0.947 success and most earnings, so I shift spec weight toward extract while keeping other genes stable."
+  },
+  "583:a1508:nya0tw": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.057,
+     0.869,
+     0.013,
+     0.061
+    ],
+    "risk": 0.166,
+    "subcontract": 0.459,
+    "reserve": 0.091,
+    "forkAt": 1.744
+   },
+   "rationale": "Parent earns well via extract specialism at 96.5% success; keep genome nearly unchanged, small markup nudge toward rivals."
+  },
+  "617:a1549:21r25l": {
+   "genome": {
+    "markup": 0.433,
+    "spec": [
+     0.129,
+     0.751,
+     0.011,
+     0.109
+    ],
+    "risk": 0.119,
+    "subcontract": 0.448,
+    "reserve": 0.101,
+    "forkAt": 1.701
+   },
+   "rationale": "Parent is profitable and reputable; dynasty a6 dominates with low markup, so keep genes nearly unchanged for survival."
+  },
+  "630:a1636:21r25l": {
+   "genome": {
+    "markup": 0.433,
+    "spec": [
+     0.129,
+     0.751,
+     0.011,
+     0.109
+    ],
+    "risk": 0.119,
+    "subcontract": 0.448,
+    "reserve": 0.101,
+    "forkAt": 1.701
+   },
+   "rationale": "Parent solves extract tasks at 97.5% success and earns most there; keep specialist genes, nudging forkAt lower to reproduce sooner."
+  },
+  "645:a9:xnhi82": {
+   "genome": {
+    "markup": 0.6,
+    "spec": [
+     0.275,
+     0.129,
+     0.572,
+     0.024
+    ],
+    "risk": 0.409,
+    "subcontract": 0.253,
+    "reserve": 0.17,
+    "forkAt": 2.5
+   },
+   "rationale": "Dynasty a6 dominates with 80% share and high subcontracting; classify is our strongest earner, so I shift toward classify and lower forkAt to reproduce faster."
+  },
+  "654:a1651:21r25l": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.129,
+     0.751,
+     0.011,
+     0.109
+    ],
+    "risk": 0.119,
+    "subcontract": 0.448,
+    "reserve": 0.101,
+    "forkAt": 1.701
+   },
+   "rationale": "Parent earns mostly from extract wins (17/20 correct) and its dynasty holds 76% share, so keep genes near-identical with minimal drift."
+  },
+  "679:a1670:r865jb": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.129,
+     0.751,
+     0.011,
+     0.109
+    ],
+    "risk": 0.119,
+    "subcontract": 0.448,
+    "reserve": 0.101,
+    "forkAt": 1.701
+   },
+   "rationale": "Parent's extract specialty earns most with 91% success; keep genome near-identical to preserve this proven edge."
+  },
+  "711:a1694:1aok1qo": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.037,
+     0.507,
+     0.223,
+     0.233
+    ],
+    "risk": 0.192,
+    "subcontract": 0.452,
+    "reserve": 0.1,
+    "forkAt": 2.5
+   },
+   "rationale": "Parent is near death floor with balance 1.232 and forkAt 1.3; raising forkAt and reserve protects survival while keeping the proven spec and subcontract strateg"
+  },
+  "721:a1734:1masjn0": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mainly from extract at 0.909 success with zero losses, so keep genome near-identical with minimal drift."
+  },
+  "728:a1734:1masjn0": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent's extract specialization earned most (2.235 of 2.68) with 29/29 success, so keep spec and markup nearly unchanged."
+  },
+  "750:a1697:lsqe2x": {
+   "genome": {
+    "markup": 0.6,
+    "spec": [
+     0.123,
+     0.033,
+     0.829,
+     0.015
+    ],
+    "risk": 0.3,
+    "subcontract": 0.093,
+    "reserve": 0.104,
+    "forkAt": 3.442
+   },
+   "rationale": "Parent's classify specialty earns most; dominant rival dynasty a6 has low markup, so I trim markup modestly while keeping the classify-heavy spec."
+  },
+  "759:a1734:1masjn0": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.45,
+    "reserve": 0,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent's extract specialization earns most; keep spec and markup, modestly raise forkAt to protect balance from upkeep."
+  },
+  "778:a1697:lsqe2x": {
+   "genome": {
+    "markup": 0.6,
+    "spec": [
+     0.123,
+     0.033,
+     0.829,
+     0.015
+    ],
+    "risk": 0.4,
+    "subcontract": 0.2,
+    "reserve": 0.104,
+    "forkAt": 3.442
+   },
+   "rationale": "Dominant rival a6 holds 81% share with low markup; parent's classify specialism earns best, so undercut slightly with moderate risk and subcontract."
+  },
+  "791:a1734:1masjn0": {
+   "genome": {
+    "markup": 0.42,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent's extract specialism wins most earnings and dynasty a6 holds 78% share, so keep genes near-identical and raise forkAt slightly for safety."
+  },
+  "807:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent has 1.544 balance near forkAt and dynasty a6 dominates; keep specialist genes, nudge reserve and forkAt for survival."
+  },
+  "817:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Dynasty a6 holds 74% share; parent's extract specialty earns best success, so keep genes nearly unchanged for a stable child."
+  },
+  "831:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialty earns most and dynasty a6 dominates; keeping genome stable preserves its strong, tested strategy."
+  },
+  "835:a1835:1ddqnbt": {
+   "genome": {
+    "markup": 0.55,
+    "spec": [
+     0.1,
+     0.05,
+     0.8,
+     0.05
+    ],
+    "risk": 0.3,
+    "subcontract": 0.25,
+    "reserve": 0.1,
+    "forkAt": 3.2
+   },
+   "rationale": "Classify earns most with 0.83 specialty and 0.83 success; extract has highest success but no wins, so stay classify-focused with moderate markup."
+  },
+  "843:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is the market leader on extract at 94% success; keep genes near-identical to preserve the winning specialist profile."
+  },
+  "851:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialty earns most with high success; keep genes near-identical to preserve the proven, dominant-dynasty strategy."
+  },
+  "856:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.49,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mostly from extract and survives; keep genes, slightly raise reserve to protect balance near death floor."
+  },
+  "862:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most and dynasty a6 dominates, so the child keeps the proven genome nearly unchanged."
+  },
+  "868:a1927:kdrg1n": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.1,
+     0.05,
+     0.8,
+     0.05
+    ],
+    "risk": 0.25,
+    "subcontract": 0.3,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialist earns most with 85% success; a6 dynasty dominates at low markup, so undercut modestly and fork earlier."
+  },
+  "880:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialty earns most and rivals' dynasties dominate; keep genome nearly unchanged for stable survival."
+  },
+  "887:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.41,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.49,
+    "reserve": 0.05,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent is strong at extract with high reputation; keep genes near-identical and add slight reserve to protect solvency."
+  },
+  "891:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most, but reserve floor and forkAt raise survival odds; arith and classify success is weak."
+  },
+  "901:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mostly on extract at 96% success while balance sits near 1.5 credits, so keep the specialist genome but add slight reserve for safety."
+  },
+  "909:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is strong at extract, weak at arith; a small spec shift toward arith and reason, low-risk, survives with balance near forkAt."
+  },
+  "910:a1927:kdrg1n": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.25,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 3
+   },
+   "rationale": "Classify is the proven earner with 82% success; extract has high success but no one wins it, so keeping classify focus while lowering markup and raising subcont"
+  },
+  "952:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization wins most work with 93% success; keep genes nearly unchanged, slightly lower forkAt for faster reproduction in a crowded market."
+  },
+  "994:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization dominates earnings (20.3 of 27.9) with high success; keep genes near-identical, minor reserve tweak for survival."
+  },
+  "1001:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most and its high subcontract share works; copying it with minimal drift keeps the dynasty's lead."
+  },
+  "1009:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialty earns most and reason success is weak, so keep genome, minor tweaks to reserve and forkAt."
+  },
+  "1017:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most and its dynasty holds 62% share, so keep genes nearly unchanged.}"
+  },
+  "1021:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mostly from extract at 96.5% success with a 0.839 extract spec; keeping its genome avoids drift."
+  },
+  "1027:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialty earns most with 96.5% success; keep genes near-identical, adding slight reserve for solvency at low balance."
+  },
+  "1040:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mostly from extract at 96.5% success, and the market is dominated by its own dynasty, so keep genes nearly unchanged."
+  },
+  "1058:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent dominates extract with 96% success and reputation 1875, so keep genes stable and avoid risky drift from the proven extract specialist."
+  },
+  "1086:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins most work at 0.958 success; keep genes stable and avoid moves that could dilute accuracy."
+  },
+  "1107:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.4,
+    "reserve": 0.1,
+    "forkAt": 2.8
+   },
+   "rationale": "Classify earns most with 93% success, so keep classify specialization and lower forkAt to reproduce faster."
+  },
+  "1124:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most and succeeds 92%; keep genes stable, add slight reserve against low balance."
+  },
+  "1141:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Parent's classify specialty earns most (16.4 of 19.9) with 92% success, so keep spec and lower forkAt to reproduce sooner."
+  },
+  "1149:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.12,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialist earns most with 0.926 success; keep spec and markup, lower forkAt to reproduce sooner while balance is modest at 3.2."
+  },
+  "1151:a1757:1jqnjki": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent's extract specialization earns most and dynasty a9 dominates with similar traits, so keep genes near parent with a slight reserve buffer."
+  },
+  "1167:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialism earns most with 92% success, so keep spec and markup; lower forkAt to grow population faster."
+  },
+  "1187:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialism earns most (23 of 27.7 credits, 93% success), so keep spec and markup; lower forkAt to reproduce sooner."
+  },
+  "1196:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is extract-specialized and profitable; classify has highest success and low competition, so nudge spec toward classify modestly."
+  },
+  "1202:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is a stable extract specialist with high win rate; keep genes near current values, only small tweaks, since a9 dynasty dominates share."
+  },
+  "1211:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.3,
+    "reserve": 0.1,
+    "forkAt": 3
+   },
+   "rationale": "Classify specialism earns most with 94% success; rivals a6 and a9 pressure markup, so trim it slightly and keep classify focus."
+  },
+  "1220:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialist earns most with 0.963 success; keep specialization, lower forkAt slightly to spawn faster while balance is 3.0."
+  },
+  "1252:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.3,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialist earns most with 0.959 success; keep spec, lower forkAt to reproduce faster while balance is thin."
+  },
+  "1255:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most with 94% success; keep genome near-identical to preserve the proven strategy."
+  },
+  "1273:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.4,
+    "reserve": 0.15,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialism earns most; rivals undercut on markup, so trim markup slightly and keep forkAt low enough to reproduce."
+  },
+  "1284:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is a strong extract specialist with high reputation and wins, so the child copies its genome with minimal drift."
+  },
+  "1298:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent a2400 earns mostly from extract at 0.966 success; keep its specialist genome nearly unchanged for the child."
+  },
+  "1310:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.4,
+    "reserve": 0.1,
+    "forkAt": 2.8
+   },
+   "rationale": "Classify is the parent's proven edge with 0.92 success, so keep specialization; trim markup for win rate and lower forkAt to reproduce faster."
+  },
+  "1319:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most credits with 94.8% success; keep genes nearly unchanged to preserve the proven strategy."
+  },
+  "1323:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.4,
+    "reserve": 0.1,
+    "forkAt": 2.8
+   },
+   "rationale": "Classify is the profitable niche with high success, while arith and reason fail often; keep specialization and modestly lower markup to win more bids."
+  },
+  "1335:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent a2400 earns mostly from extract work at high success; keep its specialist genome nearly unchanged for survival."
+  },
+  "1343:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most credits with high success; keep genes near-identical, reducing risk slightly."
+  },
+  "1371:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.49,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mainly via extract specialization at 92% success; dynasty a9 dominates, so keep genes stable and reinforce extract focus."
+  },
+  "1378:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.5
+   },
+   "rationale": "Classify specialism earns most with 88% success; parent's balance is thin, so forking threshold drops modestly to 2.5."
+  },
+  "1383:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns nearly all income with 92% success, so keep its genome nearly unchanged."
+  },
+  "1398:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most, with high success; keeping genes stable preserves that edge while balance is thin.】}"
+  },
+  "1399:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.2,
+     0.7,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify earns most and succeeds 90%, but extract's 94% success and low competition suggest some diversification; lower forkAt aids growth."
+  },
+  "1412:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns nearly all income with high success; keep genome, avoiding fork-threshold cuts while balance is low."
+  },
+  "1432:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization wins 422 tasks with 97% success, so the child keeps its genome nearly unchanged."
+  },
+  "1438:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.061,
+     0.789,
+     0.063,
+     0.087
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mostly from extract at 0.968 success; keep extract specialty and cut reason-skill weight modestly, given the thin balance of 1.53 credits."
+  },
+  "1439:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.08,
+     0.05,
+     0.82,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.5
+   },
+   "rationale": "Classify is our earning engine at 0.90 success, while population has room to grow below max, so fork earlier."
+  },
+  "1449:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism earns most and rival dynasty shares are close, so keep the proven genome unchanged."
+  },
+  "1451:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.5
+   },
+   "rationale": "Classify specialty earns most (50 of 58.8); keep spec and markup, lower forkAt to compound balance faster."
+  },
+  "1466:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is a strong extract specialist earning steadily with high reputation; keep genes nearly unchanged to preserve its proven strategy."
+  },
+  "1472:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.25,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 3
+   },
+   "rationale": "Parent's classify specialty earns most and classify success is high; keeping genes stable preserves that edge while survival is fine."
+  },
+  "1478:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins most work (522 self-solved, 478 ok), so keep its genome nearly unchanged to preserve the earnings engine."
+  },
+  "1484:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism earns most with 97% success; rival dynasty a9 holds 53% share, so keep genes stable and avoid drift."
+  },
+  "1489:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism and subcontract resale earn most; the market rewards keeping this proven mix largely unchanged."
+  },
+  "1496:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.4,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialist earns most with 0.909 success; rival a6 resells heavily, so modest subcontract rise and lower forkAt to compound."
+  },
+  "1512:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.4,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialism earns most, and a lower forkAt lets the child reproduce sooner while balance is low."
+  },
+  "1521:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization dominates earnings with high success, so the child keeps its genome nearly unchanged."
+  },
+  "1528:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is a stable extract specialist with 0.966 success and top share; mirror its genome with minimal drift."
+  },
+  "1535:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.05,
+     0.78,
+     0.05,
+     0.12
+    ],
+    "risk": 0.1,
+    "subcontract": 0.5,
+    "reserve": 0.05,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent's extract specialty earns most with 97% success; keep spec near parent, slight arith and reason hedge, fork threshold raised modestly for survival."
+  },
+  "1546:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.15,
+     0.62,
+     0.08,
+     0.15
+    ],
+    "risk": 0.1,
+    "subcontract": 0.45,
+    "reserve": 0.05,
+    "forkAt": 1.6
+   },
+   "rationale": "Parent's extract specialty earns most with 0.98 success; arith and reason lag, so keep extract-heavy weights while hedging slightly."
+  },
+  "1550:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.4,
+    "reserve": 0.1,
+    "forkAt": 2.4
+   },
+   "rationale": "Classify specialism earns most with 0.945 success; keep spec and markup, lower forkAt to reproduce sooner."
+  },
+  "1554:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent dominates extract with high success and earnings; keep genome nearly unchanged, slight markup rise to match rival dynasty."
+  },
+  "1560:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.3,
+    "reserve": 0.1,
+    "forkAt": 2.5
+   },
+   "rationale": "Parent's classify specialty earns most and its balance is thin, so keep spec and lower forkAt slightly to multiply while staying solvent."
+  },
+  "1588:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins most earnings with 97% success, so the child keeps its proven genome unchanged."
+  },
+  "1597:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent earns mostly from extract specialization with high success; keep genes stable and avoid risky drift near the death floor."
+  },
+  "1609:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.45,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialism earns most; rival dynasty a6 resells heavily, so raise subcontract and lower forkAt to grow faster."
+  },
+  "1619:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.5,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is a strong extract specialist with 0.94 success; keep its genome nearly unchanged while its balance is low."
+  },
+  "1644:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is profitable with strong extract specialism and high win volume; keeping genes stable preserves that edge over rival dynasty a9."
+  },
+  "1652:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism earns most; arith and classify are weak but cheap, so the child keeps its proven genome unchanged."
+  },
+  "1653:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.1,
+    "forkAt": 2.6
+   },
+   "rationale": "Classify specialism earns most (69.9 of 81.7) with 0.918 success; keep specialist genes, lower forkAt to spawn sooner."
+  },
+  "1675:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most credits with high success; keep genes near-identical, only nudging reason spec for diversity."
+  },
+  "1683:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most and success is high, so keep the genome nearly unchanged."
+  },
+  "1684:a2052:nxavr8": {
+   "genome": {
+    "markup": 0.5,
+    "spec": [
+     0.05,
+     0.05,
+     0.85,
+     0.05
+    ],
+    "risk": 0.2,
+    "subcontract": 0.35,
+    "reserve": 0.15,
+    "forkAt": 2.5
+   },
+   "rationale": "Classify specialism yields most earnings at 91% success; keep specialist genes, lower forkAt for faster reproduction while balance is thin."
+  },
+  "1693:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent dominates extract with strong success and earnings; mutating little preserves the winning specialist genome while market shares are split between two dyn"
+  },
+  "1723:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent dominates extract with strong earnings and reputation; keep genome nearly unchanged, slightly raising markup to match rival dynasty."
+  },
+  "1730:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent dominates extract with 93% success and strong earnings; a near-copy with minimal drift preserves the winning specialist strategy."
+  },
+  "1751:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most and wins reliably; keep genome near-identical, with modest reason-kind hedge.](Note)"
+  },
+  "1761:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins most work at 94.9% success, so keep the proven genome nearly unchanged."
+  },
+  "1790:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.05,
+     0.29,
+     0.64,
+     0.02
+    ],
+    "risk": 0.3,
+    "subcontract": 0.3,
+    "reserve": 0.12,
+    "forkAt": 2.3
+   },
+   "rationale": "Extract shows the highest success rate (0.948) and a large subcontract share, so the child diversifies toward extract while keeping classify."
+  },
+  "1799:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins most earnings with high success; keeping genome stable preserves that edge."
+  },
+  "1817:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most credits with high success; keep genome nearly unchanged to preserve the proven strategy."
+  },
+  "1837:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism earns most with 0.95 success; keep genes stable, since small balance and mild rival pressure favor no drastic change."
+  },
+  "1844:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most credits with high success; keeping genes stable preserves its winning profile against the rival dynasty."
+  },
+  "1854:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.02,
+     0.02,
+     0.91,
+     0.05
+    ],
+    "risk": 0.3,
+    "subcontract": 0.3,
+    "reserve": 0.12,
+    "forkAt": 2.2
+   },
+   "rationale": "Classify specialism earns most (7.9 of 8.3) with 94% success, so keep the classify-heavy spec and modest markup while forking earlier."
+  },
+  "1855:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is a profitable extract specialist with high success (0.95 market-wide) and strong earnings, so keep the genome nearly unchanged."
+  },
+  "1864:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is a stable extract specialist with high success; keep genes near-identical, low risk, forkAt raised slightly to protect balance.)"
+  },
+  "1867:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.46,
+    "spec": [
+     0.02,
+     0.03,
+     0.92,
+     0.03
+    ],
+    "risk": 0.28,
+    "subcontract": 0.25,
+    "reserve": 0.12,
+    "forkAt": 2.5
+   },
+   "rationale": "Parent's classify specialist earns most at 95% success, so the child keeps that focus with small moves."
+  },
+  "1869:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent specializes in extract with high win and success rates; keeping genes near-identical preserves its proven earnings, while a child must still survive low "
+  },
+  "1882:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.46,
+    "spec": [
+     0.012,
+     0.012,
+     0.941,
+     0.035
+    ],
+    "risk": 0.3,
+    "subcontract": 0.3,
+    "reserve": 0.12,
+    "forkAt": 2.2
+   },
+   "rationale": "Classify specialism earns most and is 95% successful; keep the specialist genome, lower forkAt to reproduce sooner."
+  },
+  "1891:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialization earns most; keep genes stable since its balance is low and it survives well."
+  },
+  "1891:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.46,
+    "spec": [
+     0.01,
+     0.01,
+     0.96,
+     0.02
+    ],
+    "risk": 0.2,
+    "subcontract": 0.25,
+    "reserve": 0.12,
+    "forkAt": 2.3
+   },
+   "rationale": "Parent's classify specialism earned 12.2 of 13.5 credits at 95.6% success, so I deepen classify focus and lower risk."
+  },
+  "1907:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.46,
+    "spec": [
+     0.012,
+     0.012,
+     0.941,
+     0.035
+    ],
+    "risk": 0.3,
+    "subcontract": 0.3,
+    "reserve": 0.12,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's classify specialism earns nearly all income with 93% success, so keep spec and markup while trimming forkAt for faster reproduction."
+  },
+  "1925:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins most work at high reputation with a stable market; keeping genes nearly unchanged preserves that edge."
+  },
+  "1936:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.49,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is thriving on extract specialization with high success; keep genes near-identical to preserve the winning profile."
+  },
+  "1937:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.454,
+    "spec": [
+     0.012,
+     0.012,
+     0.941,
+     0.035
+    ],
+    "risk": 0.3,
+    "subcontract": 0.247,
+    "reserve": 0.12,
+    "forkAt": 2.503
+   },
+   "rationale": "Classify specialism earns nearly all income with 92% success; keep the proven genome and avoid risky drift."
+  },
+  "1942:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins 1282 tasks with 0.94 success; keep genome nearly unchanged, only small reserve buffer added."
+  },
+  "1952:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.45,
+    "spec": [
+     0.012,
+     0.012,
+     0.941,
+     0.035
+    ],
+    "risk": 0.3,
+    "subcontract": 0.35,
+    "reserve": 0.12,
+    "forkAt": 2.5
+   },
+   "rationale": "Classify specialism dominates earnings (16.7 of 18.4) with high success, so keep spec and markup near parent while raising subcontract to compete with rival dyn"
+  },
+  "1957:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent is strong at extract (92% success, most earnings) and rivals are similar, so keep its genome largely unchanged."
+  },
+  "1962:a3496:1kstagx": {
+   "genome": {
+    "markup": 0.44,
+    "spec": [
+     0.012,
+     0.012,
+     0.941,
+     0.035
+    ],
+    "risk": 0.3,
+    "subcontract": 0.3,
+    "reserve": 0.12,
+    "forkAt": 2.2
+   },
+   "rationale": "Parent's classify specialism earns nearly all income; keep spec, trim forkAt and markup for faster reproduction against rival dynasties."
+  },
+  "1966:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism earns most and survives well; keep genes nearly unchanged to preserve the proven strategy."
+  },
+  "1978:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.011,
+     0.839,
+     0.013,
+     0.137
+    ],
+    "risk": 0.095,
+    "subcontract": 0.492,
+    "reserve": 0.05,
+    "forkAt": 1.527
+   },
+   "rationale": "Parent's extract specialism wins most tasks with high success and earnings; keep genome, forking near its threshold to grow the lineage."
+  },
+  "1993:a2400:z0ppu5": {
+   "genome": {
+    "markup": 0.43,
+    "spec": [
+     0.03,
+     0.8,
+     0.02,
+     0.15
+    ],
+    "risk": 0.095,
+    "subcontract": 0.45,
+    "reserve": 0.05,
+    "forkAt": 1.5
+   },
+   "rationale": "Parent's extract specialty earns most with 92% success, so keep its spec and trim subcontracting slightly."
+  }
+ }
+}
