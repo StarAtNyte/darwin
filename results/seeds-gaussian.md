@@ -18,6 +18,17 @@ Seeds 1, 2, 3, 4, 5, 6, 7, 8, 9, 10; 2000 ticks each; default rules. Generated b
 | mean agent wealth, credits (run average) | 0.85 (0.59 to 1.92; CI 0.57 to 1.13) |
 | task success rate (run average) | 81% (79% to 83%; CI 80% to 82%) |
 
+Start, at tick 50 (the first full 50-tick window), for comparison. Each cell: mean (min to max).
+
+| metric | at the start |
+|---|---|
+| mean subcontract gene | 0.31 (0.25 to 0.36) |
+| share of tasks done by middlemen | 21% (7% to 27%) |
+| mean bid markup | 0.65 (0.60 to 0.68) |
+| specialisation | 0.42 (0.40 to 0.45) |
+| founding dynasties left | 36.0 (36.0 to 36.0) |
+| living parametric agents | 37.9 (36.0 to 40.0) |
+
 Per seed:
 
 | seed | meanSubcontract | middlemanShare | meanMarkup | specialisation | extinctions | maxGeneration | dynastiesLeft | rogueBlocked | rogueAttempts | rogueLeaked | population | meanWealth | taskSuccess |

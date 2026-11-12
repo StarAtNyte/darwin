@@ -53,7 +53,15 @@
       "forkedRate": 0
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.29500933166362253,
+     "middlemanShare": 0.2342857142857143,
+     "meanMarkup": 0.6378648157466191,
+     "specialisation": 0.4239781890539663,
+     "dynasties": 36,
+     "population": 37
+    }
    },
    {
     "seed": 2,
@@ -94,7 +102,15 @@
       "forkedRate": 0
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.31453448300636916,
+     "middlemanShare": 0.24,
+     "meanMarkup": 0.6736870651483846,
+     "specialisation": 0.4451131195049173,
+     "dynasties": 36,
+     "population": 38
+    }
    },
    {
     "seed": 3,
@@ -135,7 +151,15 @@
       "forkedRate": 0
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.29007496691685963,
+     "middlemanShare": 0.15428571428571428,
+     "meanMarkup": 0.6721104664009142,
+     "specialisation": 0.4109854319557689,
+     "dynasties": 36,
+     "population": 38
+    }
    },
    {
     "seed": 4,
@@ -176,7 +200,15 @@
       "forkedRate": 0
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.35156899556897797,
+     "middlemanShare": 0.26,
+     "meanMarkup": 0.6817258487580752,
+     "specialisation": 0.3985357525205042,
+     "dynasties": 36,
+     "population": 38
+    }
    },
    {
     "seed": 5,
@@ -217,7 +249,15 @@
       "forkedRate": 0
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.25190919997403405,
+     "middlemanShare": 0.06857142857142857,
+     "meanMarkup": 0.6397095209298036,
+     "specialisation": 0.41515590890873977,
+     "dynasties": 36,
+     "population": 36
+    }
    }
   ],
   "llm": [
@@ -260,7 +300,15 @@
       "forkedRate": 0.2796208530805687
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.2952886694101377,
+     "middlemanShare": 0.23714285714285716,
+     "meanMarkup": 0.6313960967836187,
+     "specialisation": 0.426457176139958,
+     "dynasties": 36,
+     "population": 39
+    }
    },
    {
     "seed": 2,
@@ -301,7 +349,15 @@
       "forkedRate": 0.26108374384236455
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.3086899114665821,
+     "middlemanShare": 0.24571428571428572,
+     "meanMarkup": 0.6735442526768404,
+     "specialisation": 0.436226116117986,
+     "dynasties": 36,
+     "population": 38
+    }
    },
    {
     "seed": 3,
@@ -342,7 +398,15 @@
       "forkedRate": 0.38943894389438943
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.28772818787395954,
+     "middlemanShare": 0.11428571428571428,
+     "meanMarkup": 0.6758155628332013,
+     "specialisation": 0.40405396561106477,
+     "dynasties": 36,
+     "population": 37
+    }
    },
    {
     "seed": 4,
@@ -383,7 +447,15 @@
       "forkedRate": 0.36082474226804123
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.33957865056611997,
+     "middlemanShare": 0.20857142857142857,
+     "meanMarkup": 0.6784127145829434,
+     "specialisation": 0.39599079877939924,
+     "dynasties": 36,
+     "population": 37
+    }
    },
    {
     "seed": 5,
@@ -424,7 +496,15 @@
       "forkedRate": 0.2827868852459016
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.25190919997403405,
+     "middlemanShare": 0.06857142857142857,
+     "meanMarkup": 0.6397095209298036,
+     "specialisation": 0.41515590890873977,
+     "dynasties": 36,
+     "population": 36
+    }
    }
   ],
   "mixed": [
@@ -467,7 +547,15 @@
       "forkedRate": 0.12631578947368421
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.3056840963419374,
+     "middlemanShare": 0.26857142857142857,
+     "meanMarkup": 0.6290334573368941,
+     "specialisation": 0.4289474125661153,
+     "dynasties": 36,
+     "population": 38
+    }
    },
    {
     "seed": 2,
@@ -508,7 +596,15 @@
       "forkedRate": 0.05263157894736842
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.30900941653013336,
+     "middlemanShare": 0.23142857142857143,
+     "meanMarkup": 0.6758869111059507,
+     "specialisation": 0.44205847169383644,
+     "dynasties": 36,
+     "population": 38
+    }
    },
    {
     "seed": 3,
@@ -549,7 +645,15 @@
       "forkedRate": 0.09655172413793103
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.2874152087310848,
+     "middlemanShare": 0.15714285714285714,
+     "meanMarkup": 0.677088025726861,
+     "specialisation": 0.40705701200015293,
+     "dynasties": 36,
+     "population": 37
+    }
    },
    {
     "seed": 4,
@@ -590,7 +694,15 @@
       "forkedRate": 0.13872832369942195
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.33558973870911685,
+     "middlemanShare": 0.20857142857142857,
+     "meanMarkup": 0.6692439589360238,
+     "specialisation": 0.39643840933783614,
+     "dynasties": 36,
+     "population": 38
+    }
    },
    {
     "seed": 5,
@@ -631,7 +743,15 @@
       "forkedRate": 0.10869565217391304
      }
     },
-    "llmCalls": 0
+    "llmCalls": 0,
+    "start": {
+     "meanSubcontract": 0.25190919997403405,
+     "middlemanShare": 0.06857142857142857,
+     "meanMarkup": 0.6397095209298036,
+     "specialisation": 0.41515590890873977,
+     "dynasties": 36,
+     "population": 36
+    }
    }
   ]
  }

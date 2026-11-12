@@ -36,13 +36,22 @@ export interface RunSummary {
   mutations: Record<string, number>;
   lineages: ReturnType<Economy["lineageReport"]>;
   llmCalls: number;
+  /** The same metrics at tick 50 (the first full middleman window), as the "start" baseline. */
+  start: { meanSubcontract: number; middlemanShare: number; meanMarkup: number; specialisation: number; dynasties: number; population: number };
 }
+
+export const START_TICK = 50;
 
 export async function runOne(seed: number, mode: MutationMode, ticks: number, mutator?: Mutator): Promise<RunSummary> {
   const e = new Economy({ seed, mutation: mode }, () => {}, mutator);
   let wealth = 0, ok = 0, settled = 0;
+  let start: RunSummary["start"] | undefined;
   for (let i = 0; i < ticks; i++) {
     await e.step();
+    if (e.tick === START_TICK) {
+      const s = e.lastMetrics;
+      start = { meanSubcontract: s.meanSubcontract, middlemanShare: s.middlemanShare, meanMarkup: s.meanMarkup, specialisation: s.specialisation, dynasties: s.dynasties, population: s.population };
+    }
     wealth += e.lastMetrics.meanWealth;
     // taskSuccess is over the last 50 ticks; sample it every 50 ticks for a whole-run average.
     if (e.tick % 50 === 0) (ok += e.lastMetrics.taskSuccess), settled++;
@@ -66,6 +75,7 @@ export async function runOne(seed: number, mode: MutationMode, ticks: number, mu
     mutations: { ...e.mutationStats },
     lineages: e.lineageReport(),
     llmCalls: e.mutator.calls,
+    start: start!,
   };
 }
 
@@ -102,6 +112,15 @@ export const METRICS: Metric[] = [
   { key: "taskSuccess", label: "task success rate (run average)", get: (r) => r.taskSuccess, fmt: pct },
 ];
 
+const START_METRICS: [string, (s: RunSummary["start"]) => number, (x: number) => string][] = [
+  ["mean subcontract gene", (s) => s.meanSubcontract, f2],
+  ["share of tasks done by middlemen", (s) => s.middlemanShare, pct],
+  ["mean bid markup", (s) => s.meanMarkup, f2],
+  ["specialisation", (s) => s.specialisation, f2],
+  ["founding dynasties left", (s) => s.dynasties, f1],
+  ["living parametric agents", (s) => s.population, f1],
+];
+
 const cell = (m: Metric, xs: number[]) => {
   const s = stats(xs);
   return `${m.fmt(s.mean)} (${m.fmt(s.min)} to ${m.fmt(s.max)}; CI ${m.fmt(s.ci95[0])} to ${m.fmt(s.ci95[1])})`;
@@ -127,6 +146,15 @@ async function seeds() {
     "| metric | mean (range; 95% CI) |",
     "|---|---|",
     ...METRICS.map((m) => `| ${m.label} | ${cell(m, runs.map(m.get))} |`),
+    "",
+    `Start, at tick ${START_TICK} (the first full 50-tick window), for comparison. Each cell: mean (min to max).`,
+    "",
+    "| metric | at the start |",
+    "|---|---|",
+    ...START_METRICS.map(([label, get, fmt]) => {
+      const s = stats(runs.map((r) => get(r.start)));
+      return `| ${label} | ${fmt(s.mean)} (${fmt(s.min)} to ${fmt(s.max)}) |`;
+    }),
     "",
     "Per seed:",
     "",
@@ -197,7 +225,11 @@ async function ablation() {
   }
   const calls = Object.fromEntries(modes.map((mode) => [mode, byMode[mode].reduce((s, r) => s + r.llmCalls, 0)]));
   const muts = Object.fromEntries(modes.map((mode) => [mode, byMode[mode].reduce((acc, r) => { for (const [k, v] of Object.entries(r.mutations)) acc[k] = (acc[k] ?? 0) + v; return acc; }, {} as Record<string, number>)]));
-  lines.push("", `Forks by source: ${modes.map((m) => `${m} ${JSON.stringify(muts[m])}`).join("; ")}. Live Claude calls this invocation: ${JSON.stringify(calls)}, spend $${spent.toFixed(4)}, ${((Date.now() - t0) / 1000).toFixed(0)} s.`, "");
+  // The table is the same whether the model's answers came live or from the cache, so the file only counts
+  // children by designer; this invocation's live calls and spend go to the console.
+  const designed = (m: Record<string, number>) => `${(m.llm ?? 0) + (m.cache ?? 0)} by the model (live or cached), ${m.gaussian ?? 0} Gaussian, ${m.fallback ?? 0} Gaussian fallbacks`;
+  lines.push("", `Children by designer: ${modes.map((m) => `${m}: ${designed(muts[m])}`).join("; ")}.`, "");
+  console.error(`Forks by source: ${modes.map((m) => `${m} ${JSON.stringify(muts[m])}`).join("; ")}. Live Claude calls this invocation: ${JSON.stringify(calls)}, spend $${spent.toFixed(4)}, ${((Date.now() - t0) / 1000).toFixed(0)} s.`);
   const md = lines.join("\n");
   fs.mkdirSync(RESULTS, { recursive: true });
   fs.writeFileSync(path.join(RESULTS, "ablation.json"), JSON.stringify({ ticks, seeds: list, modes, runs: byMode }, null, 1) + "\n");

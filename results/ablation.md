@@ -30,4 +30,4 @@ Fate of forked children by how their genes were made (all seeds pooled; lifespan
 | mixed | 677 | gaussian | 67 | 194 | 2.10 | 10% |
 | mixed | 657 | llm | 66 | 189 | 2.04 | 10% |
 
-Forks by source: gaussian {"llm":0,"cache":0,"gaussian":1248,"fallback":0}; llm {"llm":1252,"cache":0,"gaussian":0,"fallback":0}; mixed {"llm":657,"cache":0,"gaussian":677,"fallback":0}. Live Claude calls this invocation: {"gaussian":0,"llm":1252,"mixed":657}, spend $0.4885, 1008 s.
+Children by designer: gaussian: 0 by the model (live or cached), 1248 Gaussian, 0 Gaussian fallbacks; llm: 1252 by the model (live or cached), 0 Gaussian, 0 Gaussian fallbacks; mixed: 657 by the model (live or cached), 677 Gaussian, 0 Gaussian fallbacks.
