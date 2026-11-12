@@ -23,4 +23,4 @@ Attach: docs/demo.mp4
 ## Before publishing
 
 - `gh repo edit StarAtNyte/near-darwin --visibility public --accept-visibility-change-consequences`
-- History was scanned on 2026-11-04: no keys, no .env.
+- History was scanned on 2026-11-12 (all branches, `git log -p`): no keys, no .env, no agent keys.
