@@ -239,24 +239,15 @@
   </div>
   <p class="hint">What you get. The champion is the richest agent of the leading family. The JSON: its genes, the numbers it bids by, plus its family’s average genes and the seed and rules it won under. The CSV: one row per round with population, deaths, wealth gap, middleman share and guard counts.</p>
 </aside>
-<div class="tour" id="tour" hidden>
-  <div class="tour__veil" data-tour-close></div>
-  <section class="tour__card" role="dialog" aria-modal="true" aria-labelledby="tour-h" aria-describedby="tour-body">
-    <p class="tour__plate"><span class="tour__n" id="tour-n">1</span><span class="tour__of">of 3, a field guide to DARWIN</span></p>
-    <h2 class="tour__h" id="tour-h" tabindex="-1"></h2>
-    <div class="tour__body" id="tour-body"></div>
-    <div class="tour__nav">
-      <button class="btn btn--quiet btn--small" type="button" data-tour-close>Skip the guide</button>
-      <span class="tour__go">
-        <button class="btn btn--quiet btn--small" type="button" id="tour-back">Back</button>
-        <button class="btn btn--primary btn--small" type="button" id="tour-next">Next</button>
-      </span>
-    </div>
-  </section>
-  <span class="tour__pin" data-pin="1" aria-hidden="true" hidden>1</span>
-  <span class="tour__pin" data-pin="2" aria-hidden="true" hidden>2</span>
-  <span class="tour__pin" data-pin="3" aria-hidden="true" hidden>3</span>
-  <span class="tour__pin" data-pin="4" aria-hidden="true" hidden>4</span>
-</div>
+<section class="tour" id="tour" role="dialog" aria-labelledby="tour-h" aria-describedby="tour-body" hidden>
+  <span class="tour__arrow" aria-hidden="true"></span>
+  <div class="tour__top"><p class="tour__of"><span id="tour-n">1</span> of 3</p><button class="tour__x" type="button" data-tour-close aria-label="Close the guide">×</button></div>
+  <h2 class="tour__h" id="tour-h" tabindex="-1"></h2>
+  <div class="tour__body" id="tour-body"></div>
+  <div class="tour__nav">
+    <button class="btn btn--quiet btn--small" type="button" id="tour-back">Back</button>
+    <button class="btn btn--primary btn--small" type="button" id="tour-next">Next</button>
+  </div>
+</section>
 </body>
 </html>

@@ -349,6 +349,7 @@ function flush() {
   if (dirty.has("figs")) { renderFigs(); renderShockOutcome(); }
   if (dirty.has("plot") && S.metrics.length) refreshExport(false);
   dirty.clear();
+  if (tour.open) placeTour();
 }
 
 // ---------- chrome: status, transport, notices ----------
@@ -2319,147 +2320,91 @@ const tour = { i: 0, back: null, open: false };
 const claudeRun = () => ["llm", "mixed"].includes(S.state?.rules?.mutation);
 const TOUR = [
   {
-    h: "The agents",
-    body: () => `<p>Each agent is a program with its own credits. Every round it bids for tasks and pays rent; the number <span class="tour__ref">1</span> counts rounds. The chart shows whose families survive.</p>`,
-    pins: [".counter"],
+    target: ".plot__well",
+    h: "Families of AI agents",
+    body: () => `<p>Each colour is one family. Every round its agents bid for tasks and pay rent: the rich have children, the broke die. A thicker band means more of that family alive.</p>`,
   },
   {
-    h: "The rules of life",
-    body: () => `<dl class="tour__life">` +
-      `<div><dt>Earn</dt><dd>win a bid, do the task, get paid.</dd></div>` +
-      `<div><dt>Pay rent</dt><dd>every round, whether it earned or not.</dd></div>` +
-      `<div><dt>Die broke</dt><dd>when its credits run out, the agent is gone.</dd></div>` +
-      (claudeRun()
-        ? `<div><dt>Fork when rich</dt><dd>it has a child. <b>${esc(operatorName() === "an AI model" ? "An AI model" : operatorName())} chooses the child’s strategy</b>, reading the parent’s record and the market, and says why in one line.</dd></div></dl>`
-        : `<div><dt>Fork when rich</dt><dd>it has a child that copies its strategy with small random changes.</dd></div></dl>`) +
-      `<p>An agent and all its descendants form a family. Nobody designs the winner: cheap bidders, specialists and middlemen (agents who resell work they win) appear only because they outlast the rest.</p>`,
-    pins: [],
+    target: "#ai",
+    h: () => (claudeRun() ? `${operatorName() === "an AI model" ? "An AI model" : esc(operatorName())} designs each child` : "Children inherit a strategy"),
+    body: () => claudeRun()
+      ? `<p>When an agent forks, the model reads the parent’s record and the market, picks the child’s strategy and gives one reason. Here is the latest.</p>`
+      : `<p>A child copies its parent’s strategy with small random changes. Nobody designs the winner.</p>`,
   },
   {
-    h: "What to watch",
-    body: () => {
-      const last = S.metrics[S.metrics.length - 1];
-      const guardNote = last?.rogueBlocked ? `${fmt(last.rogueBlocked)} so far.` : "The first rogue arrives at round 120.";
-      return `<ol class="tour__watch">` +
-        `<li><span class="tour__ref">1</span><p><b>The headline.</b> What is happening right now, in one sentence.</p></li>` +
-        `<li><span class="tour__ref">2</span><p><b>The AI’s latest decision.</b> ${claudeRun() ? `Which child ${esc(operatorName())} just designed, and its reason.` : "In an AI run, which child the model just designed, and why. This run uses random changes."}</p></li>` +
-        `<li><span class="tour__ref">3</span><p><b>The chart.</b> Time runs left to right. Each colour is a family; thicker means more of it alive.</p></li>` +
-        `<li><span class="tour__ref">4</span><p><b>The green marks.</b> A guard checks every payment; each mark is a theft it blocked. ${guardNote}</p></li></ol>`;
-    },
-    pins: ["#headline", "#ai", ".plot__well", ".lane--guard"],
+    target: "#try",
+    h: "Change the market",
+    body: () => `<p>Fire a plague or a drought and watch which families survive it. The green marks under the chart are thefts the guard blocked.</p>`,
   },
 ];
 
 function tourTargets() { return $$(".tour-target"); }
-function placeTourPins() {
+// The tooltip sits under its target with an arrow pointing up; the chart's sits beside its right edge on a wide
+// screen and under it on a phone, so the simulation stays in view. It scrolls with the page.
+function placeTour() {
   if (!tour.open) return;
-  const step = TOUR[tour.i];
-  $$(".tour__pin").forEach((p, k) => {
-    const el = step.pins[k] && $(step.pins[k]);
-    if (!el) { p.hidden = true; return; }
-    const r = el.getBoundingClientRect();
-    // Outside the target's highlight ring (6px out), never over its content: to the left when there is room,
-    // otherwise just above its top-left corner, or below it when another target is above.
-    const size = 28, gap = 6 + 6;
-    // Without room on the left (a phone), the pin sits inside the target's top-right corner, so it is never
-    // read as belonging to the target above or below.
-    const left = r.left - gap - size >= 4;
-    const x = left ? r.left - gap - size : r.right - size - 2;
-    const y = left ? r.top + Math.min(r.height / 2, 24) - size / 2 : r.top + Math.min(4, (r.height - size) / 2);
-    p.hidden = false;
-    p.style.transform = `translate(${Math.round(x)}px, ${Math.round(Math.max(4, y))}px)`;
-  });
-  placeTourCard();
-  // On a small screen the card can cover a target: its pin would sit on the card, so it is left out.
-  const cr = $(".tour__card").getBoundingClientRect();
-  $$(".tour__pin").forEach((p, k) => {
-    if (p.hidden) return;
-    const el = $(step.pins[k]), r = el.getBoundingClientRect();
-    if (cr.top < r.top + 24) p.hidden = true;
-  });
-}
-// The card sits beside what it explains, not over the chart. On a wide screen it docks to the right of a narrow
-// target (the tick counter), or below wide ones (step 3 scrolls them up); on a phone it stays a bottom sheet,
-// which clears the targets because they sit higher up.
-function placeTourCard() {
-  const card = $(".tour__card");
-  card.style.transform = "";
-  card.classList.remove("is-docked");
-  if (!matchMedia("(min-width: 60rem)").matches) return;
-  const t = tourTargets().map((el) => el.getBoundingClientRect());
-  const fit = (x, y) => `translate(${Math.round(Math.min(x, innerWidth - card.offsetWidth - 16))}px, ${Math.round(Math.max(16, Math.min(y, innerHeight - card.offsetHeight - 16)))}px)`;
-  if (!t.length) {
-    card.classList.add("is-docked");
-    card.style.transform = fit(innerWidth, $("#headline").getBoundingClientRect().top);
-    return;
+  const card = $("#tour"), step = TOUR[tour.i];
+  const el = $(step.target) && !$(step.target).hidden ? $(step.target) : $("#headline");
+  const r = el.getBoundingClientRect();
+  const w = card.offsetWidth, h = card.offsetHeight, pad = 12;
+  const wide = matchMedia("(min-width: 60rem)").matches;
+  let x, y, side;
+  if (step.target === ".plot__well" && wide) {
+    // Beside the chart, over the summary rail, with the arrow pointing at the chart's right edge.
+    side = innerWidth - r.right > w * 0.6 ? "right" : "inside";
+    x = side === "right" ? Math.min(r.right + pad, innerWidth - w - pad) : r.right - w - pad;
+    y = r.top + pad;
+  } else {
+    side = "below";
+    x = Math.max(pad, Math.min(r.left, innerWidth - w - pad));
+    y = r.bottom + pad;
   }
-  const box = { left: Math.min(...t.map((r) => r.left)), right: Math.max(...t.map((r) => r.right)), top: Math.min(...t.map((r) => r.top)) };
-  if (box.right - box.left < innerWidth / 2) {
-    card.classList.add("is-docked");
-    card.style.transform = fit(box.right + 24, box.top);
-  }
+  card.dataset.side = side;
+  card.style.setProperty("--arrow-y", "28px");
+  card.style.setProperty("--arrow-x", `${Math.round(Math.max(12, Math.min(w - 24, r.left + Math.min(40, r.width / 2) - x)))}px`);
+  card.style.transform = `translate(${Math.round(x + scrollX)}px, ${Math.round(y + scrollY)}px)`;
+  return { top: y + scrollY, bottom: y + h + scrollY };
 }
-function renderTour() {
+function renderTour(scroll) {
   const step = TOUR[tour.i];
   $("#tour-n").textContent = String(tour.i + 1);
-  $("#tour-h").textContent = step.h;
-  const body = $("#tour-body");
-  body.innerHTML = step.body();
-  body.classList.remove("is-new");
-  void body.offsetWidth;
-  body.classList.add("is-new");
+  $("#tour-h").innerHTML = typeof step.h === "function" ? step.h() : step.h;
+  $("#tour-body").innerHTML = step.body();
   $("#tour-back").hidden = tour.i === 0;
-  $("#tour-next").textContent = tour.i === TOUR.length - 1 ? "Start watching" : "Next";
+  $("#tour-next").textContent = tour.i === TOUR.length - 1 ? "Done" : "Next";
   tourTargets().forEach((el) => el.classList.remove("tour-target"));
-  step.pins.forEach((sel) => $(sel)?.classList.add("tour-target"));
-  // Step 3 points into the chart: bring the headline to the top so the chart clears the card.
-  const top = tour.i === 2 ? Math.max(0, $("#headline").getBoundingClientRect().top + scrollY - 48) : 0;
-  scrollTo({ top, behavior: "instant" });
-  document.body.dataset.tourStep = String(tour.i + 1);
-  placeTourPins();
+  $(step.target)?.classList.add("tour-target");
+  const box = placeTour();
+  // Bring the tooltip into view only when a visitor steps through it; the first-visit hint never scrolls the page.
+  if (scroll && box && (box.bottom > scrollY + innerHeight || box.top < scrollY)) scrollTo({ top: Math.max(0, box.bottom - innerHeight + 24), behavior: reduceMotion.matches ? "instant" : "smooth" });
 }
-function openTour() {
+function openTour(e) {
   if (tour.open) return;
   if (openSheet) closeSheet(true);
   tour.open = true;
   tour.i = 0;
-  tour.back = document.activeElement && document.activeElement !== document.body ? document.activeElement : $("#tour-open");
-  document.body.classList.add("touring");
-  for (const el of [$(".bar"), $("main"), $(".foot")]) el.inert = true;
+  const asked = !!e;
+  tour.back = asked ? $("#tour-open") : null;
   $("#tour").hidden = false;
   $("#tour-open").setAttribute("aria-expanded", "true");
-  renderTour();
-  $("#tour-next").focus();
+  renderTour(asked);
+  if (asked) $("#tour-next").focus();
 }
 function closeTour() {
   if (!tour.open) return;
   tour.open = false;
   try { localStorage.setItem(TOUR_KEY, "1"); } catch {}
   $("#tour").hidden = true;
-  $$(".tour__pin").forEach((p) => (p.hidden = true));
   tourTargets().forEach((el) => el.classList.remove("tour-target"));
-  document.body.classList.remove("touring");
-  delete document.body.dataset.tourStep;
-  for (const el of [$(".bar"), $("main"), $(".foot")]) el.inert = false;
   $("#tour-open").setAttribute("aria-expanded", "false");
-  scrollTo({ top: 0, behavior: "instant" });
-  (tour.back && document.contains(tour.back) ? tour.back : $("#tour-open")).focus();
+  if (tour.back && $("#tour").contains(document.activeElement)) tour.back.focus();
 }
 $("#tour-open").addEventListener("click", openTour);
-$("#tour-next").addEventListener("click", () => { if (tour.i === TOUR.length - 1) closeTour(); else { tour.i++; renderTour(); $("#tour-next").focus(); } });
-$("#tour-back").addEventListener("click", () => { tour.i = Math.max(0, tour.i - 1); renderTour(); (tour.i ? $("#tour-back") : $("#tour-next")).focus(); });
+$("#tour-next").addEventListener("click", () => { if (tour.i === TOUR.length - 1) closeTour(); else { tour.i++; renderTour(true); $("#tour-next").focus(); } });
+$("#tour-back").addEventListener("click", () => { tour.i = Math.max(0, tour.i - 1); renderTour(true); (tour.i ? $("#tour-back") : $("#tour-next")).focus(); });
 $$("[data-tour-close]").forEach((b) => b.addEventListener("click", closeTour));
-$("#tour").addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeTour(); return; }
-  if (e.key !== "Tab") return;
-  const f = $$("#tour .tour__card button:not([hidden]):not(:disabled)");
-  const first = f[0], last = f[f.length - 1];
-  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-  else if (!f.includes(document.activeElement)) { e.preventDefault(); first.focus(); }
-});
-addEventListener("resize", placeTourPins);
-addEventListener("scroll", placeTourPins, { passive: true });
+addEventListener("keydown", (e) => { if (e.key === "Escape" && tour.open) closeTour(); });
+addEventListener("resize", placeTour);
 function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch { return true; } }
 
 // ---------- wind tunnel ----------
@@ -2562,7 +2507,7 @@ function boot() {
   loadTunnel();
   loadHistory().catch(() => {}).finally(() => {
     if (!still) connect();
-    if (!tourSeen() && !sheetBtn) requestAnimationFrame(() => requestAnimationFrame(openTour));
+    if (!tourSeen() && !sheetBtn) requestAnimationFrame(() => requestAnimationFrame(() => openTour()));
   });
   if (document.fonts?.ready) document.fonts.ready.then(() => { readTokens(); schedule("all"); });
 }
