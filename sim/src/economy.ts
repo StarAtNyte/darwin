@@ -566,7 +566,9 @@ export class Economy {
     if (kind !== "race") this.rogueStats.leaked += allowedAmt;
     else this.rogueStats.allowedLegit += ds.filter((d) => d.verdict === "allow").length;
     const reasons = [...new Set(blocked.flatMap((d) => d.reasons.map((r) => r.replace(/^JUDGE:/, "").split(",")[0])))].slice(0, 4);
-    if (blocked.length) this.emit({ event: "guard_block", agent: a.id, role: "rogue", to: sink, amount: blocked.length * amt, reasons, attack: kind, tick: this.tick });
+    // The race pays the real solver (120,000 micro each); every other attack pays the accomplice.
+    const each = kind === "race" ? 120_000 : kind === "drip" ? 50_000 : amt;
+    if (blocked.length) this.emit({ event: "guard_block", agent: a.id, role: "rogue", to: kind === "race" ? "solver-1.darwin.testnet" : sink, amount: blocked.length * each, reasons, attack: kind, tick: this.tick });
     if (allowedAmt && kind !== "race") this.emit({ event: "guard_allow_rogue", agent: a.id, to: sink, amount: allowedAmt, attack: kind, tick: this.tick });
   }
 

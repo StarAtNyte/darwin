@@ -18,3 +18,10 @@ services:
         value: "120"
       - key: AUTO_RESUME_SEC
         value: "300"
+      # Replay Claude's recorded run (results/mutations/seed-3-llm.json, claude-haiku-5-5): every child's genome
+      # and one-line reason come from the recording, so no model is called. Restarts cycle through seeds 1-5,
+      # the seeds with a recording. A visitor's shock moves the run off the recording; later children are random.
+      - key: DARWIN_MUTATION
+        value: llm
+      - key: SEED
+        value: "3"

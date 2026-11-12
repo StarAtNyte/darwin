@@ -264,3 +264,15 @@ test("cache: entries record their model; old files without one replay as Claude;
   assert.equal(r.source, "cache");
   assert.equal(r.model, "claude-haiku-5-5");
 });
+
+test("the public site's recorded run: seed 3 replays every child from Claude's recording, as the live server runs it", async () => {
+  const cachePath = path.join(path.dirname(new URL(import.meta.url).pathname), "../../results/mutations/seed-3-llm.json");
+  const recorded = Object.keys(JSON.parse(fs.readFileSync(cachePath, "utf8")).entries).length;
+  const eco = new Economy({ seed: 3 }, () => {});
+  eco.setRules({ mutation: "llm" });
+  eco.deferLiveBirths = true; // as in main.ts
+  eco.mutator = new Mutator({ maxCalls: 0, cachePath });
+  for (let t = 0; t < 2000; t++) await eco.step();
+  assert.deepEqual(eco.mutationStats, { llm: 0, cache: recorded, gaussian: 0, fallback: 0 });
+  assert.equal(eco.designers["claude-haiku-5-5"], recorded);
+});

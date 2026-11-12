@@ -30,13 +30,36 @@ const DB_PATH = process.env.DARWIN_DB ?? path.resolve(here, "../darwin.sqlite");
 // asks the live model (providerFromEnv: a free OpenAI-compatible endpoint via MUTATION_BASE_URL, or Claude, which
 // a public run never calls unless DARWIN_PUBLIC_ANTHROPIC=1), then falls back to Gaussian. A live call never holds
 // up the tick: the child is born when the answer arrives. A public run makes live calls only to a free provider.
-const MUTATION = process.env.DARWIN_MUTATION ?? "gaussian";
+// A public run defaults to replaying Claude's recorded seed 3 (see recordingFor), so visitors see the model's choices.
+const MUTATION = process.env.DARWIN_MUTATION ?? (PUBLIC_MODE ? "llm" : "gaussian");
 const PROVIDER = providerFromEnv(process.env, PUBLIC_MODE);
 const MUTATION_CALLS = PUBLIC_MODE
   ? Number(process.env.DARWIN_PUBLIC_MUTATION_CALLS ?? (PROVIDER && !PROVIDER.billed ? 1000 : 0))
   : Number(process.env.DARWIN_MUTATION_MAX_CALLS ?? 400);
 const MUTATION_DIR = path.resolve(here, "../../results/mutations");
 const LIVE_CACHE_DIR = path.resolve(here, "../.mutations-live");
+// A committed recording for a seed and mode: a past run whose every fork was designed by a model (Claude for
+// seeds 1-5). Replaying it reproduces that run exactly until something moves the economy off it (a shock).
+function recordingFor(seed: number, mode: string): { model: string; children: number } | null {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(MUTATION_DIR, `seed-${seed}-${mode}.json`), "utf8"));
+    return { model: String(j.model ?? ""), children: Object.keys(j.entries ?? {}).length };
+  } catch {
+    return null;
+  }
+}
+// Seeds with a recording for the starting mode, so a public run that restarts on its own stays on recorded runs.
+const RECORDED_SEEDS = MUTATION === "gaussian" ? [] : (() => {
+  try {
+    return fs.readdirSync(MUTATION_DIR).map((f) => f.match(new RegExp(`^seed-(\\d+)-${MUTATION}\\.json$`))?.[1]).filter(Boolean).map(Number).sort((a, b) => a - b);
+  } catch {
+    return [];
+  }
+})();
+const nextSeed = (seed: number) => {
+  if (!RECORDED_SEEDS.length) return (seed + 1) >>> 0;
+  return RECORDED_SEEDS.find((s) => s > seed) ?? RECORDED_SEEDS[0];
+};
 const SPEEDS = [1000, 300, 120, 40];
 // The wind tunnel's committed results (make windtunnel), served read-only to the dashboard. Per-seed runs are left out.
 const WINDTUNNEL = (() => {
@@ -63,7 +86,7 @@ class Run {
   recent: SimEvent[] = [];
   paused = false;
   speed = 1;
-  seed = Number(process.env.SEED ?? 42);
+  seed = Number(process.env.SEED ?? (PUBLIC_MODE ? 3 : 42));
   private sub = 0;
   private insEv!: ReturnType<DatabaseSync["prepare"]>;
   private insM!: ReturnType<DatabaseSync["prepare"]>;
@@ -114,7 +137,7 @@ class Run {
       rules: Object.fromEntries(TUNABLE.map((k) => [k, this.eco.cfg[k]])),
       shocks: Object.fromEntries(this.eco.shocks),
       publicMode: PUBLIC_MODE,
-      mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats, designers: this.eco.designers, liveModel: MUTATION_CALLS > 0 ? (PROVIDER?.model ?? null) : null },
+      mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats, designers: this.eco.designers, liveModel: MUTATION_CALLS > 0 ? (PROVIDER?.model ?? null) : null, recording: this.eco.cfg.mutation === "gaussian" ? null : recordingFor(this.seed, this.eco.cfg.mutation) },
       autoRestart: AUTO_RESTART_MS > 0,
       shockCooldownSec: PUBLIC_MODE ? SHOCK_COOLDOWN_MS / 1000 : 0,
       shockWaitSec: shockWait(),
@@ -260,7 +283,7 @@ async function loop() {
       finishedAt ||= t0;
       if (AUTO_RESTART_MS && t0 - finishedAt > AUTO_RESTART_MS) {
         finishedAt = 0;
-        run.reset((run.seed + 1) >>> 0);
+        run.reset(nextSeed(run.seed));
       }
     } else finishedAt = 0;
     if (!run.paused && run.eco.tick < MAX_TICKS) {

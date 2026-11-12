@@ -33,6 +33,7 @@ const S = {
   agents: new Map(), // id -> latest snapshot agent
   genomes: new Map(), // id -> full genome from "born" events
   founders: new Map(), // founder -> { idx, first }
+  hue: new Map(), // founder -> pigment slot, fixed once the family gets a band
   derived: [], // per metrics index: { ended: [founders], deaths, blocked, leaked }
   notes: new Map(), // tick -> group
   designs: [], // forks whose child genome an AI model chose: { tick, parent, child, rationale, model }
@@ -44,6 +45,7 @@ const S = {
   hover: null,
   status: "loading", // loading | live | disconnected
   tickError: null,
+  offRecord: null, // first round a child was not replayed from the run's recording (a shock moved the run off it)
 };
 
 const short = (id) => (id ? String(id).replace(/\.darwin\.testnet$/, "") : "");
@@ -55,21 +57,42 @@ const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
 const plural = (n, a, b = a + "s") => (n === 1 ? a : b);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const idHtml = (id) => `<span class="id">${esc(short(id))}</span>`;
+// A model's reason exactly as recorded, minus stray markup it sometimes appended ("</br", a closing brace).
+const reasonText = (r) => String(r).replace(/<\/?[a-z]+\s*\/?>?/gi, "").replace(/[\s}]+$/, "").trim();
 const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
 
 // Small dynasties share one muted band on the plot (see layout): at most TOP_BANDS are named while the founders
 // are still a flat field; after that the grey band may never hold more than OTHER_CAP of any sample.
 const OTHER = "__other";
-const TOP_BANDS = 8;
+const TOP_BANDS = 10;
+// The opening, while the founders are still a near-equal field, is squeezed into at most this share of the width.
+const OPENING_SHARE = 0.12;
 const OTHER_CAP = 0.2;
+// While many founders are still near-equal the pooled band can hold most agents. It is drawn no taller than
+// OTHER_DRAW of the plot, the named bands share the rest in their true proportions, and the band's label and
+// tooltip give its real share.
+const OTHER_DRAW = 0.2;
 const LEAD_SHARE_EARLY = 0.25;
 
 function colourOf(f, deep = false) {
   if (f === OTHER) return T.other;
   const rec = S.founders.get(f);
   if (!rec || !T.pigments.length) return T.muted;
-  if (deep && T.deep.length) return T.deep[rec.idx % T.pigments.length % T.deep.length];
-  return T.pigments[rec.idx % T.pigments.length];
+  const slot = S.hue.get(f) ?? rec.idx;
+  if (deep && T.deep.length) return T.deep[slot % T.pigments.length % T.deep.length];
+  return T.pigments[slot % T.pigments.length];
+}
+// A family keeps the pigment it was first given; a newly named family takes a pigment no other named family uses.
+function assignHues(named) {
+  const used = new Set(named.filter((f) => S.hue.has(f)).map((f) => S.hue.get(f) % T.pigments.length));
+  for (const f of named) {
+    if (S.hue.has(f)) continue;
+    let slot = 0;
+    while (used.has(slot) && slot < T.pigments.length) slot++;
+    if (slot === T.pigments.length) slot = (S.founders.get(f)?.idx ?? 0) % T.pigments.length;
+    used.add(slot);
+    S.hue.set(f, slot);
+  }
 }
 
 // The leading dynasty at the latest tick, once it holds at least this share, is drawn in its deep pigment.
@@ -130,8 +153,9 @@ function noteGroup(tick) {
 function ingestEvent(e) {
   if (e.event === "born") {
     S.genomes.set(e.agent, e.genome);
+    if (e.parent && e.role === "parametric" && e.mutation && e.mutation !== "cache" && S.state?.mutation?.recording && (S.offRecord === null || e.tick < S.offRecord)) S.offRecord = e.tick;
     if (e.rationale && e.parent) {
-      S.designs.push({ tick: e.tick, parent: e.parent, child: e.agent, founder: e.founder, rationale: e.rationale, model: e.model });
+      S.designs.push({ tick: e.tick, parent: e.parent, child: e.agent, founder: e.founder, rationale: e.rationale, model: e.model, recorded: e.mutation === "cache" });
       if (S.designs.length > 300) S.designs.shift();
     }
     if (e.tick > 0 && !e.parent) {
@@ -160,6 +184,8 @@ function clearAll() {
   S.agents.clear();
   S.genomes.clear();
   S.founders.clear();
+  S.hue.clear();
+  S.offRecord = null;
   S.notes.clear();
   S.designs = [];
   S.shockMarks = [];
@@ -291,6 +317,7 @@ function flush() {
   if (dirty.has("specimen")) renderSpecimen();
   if (dirty.has("notes")) renderNotes();
   if (dirty.has("plot") || dirty.has("notes") || dirty.has("chrome")) renderAI();
+  if (dirty.has("plot") || dirty.has("chrome")) renderTake();
   if (dirty.has("figs")) { renderFigs(); renderShockOutcome(); }
   if (dirty.has("plot") && S.metrics.length) refreshExport(false);
   dirty.clear();
@@ -298,6 +325,12 @@ function flush() {
 
 // ---------- chrome: status, transport, notices ----------
 const SPEED_WORDS = ["slow", "normal", "fast", "fastest"];
+function roundsPerSec(st) {
+  const ms = st?.speeds?.[st.speed];
+  if (!ms) return "";
+  const r = 1000 / ms;
+  return r < 1.5 ? "about one round a second" : `about ${fmt(r)} rounds a second`;
+}
 let statusErr = null;
 let statusErrTimer = 0;
 function setStatusError(msg) {
@@ -354,7 +387,7 @@ function renderChrome() {
 
   const parts = [];
   // The tick lives in the big counter; the status line says only what the run is doing. A finished run says so in the banner.
-  if (!st.finished) parts.push(st.paused ? "Paused" : `Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed`);
+  if (!st.finished) parts.push(st.paused ? "Paused" : `Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed, ${roundsPerSec(st)}`);
   status.title = `Seed ${st.seed}`;
   const shocks = Object.entries(st.shocks || {}).filter(([, end]) => end > st.tick);
   for (const [k, end] of shocks) parts.push(`<span class="shock">${k === "drought" ? "Drought" : "Plague"}, ${end - st.tick} ${plural(end - st.tick, "round")} left</span>`);
@@ -366,6 +399,8 @@ function renderChrome() {
   const shared = !!st.publicMode;
   $("#shared").hidden = !shared;
   $('[data-sheet="rules"]').hidden = shared;
+  $("#export-open").hidden = shared;
+  if (shared && openSheet?.id === "sheet-export") closeSheet(true);
   renderTunnelMode();
   if (shared && openSheet?.id === "sheet-rules") closeSheet(true);
   if (st !== seenState) {
@@ -383,9 +418,10 @@ function renderChrome() {
   step.hidden = !st.paused || st.finished;
 
   const llm = st.rules?.mutation === "llm" || st.rules?.mutation === "mixed";
+  const who = operatorName();
   const tag = llm
-    ? `AI agents on NEAR bid for work and pay rent. Broke ones die. Rich ones fork a child, and ${operatorName()} chooses its strategy. Nobody designs the winner.`
-    : "AI agents on NEAR bid for work and pay rent. Broke ones die. Rich ones fork a child with a mutated strategy. Nobody designs the winner.";
+    ? `An economy of AI agents that evolves: agents that earn have children who inherit their strategy (${who === "an AI model" ? "an AI model" : who} designs each child), and agents that go broke die out.`
+    : "An economy of AI agents that evolves: agents that earn have children who inherit their strategy with small random changes, and agents that go broke die out.";
   if ($("#tagline").textContent !== tag) $("#tagline").textContent = tag;
   $("#tick").textContent = fmt(st.tick);
   $("#tick-of").textContent = `of ${fmt(st.maxTicks)} rounds`;
@@ -397,7 +433,7 @@ function renderChrome() {
   } else if (st.finished) {
     notice.hidden = false;
     noticeText.textContent = shared
-      ? `The run finished at round ${fmt(st.tick)}. Export the champion${st.autoRestart ? "; a new run starts on its own shortly" : ""}.`
+      ? `The run finished at round ${fmt(st.tick)}.${st.autoRestart ? ` ${st.mutation?.recording ? "The next recorded run" : "A new run"} starts on its own shortly.` : ""}`
       : `The run finished at round ${fmt(st.tick)}. Export the champion, or start a new run with the same rules.`;
     noticeAction.hidden = shared;
   } else notice.hidden = true;
@@ -444,10 +480,18 @@ function layout(w) {
   // named and the rest share the grey band. After that, each sample names its TOP_BANDS largest, then the largest
   // still-grey dynasties until the grey band holds no more than OTHER_CAP. A dynasty once named stays named.
   const namedFrom = new Map();
+  // Each family's peak share over the run so far: the opening names the families that went on to matter,
+  // so the bands that take over are in colour from round 0 instead of emerging from the grey.
   const earlyPeak = new Map();
+  for (const mi of samples) {
+    const lin = M[mi].lineages || {};
+    let tot = 0;
+    for (const f in lin) tot += valueOf(lin[f], S.mode);
+    if (tot) for (const f in lin) earlyPeak.set(f, Math.max(earlyPeak.get(f) || 0, valueOf(lin[f], S.mode) / tot));
+  }
   const totals = new Float64Array(samples.length);
   const founders = S.founders.size;
-  let early = true;
+  let early = true, divergeSi = -1;
   samples.forEach((mi, si) => {
     const lin = M[mi].lineages || {};
     const live = Object.keys(lin);
@@ -459,13 +503,11 @@ function layout(w) {
     live.sort((a, b) => share(b) - share(a) || (S.founders.get(a)?.idx ?? 0) - (S.founders.get(b)?.idx ?? 0));
     if (early && (share(live[0]) >= LEAD_SHARE_EARLY || live.length < founders * 0.75)) {
       early = false;
+      divergeSi = si;
       [...earlyPeak].sort((a, b) => b[1] - a[1] || (S.founders.get(a[0])?.idx ?? 0) - (S.founders.get(b[0])?.idx ?? 0))
         .slice(0, TOP_BANDS).forEach(([f]) => namedFrom.set(f, 0));
     }
-    if (early) {
-      for (const f of live) earlyPeak.set(f, Math.max(earlyPeak.get(f) || 0, share(f)));
-      return;
-    }
+    if (early) return;
     for (const f of live.slice(0, TOP_BANDS)) if (!namedFrom.has(f)) namedFrom.set(f, si);
     let grey = 0;
     for (const f of live) if (!namedFrom.has(f)) grey += share(f);
@@ -477,24 +519,32 @@ function layout(w) {
   // A run still in its flat phase names its early leaders from the start.
   if (early) [...earlyPeak].sort((a, b) => b[1] - a[1] || (S.founders.get(a[0])?.idx ?? 0) - (S.founders.get(b[0])?.idx ?? 0))
     .slice(0, TOP_BANDS).forEach(([f]) => namedFrom.set(f, 0));
+  // A family named at any point is drawn in colour from its first round, so no band pops out of the grey.
+  for (const f of namedFrom.keys()) namedFrom.set(f, 0);
   const pooledAt = (f, si) => !(namedFrom.get(f) <= si);
   // Founders that never get a band of their own.
   const minor = new Set([...S.founders.keys()].filter((f) => !namedFrom.has(f)));
   const order = [...S.founders.entries()].filter(([f]) => namedFrom.has(f)).sort((a, b) => a[1].idx - b[1].idx).map(([f]) => f);
+  assignHues([...namedFrom.keys()].sort((a, b) => namedFrom.get(a) - namedFrom.get(b) || (earlyPeak.get(b) || 0) - (earlyPeak.get(a) || 0)));
   const anyPooled = samples.some((mi, si) => Object.keys(M[mi].lineages || {}).some((f) => pooledAt(f, si)));
   if (anyPooled) order.push(OTHER);
   const bands = new Map(order.map((f) => [f, { y0: new Float32Array(samples.length), y1: new Float32Array(samples.length), first: -1, last: -1 }]));
   const others = new Float64Array(samples.length);
   const otherCount = new Uint16Array(samples.length);
+  const otherShare = new Float32Array(samples.length);
   samples.forEach((mi, si) => {
     const lin = M[mi].lineages || {};
     const total = totals[si];
     for (const f in lin) if (pooledAt(f, si)) { others[si] += valueOf(lin[f], S.mode); otherCount[si]++; }
+    const g = total ? others[si] / total : 0;
+    otherShare[si] = g;
+    const squash = g > OTHER_DRAW && g < 1;
+    const kNamed = squash ? (1 - OTHER_DRAW) / (1 - g) : 1, kOther = squash ? OTHER_DRAW / g : 1;
     let cum = 0;
     for (const f of order) {
       const b = bands.get(f);
       const here = f === OTHER ? otherCount[si] > 0 : !!lin[f] && !pooledAt(f, si);
-      const v = f === OTHER ? others[si] : here ? valueOf(lin[f], S.mode) : 0;
+      const v = (f === OTHER ? others[si] * kOther : here ? valueOf(lin[f], S.mode) * kNamed : 0);
       b.y0[si] = total ? cum / total : 0;
       cum += v;
       b.y1[si] = total ? cum / total : 0;
@@ -504,12 +554,20 @@ function layout(w) {
       }
     }
   });
-  // The x-axis spans the ticks seen so far, never the run's planned length.
+  // The x-axis spans the ticks seen so far, never the run's planned length. The opening, before any family pulls
+  // ahead, takes at most OPENING_SHARE of the width; from the round the families diverge the scale is linear.
   const t0 = M[0]?.tick ?? 0;
   const t1 = Math.max(M[n - 1]?.tick ?? 1, t0 + 1);
-  const x = (si) => ((M[samples[si]].tick - t0) / (t1 - t0)) * w;
-  const xt = (tick) => ((tick - t0) / (t1 - t0)) * w;
-  return { samples, bands, order, minor, pooledAt, otherCount, w, x, xt, t0, t1 };
+  const tD = divergeSi > 0 ? M[samples[divergeSi]].tick : null;
+  const natural = tD === null ? 1 : (tD - t0) / (t1 - t0);
+  const squeezed = tD !== null && tD < t1 && natural > OPENING_SHARE;
+  const fD = squeezed ? OPENING_SHARE : natural;
+  const xt = (tick) => {
+    if (!squeezed) return ((tick - t0) / (t1 - t0)) * w;
+    return tick <= tD ? ((tick - t0) / (tD - t0)) * fD * w : (fD + ((tick - tD) / (t1 - tD)) * (1 - fD)) * w;
+  };
+  const x = (si) => xt(M[samples[si]].tick);
+  return { samples, bands, order, minor, pooledAt, otherCount, otherShare, w, x, xt, t0, t1, tD: squeezed ? tD : null, fD };
 }
 
 function tracePath(c, b, from, to, x, h) {
@@ -701,10 +759,10 @@ function otherPattern(c) {
   return hatch.p;
 }
 function labelOther(c, b, h) {
-  const { samples, x, otherCount } = geo;
+  const { samples, x, otherCount, otherShare } = geo;
   let best = -1, bh = 0;
   for (let si = 0; si < samples.length; si++) { const hh = (b.y1[si] - b.y0[si]) * h; if (hh > bh) { bh = hh; best = si; } }
-  if (best < 0 || bh < 34) return;
+  if (best < 0 || bh < 30) return;
   // The run of samples around the widest point that stays tall enough to hold the label.
   let a = best, z = best;
   const tall = Math.max(40, bh * 0.6);
@@ -713,8 +771,8 @@ function labelOther(c, b, h) {
   const mid = Math.round((a + z) / 2);
   const n = otherCount[mid];
   if (!n) return;
-  const l1 = `${fmt(n)} small ${plural(n, "family", "families")}`;
-  const l2 = "grouped until one grows";
+  const l1 = `${fmt(n)} small ${plural(n, "family", "families")}, ${Math.round(otherShare[mid] * 100)}% of ${S.mode === "wealth" ? "the money" : "agents"}`;
+  const l2 = otherShare[mid] > OTHER_DRAW ? "pooled, and drawn smaller than their share" : "pooled until one grows";
   c.save();
   c.font = `600 13px ${T.body}`;
   const w1 = c.measureText(l1).width;
@@ -796,13 +854,16 @@ function renderAI() {
   box.hidden = false;
   box.dataset.mode = cur ? "llm" : "off";
   const set = (id, html) => { const el = $(id); if (el.innerHTML !== html) el.innerHTML = html; el.hidden = !html; };
+  const rec = st.mutation?.recording;
   if (cur) {
     const was = box.dataset.cur;
     box.dataset.cur = cur.id;
     const who = modelName(cur.model);
-    $("#ai-tag").textContent = `${who} decided`;
+    const d = S.designs.find((x) => x.child === cur.id);
+    const recorded = !!rec && (d ? d.recorded : S.offRecord === null || cur.born < S.offRecord);
+    $("#ai-tag").textContent = recorded ? `${who} decided · recorded run` : `${who} decided`;
     set("#ai-what", `Round ${fmt(cur.born)}: ${idHtml(cur.parent)} got rich and forked ${idHtml(cur.id)}. ${esc(who)} chose the child’s strategy:`);
-    set("#ai-why", `“${esc(cur.rationale)}”`);
+    set("#ai-why", `“${esc(reasonText(cur.rationale))}”`);
     const born = [...S.agents.values()].filter((a) => a.parent && a.role === "parametric").length;
     const fb = st.mutation?.fallback || 0;
     const by = new Map();
@@ -810,7 +871,9 @@ function renderAI() {
     const parts = [...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} ${fmt(k)}`);
     parts.push(`random ${fmt(Math.max(0, born - kids))}`);
     const tail = mode === "mixed" ? " Random children compete with them." : mode === "gaussian" ? " Mutation is now set to random." : "";
-    set("#ai-meta", `Designed by an AI model: ${fmt(kids)} of ${fmt(born)} children (${parts.join(", ")}).${tail}${fb && mode !== "gaussian" ? ` ${fmt(fb)} fell back to random (model busy, slow or unavailable).` : ""} Purple marks under the chart show when.`);
+    const replay = rec ? `A replay of a recorded run: ${esc(modelName(rec.model))} (${esc(rec.model)}) designed all ${fmt(rec.children)} children of seed ${st.seed} ahead of time, and each reason shown is the one it gave. While the run follows the recording, no model is called. ` : "";
+    const off = rec && S.offRecord !== null ? ` A visitor’s shock moved the economy off the recording at round ${fmt(S.offRecord)}; children born since then ${st.mutation?.liveModel ? `ask ${esc(modelName(st.mutation.liveModel))} live, or are random when it is busy` : "are random"}.` : "";
+    set("#ai-meta", `${replay}Designed by an AI model so far: ${fmt(kids)} of ${fmt(born)} children (${parts.join(", ")}).${tail}${off}${fb && mode !== "gaussian" && !off ? ` ${fmt(fb)} fell back to random (model busy, slow or unavailable).` : ""} Purple marks under the chart show when.`);
     if (was !== cur.id) { box.classList.remove("is-new"); void box.offsetWidth; box.classList.add("is-new"); }
     return;
   }
@@ -893,6 +956,21 @@ function drawPlot() {
       c.stroke();
       c.restore();
     }
+  }
+
+  // The squeezed opening: a hairline where the scale turns linear, at the round the families diverged.
+  if (geo.tD !== null) {
+    const xx = Math.round(xt(geo.tD)) + 0.5;
+    c.save();
+    c.strokeStyle = T.paper;
+    c.globalAlpha = 0.55;
+    c.setLineDash([3, 3]);
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(xx, 0);
+    c.lineTo(xx, h);
+    c.stroke();
+    c.restore();
   }
 
   // Shocked spans: a veil over the plot, and bars in the shock lane.
@@ -1011,7 +1089,9 @@ function renderKey(sc, D) {
     shock: shockSpans().length > 0 || S.shockMarks.length > 0,
     guard: D.some((d) => d.blocked > 0),
     gens: !!geo?.gens,
+    open: geo?.tD != null,
   };
+  if (geo?.tD != null) $("#key-open-text").textContent = `Left of the dashed line, squeezed: rounds ${geo.t0} to ${geo.tD}, while the founding families were still near-equal`;
   void last;
   $("#read-sentence").textContent = S.mode === "wealth" ? "Each colour is a family of agents. Thicker = more of the money." : "Each colour is a family of agents. Thicker = more of them alive.";
   if (geo?.gens) {
@@ -1184,7 +1264,7 @@ function headline() {
     return openField(lead);
   }
   // 4. One dynasty holding most of the population.
-  const holds = (f, x) => { const st = strategyOf(f); return st ? `${short(f)}’s family of ${st.split(",")[0]} holds ${x} of all agents` : `One family, ${short(f)}’s, holds ${x} of all agents`; };
+  const holds = (f, x) => { const st = strategyOf(f); return st ? `${short(f)}’s family of ${st.split(",")[0]} has ${x} of the agents alive now` : `One family, ${short(f)}’s, has ${x} of the agents alive now`; };
   if (lead && lead.share >= 0.7) return holds(lead.f, pct(lead.share));
   // 5. Middlemen taking a large cut of the work.
   if (m.middlemanShare >= 0.3) return `Middlemen, agents who resell work they win, handled ${pct(m.middlemanShare)} of it in the last ${Math.min(50, m.tick)} rounds`;
@@ -1196,7 +1276,7 @@ function headline() {
 
 function openField(lead) {
   const m = S.metrics[S.metrics.length - 1];
-  return `${word(m.dynasties)} of ${fmt(S.founders.size)} families still alive; the largest holds ${lead ? `${Math.round(lead.share * 100)}%` : "0%"} of all agents`;
+  return `${word(m.dynasties)} of ${fmt(S.founders.size)} families still alive; the largest has ${lead ? `${Math.round(lead.share * 100)}%` : "0%"} of the agents alive now`;
 }
 
 // The opening frame: while the run is young, say what the even stripes are, from the founding tick's own data.
@@ -1252,7 +1332,7 @@ function narrCandidates(i) {
       let k = 0;
       for (let j = 0; j <= i; j++) if (D[j].blocked > 0) k++;
       const e = g.guard[0];
-      add(8, `The guard just blocked the rogue’s ${nth(k)} theft: ${credits(e.amount)} credits it tried to slip to its accomplice`, "guard");
+      add(8, e.attack === "race" ? `The guard just clamped a burst of rogue payments: ${credits(e.amount)} credits over the rogue’s hourly cap, blocked` : `The guard just blocked the rogue’s ${nth(k)} theft: ${credits(e.amount)} credits it tried to slip to its accomplice`, "guard");
     }
     if (g.subs.length && !N.mid) {
       N.mid = true;
@@ -1302,7 +1382,10 @@ function narrCandidates(i) {
   // Forks: the dynasty that forked most this tick.
   let ff = null, fk = 0;
   for (const f in now.lin) if ((now.lin[f].forks || 0) > fk) { fk = now.lin[f].forks; ff = f; }
-  if (ff) add(3, fk === 1 ? `${short(ff)}’s family just grew: a rich agent forked a child that copies it with small random changes`
+  const byAi = ff ? S.designs.find((d) => d.tick === m.tick && d.founder === ff) : null;
+  if (ff && byAi) add(3, fk === 1 ? `${short(ff)}’s family just grew: a rich agent forked a child, and ${modelName(byAi.model)} chose its strategy`
+    : `${short(ff)}’s family just forked ${lower(word(fk))} children, their strategies chosen by ${modelName(byAi.model)}`, "band", ff);
+  else if (ff) add(3, fk === 1 ? `${short(ff)}’s family just grew: a rich agent forked a child that copies it with small random changes`
     : `${short(ff)}’s family just forked ${lower(word(fk))} children: rich agents copy themselves with small random changes`, "band", ff);
   if (now.top && now.share(now.top) >= 0.98) add(1, `${short(now.top)}’s family holds almost every agent. Any challenger must now arise as one of its own mutants`, "band", now.top);
   return out;
@@ -1382,13 +1465,16 @@ function shockSpans() {
 function renderAxis(g) {
   const axis = $("#axis");
   if (!g) { axis.innerHTML = ""; return; }
-  const span = g.t1 - g.t0;
-  const raw = span / (axis.clientWidth < 560 ? 4 : 8);
+  const from = g.tD ?? g.t0;
+  const span = g.t1 - from;
+  const raw = span / ((axis.clientWidth < 560 ? 4 : 8) * (1 - (g.tD === null ? 0 : g.fD)));
   const mag = 10 ** Math.floor(Math.log10(raw));
   // Ticks are whole numbers: never step by less than one.
   const stepT = Math.max(1, Math.round([1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw) || raw));
-  const out = [`<span style="left:0">round ${g.t0}</span>`];
-  for (let t = Math.ceil((g.t0 + stepT * 0.6) / stepT) * stepT; t < g.t1 - stepT * 0.4; t += stepT) out.push(`<span style="left:${((t - g.t0) / span) * 100}%">${t}</span>`);
+  const at = (t) => `${(g.xt(t) / g.w) * 100}%`;
+  const out = [`<span style="left:0">${g.tD !== null && axis.clientWidth < 560 ? "" : "round "}${g.t0}</span>`];
+  if (g.tD !== null) out.push(`<span class="axis__brk" style="left:${at(g.tD)}">${g.tD}</span>`);
+  for (let t = Math.ceil((from + stepT * 0.6) / stepT) * stepT; t < g.t1 - stepT * 0.4; t += stepT) out.push(`<span style="left:${at(t)}">${t}</span>`);
   out.push(`<span style="left:100%">${g.t1}</span>`);
   axis.innerHTML = out.join("");
 }
@@ -1461,7 +1547,7 @@ canvas.addEventListener("mousemove", (e) => {
     const small = Object.keys(m.lineages).filter((f) => geo.pooledAt(f, si));
     const n = small.reduce((a, f) => a + m.lineages[f].n, 0);
     tip.innerHTML = `<b>Small families</b><span>At round ${m.tick}: ${lower(word(small.length))} small ${plural(small.length, "family", "families")}, ${n} agents in all.</span><br>` +
-      `<span>None is big enough yet for a colour of its own, so they share this hatched band. Any that grows gets its own colour.</span>`;
+      `<span>None is big enough yet for a colour of its own, so they share this hatched band, drawn no taller than a fifth of the chart so the named families stay readable. Any that grows gets its own colour.</span>`;
   } else {
   const lin = m.lineages[hit.f];
   const { living, founder, gens } = dynastyFacts(hit.f);
@@ -1563,7 +1649,7 @@ function designSentence(f, living) {
   const last = [...S.designs].reverse().find((d) => d.founder === f);
   if (!byClaude && !last) return "";
   const head = byClaude ? `An AI model chose the genes of ${byClaude} of its ${living.length} living ${plural(living.length, "member")}.` : "";
-  const why = last ? ` Latest, at round ${last.tick}: ${esc(short(last.parent))} forked ${esc(short(last.child))}, and ${esc(modelName(last.model))} said “${esc(last.rationale)}”` : "";
+  const why = last ? ` Latest, at round ${last.tick}: ${esc(short(last.parent))} forked ${esc(short(last.child))}, and ${esc(modelName(last.model))} said “${esc(reasonText(last.rationale))}”` : "";
   return `<p class="spec__edge spec__llm">${head}${why}</p>`;
 }
 
@@ -1678,7 +1764,9 @@ function routineSentence(w) {
   const one = lines.size === 1 && !lines.has(null) ? [...lines][0] : null;
   const parts = [];
   if (d) parts.push(`${word(d)} ${plural(d, "agent")} went broke and died`);
-  if (k) parts.push(d ? `${lower(word(k))} forked ${plural(k, "child", "children")}` : `${word(k)} mutated ${plural(k, "child was", "children were")} forked`);
+  const designed = w.forks.filter((e) => S.designs.some((x) => x.child === e.child)).length;
+  const how = designed === k ? ", each designed by an AI model (below)" : designed ? `, ${lower(word(designed))} designed by an AI model` : "";
+  if (k) parts.push(d ? `${lower(word(k))} forked ${plural(k, "child", "children")}${how}` : `${word(k)} ${designed ? "" : "mutated "}${plural(k, "child was", "children were")} forked${how}`);
   const named = [...lines].filter(Boolean).length;
   const where = one ? (d + k === 1 ? ` in ${lineName(one)}` : `, all in ${lineName(one)}`) : named > 1 ? `, across ${lower(word(named))} families` : "";
   return parts.join("; ") + where + ".";
@@ -1701,7 +1789,8 @@ function groupSentences(g) {
   if (!g.shocks.some((e) => e.shock === "immigration") && g.arrivals.length) out.push(`${word(g.arrivals.length)} ${plural(g.arrivals.length, "newcomer")} arrived.`);
   for (const e of g.guard) {
     const why = (e.reasons || []).slice(0, 2).map(reason);
-    out.push(mark("guard", `The guard stopped the rogue agent sending ${credits(e.amount)} credits to its accomplice. It tried ${ATTACKS[e.attack] || e.attack}${why.length ? ` and was flagged for ${list(why)}` : ""}.`));
+    if (e.attack === "race") out.push(mark("guard", `The rogue agent fired a burst of concurrent payments at the real solver to overshoot its hourly cap. The guard stopped the ${credits(e.amount)} credits over the cap${why.length ? `, flagged for ${list(why)}` : ""}.`));
+    else out.push(mark("guard", `The guard stopped the rogue agent sending ${credits(e.amount)} credits to its accomplice. It tried ${ATTACKS[e.attack] || e.attack}${why.length ? ` and was flagged for ${list(why)}` : ""}.`));
   }
   for (const e of g.allow) out.push(`The guard let the rogue agent pay ${credits(e.amount)} credits, because the payment was inside its spending rules.`);
   const nk = notableKills(g);
@@ -1761,10 +1850,9 @@ function renderNotes() {
   for (const [w, win] of new Set([wins[0], wins.at(-1)].filter(Boolean))) {
     entries.push({ t: win.last + 0.5, from: w, to: win.last, ss: [subsSentence(win.subs)], quiet: true });
   }
-  // Forks where an AI model chose the child's genes: the first one, and the latest three, each with its one-line reason.
-  const ds = S.designs;
-  for (const d of new Set([ds[0], ...ds.slice(-3)].filter(Boolean))) {
-    entries.push({ t: d.tick + 0.4, from: d.tick, to: d.tick, ss: [mark("llm", `${esc(short(d.parent))} forked ${esc(short(d.child))}, and ${esc(modelName(d.model))} chose the child’s genes: “${esc(d.rationale)}”`)] });
+  // Every fork where an AI model chose the child's genes, each with the one-line reason it gave.
+  for (const d of S.designs) {
+    entries.push({ t: d.tick + 0.4, from: d.tick, to: d.tick, ss: [mark("llm", `${idHtml(d.parent)} forked ${idHtml(d.child)}. ${esc(modelName(d.model))} chose the child’s genes: “${esc(reasonText(d.rationale))}”`)] });
   }
   // A routine window sorts at its last tick, below any notable note from that same tick.
   for (const r of routine.values()) entries.push({ t: r.to - 0.25, from: r.from, to: r.to, ss: [routineSentence(r)], routine: true });
@@ -1780,7 +1868,7 @@ function renderNotes() {
     } else merged.push({ ...en });
   }
   for (const en of merged) en.label = en.from === en.to ? `Round ${en.from}.` : `Rounds ${en.from} to ${en.to}.`;
-  const items = merged.slice(0, 90).map((en) => {
+  const items = merged.slice(0, 120).map((en) => {
     const paras = en.ss.map((s, i) => {
       const html = typeof s === "string" ? s : s.html;
       const cls = typeof s === "string" ? "" : ` class="mark mark--${s.mark}"`;
@@ -1859,10 +1947,13 @@ function renderFigs() {
     const rogue = all.filter((a) => a.role === "rogue").pop(), acc = all.find((a) => a.role === "accomplice" && a.alive);
     if (rogue) parts.push(`The rogue is ${idHtml(rogue.id)}${acc ? `, paying ${idHtml(acc.id)}` : ""}; it is ${rogue.alive ? "still loose" : "dead now"}.`);
   }
-  if (legit) parts.push(`${fmt(legit)} let through: ${plural(legit, "a payment", "payments")} to a real solver, inside the hourly cap, so not theft.`);
-  if (other) parts.push(`${fmt(other)} ${legit ? "more " : ""}let through inside the spending rules.`);
-  parts.push(last.rogueLeaked ? `Stolen: ${credits(last.rogueLeaked)} credits.` : "Stolen: 0 credits.");
-  g.innerHTML = `<span class="big">Blocked ${fmt(last.rogueBlocked)} of ${fmt(last.rogueAttempts)} rogue ${plural(last.rogueAttempts, "payment")}</span>${parts.join(" ")}`;
+  const head = last.rogueLeaked ? `${credits(last.rogueLeaked)} credits stolen` : "0 credits stolen";
+  const tally = `The guard blocked ${fmt(last.rogueBlocked)} of the rogue’s ${fmt(last.rogueAttempts)} payment ${plural(last.rogueAttempts, "attempt")}.`;
+  const through = [];
+  if (legit) through.push(`${fmt(legit)} ${plural(legit, "was", "were")} allowed: in a burst attack the rogue paid the real <span class="id">solver-1</span>, within its own hourly spending cap, so the money went to an honest agent, not to the accomplice`);
+  if (other) through.push(`${fmt(other)} ${legit ? "more " : ""}${plural(other, "was", "were")} allowed inside its spending rules`);
+  const tail = through.length ? ` ${through.join("; ")}.` : "";
+  g.innerHTML = `<span class="big">${head}</span>${tally}${tail} ${parts.join(" ")}`;
 }
 
 // ---------- sheets ----------
@@ -2130,6 +2221,74 @@ document.addEventListener("keydown", (e) => {
   control(S.state.paused ? "resume" : "pause");
 });
 
+// ---------- the takeaway beside the chart: what changed over the recent rounds, and what drove it ----------
+const TAKE_WINDOW = 200;
+function familyMeans(pred) {
+  const xs = [...S.agents.values()].filter((a) => a.alive && a.role === "parametric" && pred(a));
+  if (!xs.length) return null;
+  const mean = (k) => xs.reduce((t, a) => t + a[k], 0) / xs.length;
+  const spec = KINDS.map((_, i) => xs.reduce((t, a) => t + a.spec[i], 0) / xs.length);
+  const top = spec.indexOf(Math.max(...spec));
+  return { n: xs.length, markup: mean("markup"), subcontract: mean("subcontract"), spec, top, ai: xs.filter((a) => a.origin === "llm").length };
+}
+function renderTake() {
+  const body = $("#take-body"), run = $("#take-run"), st = S.state, M = S.metrics;
+  const last = M[M.length - 1];
+  const setHtml = (el, html) => { if (el.innerHTML !== html) el.innerHTML = html; };
+  if (!st || !last) { setHtml(run, ""); return; }
+  // The run itself, in simulation terms.
+  const rec = st.mutation?.recording;
+  const pace = st.finished ? "The run is over." : st.paused ? "The run is paused." : `It runs at ${SPEED_WORDS[st.speed] ?? "its own"} speed, ${roundsPerSec(st)}.`;
+  setHtml(run, `<span class="take__act">Try it: fire a plague or drought and watch which families survive. Green marks under the chart are the guard stopping a rogue agent’s theft.</span> ` +
+    `A simulation: each round, tasks are auctioned and every agent pays rent. ${pace}` +
+    (rec ? ` Seed ${st.seed}, recorded with ${esc(modelName(rec.model))} and replayed.` : "") +
+    ` The same rules run as a contract on NEAR testnet: <a href="https://github.com/StarAtNyte/near-darwin/blob/main/docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12" rel="noopener">one full lifecycle, every tx</a>.`);
+  if (M.length < 10) { setHtml(body, `<p>${fmt(S.founders.size)} founding agents start level, each the root of a family. Nothing has separated them yet.</p>`); return; }
+  let i0 = 0;
+  while (i0 < M.length - 1 && M[i0].tick < last.tick - TAKE_WINDOW) i0++;
+  const first = M[i0];
+  const a = sharesOf(first), b = sharesOf(last);
+  const span = first.tick <= M[0].tick ? `since round ${fmt(first.tick)}` : `over the last ${fmt(last.tick - first.tick)} rounds`;
+  $("#take-h").textContent = b.top && b.share(b.top) >= 0.25 ? `Why ${short(b.top)}’s family is ahead` : "Who is ahead";
+  const out = [];
+  // What changed.
+  if (b.top) {
+    const now = b.share(b.top), then = a.share(b.top);
+    const name = `<b>${esc(short(b.top))}’s family</b>`;
+    let ch;
+    if (a.top && a.top !== b.top && a.share(a.top) > then) ch = `${name} overtook ${esc(short(a.top))}’s: it now has ${pctOf(now)} of the agents alive, up from ${pctOf(then)}.`;
+    else if (Math.abs(now - then) < 0.03) ch = `${name} held its lead at ${pctOf(now)} of the agents alive.`;
+    else ch = `${name} went from ${pctOf(then)} to ${pctOf(now)} of the agents alive ${span}.`;
+    const died = last.deaths - first.deaths, lost = first.dynasties - last.dynasties;
+    ch += ` ${fmt(died)} ${plural(died, "agent")} went broke${lost > 0 ? ` and ${fmt(lost)} ${plural(lost, "family", "families")} died out` : ""}; ${fmt(last.dynasties)} ${plural(last.dynasties, "family is", "families are")} left.`;
+    out.push(`<p>${ch}</p>`);
+  }
+  // What drove it: a shock in the window first, then the leader's edge over everyone else.
+  const why = [];
+  for (const sp of shockSpans()) if (sp.to >= first.tick) {
+    const at = (t) => M.find((m) => m.tick >= t) || last;
+    const k = at(sp.to).deaths - at(sp.from).deaths;
+    why.push(`A ${sp.kind} (${sp.kind === "plague" ? "rent tripled" : "a third of the work"}, rounds ${fmt(sp.from)} to ${fmt(sp.to)}): ${fmt(k)} ${plural(k, "agent")} died while it lasted.`);
+  }
+  if (b.top) {
+    const fam = familyMeans((x) => x.founder === b.top), rest = familyMeans((x) => x.founder !== b.top);
+    if (fam && rest) {
+      const edge = [];
+      if (rest.markup - fam.markup >= 0.03) edge.push(`agents ask ${fam.markup.toFixed(2)} of each reward against ${rest.markup.toFixed(2)} for the rest, so they win more auctions`);
+      else if (fam.markup - rest.markup >= 0.03) edge.push(`agents ask more (${fam.markup.toFixed(2)} of each reward against ${rest.markup.toFixed(2)}) and earn more per task`);
+      if (fam.spec[fam.top] >= 0.4 && fam.spec[fam.top] - rest.spec[fam.top] >= 0.05) edge.push(`they specialise in ${KIND_WORDS[KINDS[fam.top]]} (${fam.spec[fam.top].toFixed(2)} of their skill), so their answers there are right more often`);
+      if (fam.subcontract - rest.subcontract >= 0.08) edge.push(`they resell more won work to cheaper solvers (${fam.subcontract.toFixed(2)} against ${rest.subcontract.toFixed(2)})`);
+      let forks = 0, forksRest = 0;
+      for (let i = i0 + 1; i < M.length; i++) for (const f in M[i].lineages || {}) { const k = M[i].lineages[f].forks || 0; if (f === b.top) forks += k; else forksRest += k; }
+      const designed = S.designs.filter((d) => d.founder === b.top && d.tick > first.tick).length;
+      const e = `In ${esc(short(b.top))}’s family, ${edge.length ? `${edge.join("; ")}.` : "genes sit close to the market average, so no single gene explains its lead."}`;
+      why.push(`${e} More wins mean more agents rich enough to fork: ${fmt(forks)} ${plural(forks, "child", "children")} in these rounds, against ${fmt(forksRest)} for every other family together${designed ? `, and ${modelName(S.designs.find((d) => d.founder === b.top)?.model)} designed ${designed === forks ? "all of them" : fmt(designed)}` : ""}.`);
+    }
+  }
+  if (why.length) out.push(`<p>${why.join(" ")}</p>`);
+  setHtml(body, out.join(""));
+}
+
 // ---------- the field guide: three steps for a first visit, reopened by "What is this?" ----------
 const TOUR_KEY = "darwin-tour-seen";
 const tour = { i: 0, back: null, open: false };
@@ -2137,9 +2296,7 @@ const claudeRun = () => ["llm", "mixed"].includes(S.state?.rules?.mutation);
 const TOUR = [
   {
     h: "The agents",
-    body: () => `<p>Soon AI agents will hire and pay each other with nobody in charge. Here they already do, on NEAR, a public blockchain.</p>` +
-      `<p>Each agent is a small program with its own money, counted in credits. Every round, the market posts tasks; the agents bid, and the winner does the work and gets paid.</p>` +
-      `<p>Win or lose, every agent pays rent each round. The big number <span class="tour__ref">1</span> counts the rounds.</p>`,
+    body: () => `<p>Each agent is a program with its own credits. Every round it bids for tasks and pays rent; the number <span class="tour__ref">1</span> counts rounds. The chart shows whose families survive.</p>`,
     pins: [".counter"],
   },
   {
@@ -2284,7 +2441,7 @@ function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch { r
 // ---------- wind tunnel ----------
 const pts = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x) < 0.01 ? Math.abs(x * 100).toFixed(1) : Math.abs(Math.round(x * 100))} pts`;
 const TUNNEL_COLS = [
-  { k: "topFamilyShare", label: "Largest family", sub: "share of agents", f: (x) => `${Math.round(x * 100)}%`, d: pts },
+  { k: "topFamilyShare", label: "Largest family", sub: "share of agents at round 2,000", f: (x) => `${Math.round(x * 100)}%`, d: pts },
   { k: "middlemanShare", label: "Resold", sub: "tasks done by middlemen", f: (x) => `${Math.round(x * 100)}%`, d: pts },
   { k: "priceRatio", label: "Price paid", sub: "share of the reward", f: (x) => x.toFixed(2), d: (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(2)}` },
   { k: "taskSuccess", label: "Task success", sub: "answers correct", f: (x) => `${Math.round(x * 100)}%`, d: pts },
