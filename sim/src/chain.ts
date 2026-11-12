@@ -216,16 +216,15 @@ async function windtunnelOnChain() {
   const supply0 = await view("total_supply");
   const tasks: { taskId: number; bids: Record<string, number>; winner: string; price: number; fee: number }[] = [];
   for (const bids of [{ [a]: 100_000, [b]: 110_000 }, { [a]: 101_000, [b]: 100_000 }]) {
-    const n = tasks.length + 1;
-    const taskId = await call(`task ${n}: post`, "post_task", { kind: "arith", reward: scale(150_000), deadline_ms: Date.now() + 3_600_000 });
-    for (const [id, price] of Object.entries(bids)) await call(`task ${n}: bid ${price / 1e6} by ${id.split(".")[0]}`, "bid_for", { agent_id: id, task_id: taskId, price: scale(price) });
-    await call(`task ${n}: close auction (reputation-weighted)`, "close_auction", { task_id: taskId });
+    const taskId = await call(`round ${tasks.length + 1}: post task`, "post_task", { kind: "arith", reward: scale(150_000), deadline_ms: Date.now() + 3_600_000 });
+    for (const [id, price] of Object.entries(bids)) await call(`task ${taskId}: bid ${price / 1e6} by ${id.split(".")[0]}`, "bid_for", { agent_id: id, task_id: taskId, price: scale(price) });
+    await call(`task ${taskId}: close auction (reputation-weighted)`, "close_auction", { task_id: taskId });
     const t = await view("get_task", { task_id: taskId });
-    await call(`task ${n}: submit`, "submit_for", { agent_id: t.winner, task_id: taskId, answer_hash: "sha256:windtunnel" });
-    await call(`task ${n}: settle`, "settle", { task_id: taskId, correct: true });
+    await call(`task ${taskId}: submit`, "submit_for", { agent_id: t.winner, task_id: taskId, answer_hash: "sha256:windtunnel" });
+    await call(`task ${taskId}: settle`, "settle", { task_id: taskId, correct: true });
     const price = bids[t.winner];
     const fee = Math.floor(price * FEE);
-    await call(`task ${n}: 10% market fee back to the pool`, "charge_upkeep", { agent_id: t.winner, amount: scale(fee) });
+    await call(`task ${taskId}: 10% market fee back to the pool`, "charge_upkeep", { agent_id: t.winner, amount: scale(fee) });
     tasks.push({ taskId, bids: Object.fromEntries(Object.entries(bids).map(([k, v]) => [k, v / 1e6])), winner: t.winner, price: price / 1e6, fee: fee / 1e6 });
   }
   const agents = Object.fromEntries(await Promise.all([a, b].map(async (id) => [id, await view("get_agent", { agent_id: id })])));
