@@ -64,7 +64,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .shared { order: 3; flex: 1 1 20rem; min-width: 0; color: var(--color-ink-2); font-size: var(--text-sm); }
 .shared a { color: var(--color-ink); }
 .shared a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.status { order: 3; flex: 0 1 auto; min-width: 0; color: var(--color-ink-2); font-size: var(--text-sm); }
+.status { min-width: 0; color: var(--color-ink-2); font-size: var(--text-xs); margin-top: var(--space-3xs); }
 .status b { color: var(--color-ink); font-weight: 500; }
 .status .shock { color: var(--color-ink); }
 .actions, .transport { order: 1; }
@@ -96,7 +96,8 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 
 /* The record */
 .record { padding-block: var(--space-lg) var(--space-lg); }
-.record__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: var(--space-lg); margin-bottom: var(--space-md); }
+.record__head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; gap: var(--space-lg); margin-bottom: var(--space-md); }
+.record__tools { justify-self: end; }
 .record__tools { display: grid; justify-items: end; gap: var(--space-xs); }
 .counter { display: flex; align-items: baseline; gap: var(--space-xs); line-height: 0.85; }
 .counter__n { font-family: var(--font-display); font-stretch: var(--stretch-display); font-weight: 700; font-size: var(--text-counter); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
@@ -116,6 +117,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .plot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2xs); }
 .lane canvas { width: 100%; height: 16px; }
 .lane--notes canvas { height: 24px; }
+.lane--ai canvas { height: 14px; }
 .plot__well { position: relative; height: clamp(300px, 38vh, 520px); background: var(--color-paper-3); border-radius: 2px; }
 .plot__well canvas { width: 100%; height: 100%; cursor: crosshair; border-radius: 2px; }
 .plot__well canvas:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
@@ -148,7 +150,28 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .key__hint { color: var(--color-ink-2); }
 .key .k-shock { background: var(--color-ink-2); }
 .key .k-guard { width: 3px; height: 12px; background: var(--color-accent); }
-.key .k-other { background: var(--pigment-other); }
+.key .k-other { background: repeating-linear-gradient(135deg, var(--pigment-other) 0 3px, var(--pigment-other-hatch) 3px 4.5px); }
+.key .k-ai { width: 3px; height: 12px; background: var(--color-ai); }
+/* Claude's latest decision: the AI in the swarm, above the fold */
+.ai { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: var(--space-2xs) var(--space-md); margin: 0 0 var(--space-sm); padding: var(--space-xs) var(--space-md); border: 1px solid var(--color-rule-soft); border-left: 3px solid var(--color-ai); border-radius: var(--radius-card); background: var(--color-paper-3); max-width: 72rem; }
+.ai[data-mode="off"] { border-left-color: var(--color-rule); }
+.ai__tag { display: inline-flex; align-items: center; gap: var(--space-xs); padding: 3px var(--space-sm) 3px var(--space-xs); border-radius: var(--radius-pill); background: var(--color-ai); color: var(--color-ai-ink); font: 700 var(--text-sm)/1.2 var(--font-body); white-space: nowrap; }
+.ai[data-mode="off"] .ai__tag { background: var(--color-paper-2); color: var(--color-ink-2); }
+.ai__mark { width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); }
+.ai__body { display: grid; gap: var(--space-3xs); min-width: 0; }
+.ai__line { font-size: var(--text-md); line-height: 1.4; }
+.ai__what { color: var(--color-ink-2); }
+.ai__what .id, .tip .id { font-family: var(--font-mono); font-size: 0.95em; color: var(--color-ink); }
+.ai__why { color: var(--color-ink); font-weight: 500; }
+.ai__meta { font-size: var(--text-xs); color: var(--color-muted); }
+.ai__meta a { color: var(--color-ink-2); }
+.ai.is-new .ai__why { animation: narr-in var(--dur-long) var(--ease-out); }
+/* How to read the chart, right above it */
+.read { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-xs) var(--space-lg); margin: var(--space-sm) 0 var(--space-xs); }
+.read__text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-xs); font-size: var(--text-lg); line-height: 1.3; }
+.read__h { display: inline; font-size: var(--text-lg); line-height: 1.3; }
+.read__text p { color: var(--color-ink); }
+.tip__ai { color: var(--color-ai) !important; }
 .key .k-scar { width: 1px; height: 12px; background: var(--color-ink); }
 .key .k-mono { height: 3px; background: var(--color-ink); }
 .key .k-gens { width: 28px; background: var(--pigment-deep-1); }
@@ -156,7 +179,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 
 /* The first action: two shocks, one tap away */
 .try { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-xs) var(--space-sm); }
-.try__lede { font-family: var(--font-display); font-stretch: var(--stretch-display); font-weight: 700; font-size: var(--text-sm); line-height: 1.2; }
+.try__lede { font-size: var(--text-sm); color: var(--color-muted); line-height: 1.2; }
 /* Shocks are outlined, never the green fill: green is kept for the page's main action. */
 .try .btn { min-height: 36px; gap: var(--space-sm); }
 /* Shocks are open on the shared run: a full-strength outline, so only the cooldown (disabled) reads as unavailable. */
@@ -226,7 +249,8 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .feed .mark--guard::before { background: var(--color-accent); }
 .feed .mark--shock::before { background: var(--color-ink-2); }
 .feed .mark--extinct::before { background: var(--color-error); }
-.feed .mark--llm::before { background: var(--color-ink-3, var(--color-ink-2)); }
+.feed .mark--llm::before { background: var(--color-ai); transform: rotate(45deg) scale(0.9); }
+.spec__llm { padding-left: var(--space-sm); border-left: 3px solid var(--color-ai); color: var(--color-ink); }
 .feed li:not(.quiet) p:not(.mark) { color: var(--color-ink-2); }
 .feed .id { font-family: var(--font-mono); font-size: 0.95em; }
 
@@ -306,8 +330,9 @@ body.touring .bar { position: static; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 body[data-tour-step="3"] .tour__card { width: min(64rem, calc(100% - 2 * var(--gutter))); }
 /* Step 3 points at the chart, its headline and the guard lane: the notes strip folds away so all three clear the card. */
-body[data-tour-step="3"] .lane--notes { display: none; }
-@media (min-width: 60rem) { .tour__watch { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-lg); } }
+body[data-tour-step="3"] .lane--notes, body[data-tour-step="3"] .narr, body[data-tour-step="3"] .read { display: none; }
+body[data-tour-step="3"] .plot__well { height: 240px; }
+@media (min-width: 60rem) { .tour__watch { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-lg); } }
 .tour__nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm); margin-top: var(--space-lg); }
 .tour__go { display: flex; gap: var(--space-xs); }
 
@@ -324,11 +349,10 @@ body[data-tour-step="3"] .lane--notes { display: none; }
 }
 @media (max-width: 60rem) {
   .record__head { grid-template-columns: auto minmax(0, 1fr); }
-  .record__tools { grid-column: 1 / -1; justify-items: start; }
+  .record__tools { grid-column: 1 / -1; justify-items: start; justify-self: stretch; }
   .try, .try__msg, .shock-wait { justify-content: flex-start; text-align: left; }
   .regions { grid-template-columns: minmax(0, 1fr); }
   .figs { grid-template-columns: minmax(0, 1fr); }
-  .status { order: 3; flex-basis: 100%; }
 }
 @media (max-width: 40rem) {
   /* Phones: the chart should start within the first screen. Wordmark and transport share a row, the three
@@ -347,7 +371,9 @@ body[data-tour-step="3"] .lane--notes { display: none; }
   .tour__h { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
   .tour__nav { margin-top: var(--space-sm); }
   .tour__more { display: none; }
-  body[data-tour-step="3"] .plot__well { height: 220px; }
+  body[data-tour-step="3"] .plot__well { height: 150px; }
+  body[data-tour-step="3"] .ai__line { -webkit-line-clamp: 2; }
+  body[data-tour-step="3"] .tour__watch { gap: var(--space-2xs); }
   .tour__body { gap: var(--space-xs); line-height: 1.35; }
   .tour__body { font-size: var(--text-sm); }
   .tour__life div { grid-template-columns: 6.5rem minmax(0, 1fr); }
@@ -357,7 +383,6 @@ body[data-tour-step="3"] .lane--notes { display: none; }
   .transport .btn, .actions .btn, .speed-select { min-height: 32px; padding: 0 var(--space-sm); }
   .actions { order: 1; gap: var(--space-2xs); }
   .transport { order: 1; }
-  .status { order: 4; flex: 1 1 100%; font-size: var(--text-xs); }
   #speed { display: none; }
   .speed-select { display: inline-block; }
   .record { padding-block: var(--space-xs) var(--space-md); }
@@ -369,7 +394,21 @@ body[data-tour-step="3"] .lane--notes { display: none; }
   #mode { flex: none; }
   .try { flex: 1 1 0; min-width: 0; width: auto; gap: var(--space-xs); }
   .try__sub { display: none; }
-  .record__head { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--space-sm); margin-bottom: var(--space-sm); }
+  .try__lede { display: none; }
+  .ai { display: block; padding: var(--space-xs) var(--space-sm); margin-bottom: var(--space-xs); }
+  .ai__tag { display: flex; width: fit-content; margin-bottom: var(--space-2xs); padding: 1px var(--space-xs) 1px 6px; font-size: var(--text-xs); }
+  .ai__mark { width: 6px; height: 6px; }
+  .ai__line { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
+  .ai__meta { display: none; }
+  .read__h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .read { flex-wrap: nowrap; align-items: center; gap: var(--space-sm); }
+  .read__text p { font-size: var(--text-sm); line-height: 1.3; }
+  .ai__line { font-size: var(--text-sm); }
+  .read { margin-top: var(--space-sm); }
+  .read__text, .read__h { font-size: var(--text-md); }
+  .record__head { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-sm); margin-bottom: var(--space-sm); }
+  .record__tools { grid-column: auto; }
+  .counter__of { max-width: 6rem; }
   .counter { flex-direction: row; align-items: baseline; gap: var(--space-sm); line-height: 1; }
   .counter__n { font-size: var(--text-counter); line-height: 0.9; }
   .counter__of { font-size: var(--text-xs); }
@@ -377,7 +416,6 @@ body[data-tour-step="3"] .lane--notes { display: none; }
   .headline { font-size: var(--text-lg); margin-bottom: var(--space-sm); }
   .plot__caption { font-size: var(--text-md); left: var(--space-xs); top: var(--space-xs); }
   .shocks li { grid-template-columns: minmax(0, 1fr); gap: var(--space-xs); }
-  .record__tools { width: 100%; }
   .try .btn { flex: 1 1 0; min-width: 0; padding: 0 var(--space-xs); }
   .gene { grid-template-columns: 7rem minmax(0, 1fr) 3.2rem; }
 }

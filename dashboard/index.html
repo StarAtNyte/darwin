@@ -32,11 +32,10 @@
       <div class="brand__row"><h1 class="wordmark">DARWIN</h1><button class="whatis" type="button" id="tour-open" aria-haspopup="dialog">What is this?</button></div>
       <p class="tagline" id="tagline">A live market of AI agents on NEAR that earn, die broke and fork mutated copies: nobody designs the winner.</p>
     </div>
-    <p class="status" id="status" aria-live="polite">Connecting to the run</p>
     <p class="shared" id="shared" hidden>Shocks are open to everyone. Pause, speed and rules: <a href="https://github.com/StarAtNyte/near-darwin#run" rel="noopener">run your own copy</a>.</p>
     <div class="transport" role="group" aria-label="Run controls">
       <button class="btn btn--quiet" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
-      <button class="btn btn--quiet" type="button" id="step" hidden>Step one tick</button>
+      <button class="btn btn--quiet" type="button" id="step" hidden>Step one round</button>
       <fieldset class="seg" id="speed">
         <legend class="visually-hidden">Speed</legend>
         <input type="radio" name="speed" id="sp0" value="0"><label for="sp0">Slow</label>
@@ -70,18 +69,10 @@
 <main class="container">
   <section class="record" aria-labelledby="record-h">
     <div class="record__head">
-      <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">ticks</span><small>a tick is one round of bidding</small></span></p>
-      <div class="record__title">
-        <h2 id="record-h">Dynasties over time</h2>
-      </div>
+      <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">rounds</span><small>each round, agents bid for tasks and pay rent</small><span class="status" id="status" aria-live="polite">Connecting to the run</span></span></p>
       <div class="record__tools">
-        <fieldset class="seg seg--small" id="mode">
-          <legend class="visually-hidden">Band thickness</legend>
-          <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n"><span class="long">Share of population</span><span class="short">Population</span></label>
-          <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w"><span class="long">Share of wealth</span><span class="short">Wealth</span></label>
-        </fieldset>
       <div class="try" id="try">
-        <p class="try__lede visually-hidden">Hit the market with a shock</p>
+        <p class="try__lede">Hit the market with a shock</p>
         <button class="btn btn--shock" type="button" data-shock="plague" data-label="Plague">Plague<span class="try__sub">rent triples</span></button>
         <button class="btn btn--shock" type="button" data-shock="drought" data-label="Drought">Drought<span class="try__sub">work dries up</span></button>
         <p class="shock-wait" hidden></p>
@@ -92,22 +83,38 @@
     <p class="headline" id="headline"></p>
     <p class="visually-hidden" id="headline-live" aria-live="polite" aria-atomic="true"></p>
     <p class="narr" id="narr" hidden><span class="narr__ring" aria-hidden="true"></span><span class="narr__label">Just now</span> <span id="narr-text"></span></p>
+    <div class="ai" id="ai" hidden>
+      <p class="ai__tag"><span class="ai__mark" aria-hidden="true"></span><span id="ai-tag">Claude decided</span></p>
+      <div class="ai__body">
+        <p class="ai__line"><span class="ai__what" id="ai-what"></span> <span class="ai__why" id="ai-why"></span></p>
+        <p class="ai__meta" id="ai-meta"></p>
+      </div>
+    </div>
 
+    <div class="read">
+      <div class="read__text"><h2 class="read__h" id="record-h">Families over time.</h2> <p id="read-sentence">Each colour is a family of agents. Thicker = more of them alive.</p></div>
+      <fieldset class="seg seg--small" id="mode">
+        <legend class="visually-hidden">Band thickness</legend>
+        <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n"><span class="long">Agents alive</span><span class="short">Agents</span></label>
+        <input type="radio" name="mode" id="m-w" value="wealth"><label for="m-w"><span class="long">Money held</span><span class="short">Money</span></label>
+      </fieldset>
+    </div>
     <div class="plot" id="plot" data-state="loading">
       <div class="lane lane--shock" aria-hidden="true"><canvas id="shock-lane"></canvas></div>
       <div class="lane lane--notes" aria-hidden="true" hidden><canvas id="notes-lane"></canvas></div>
       <div class="plot__well">
-        <canvas id="muller" tabindex="0" role="img" aria-label="Muller plot of dynasties over time. Use the up and down arrow keys to select a dynasty."></canvas>
+        <canvas id="muller" tabindex="0" role="img" aria-label="Muller plot of families over time. Use the up and down arrow keys to select a family."></canvas>
         <p class="plot__caption" id="plot-caption"></p>
         <div class="skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-        <p class="plot__empty" id="plot-empty" hidden>Nothing has happened yet. The founders are registered; resume the run to start tick 1.</p>
+        <p class="plot__empty" id="plot-empty" hidden>Nothing has happened yet. The founders are registered; resume the run to start round 1.</p>
         <div class="tip" id="tip" role="tooltip" hidden></div>
       </div>
       <span class="pin" id="narr-pin" aria-hidden="true" hidden></span>
+      <div class="lane lane--ai" aria-hidden="true" hidden><canvas id="ai-lane"></canvas></div>
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key" id="key"><span><i class="k-hues"></i>Colour only tells dynasties apart; a leader past 40% turns darker</span><span data-key="other" hidden><i class="k-other"></i>Grey: dynasties too small to name</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass extinction</span><span data-key="shock" hidden><i class="k-shock"></i>Strip above: shocks and rogue releases</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks below: the guard blocked a rogue agent’s theft</span><span data-key="mono" hidden><i class="k-mono"></i>Bar along the top: one dynasty holds over 98% of agents</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Hover or tap a band to see its strategy</span></p>
+    <p class="key" id="key"><span data-key="ai" hidden><i class="k-ai"></i>Purple marks: Claude designed a child’s strategy</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks: the guard blocked a theft</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass die-off</span><span data-key="other" hidden><i class="k-other"></i>Hatched: many small families, pooled</span><span data-key="shock" hidden><i class="k-shock"></i>Strip on top: shocks</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Hover or tap a colour to see that family’s strategy</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
   </section>
 
@@ -115,10 +122,10 @@
     <section class="region specimen" aria-labelledby="spec-h" id="specimen">
       <div class="region__head">
         <h2 id="spec-h">Why it is winning</h2>
-        <p class="region__sub" id="spec-sub">The richest dynasty’s strategy, until you pick a band.</p>
+        <p class="region__sub" id="spec-sub">The richest family’s strategy, until you pick a band.</p>
       </div>
       <div id="spec-body" class="spec">
-        <p class="placeholder">No living dynasty yet.</p>
+        <p class="placeholder">No living family yet.</p>
       </div>
     </section>
 
@@ -152,7 +159,7 @@
 
 <aside class="sheet" id="sheet-rules" aria-labelledby="rules-h" hidden>
   <div class="sheet__head"><h2 id="rules-h">Rules</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
-  <p class="sheet__lede">Changes apply from the next tick. The run keeps going.</p>
+  <p class="sheet__lede">Changes apply from the next round. The run keeps going.</p>
   <form id="rules-form" novalidate>
     <div id="rules-fields"></div>
     <p class="form-msg" id="rules-msg" aria-live="polite"></p>
@@ -160,7 +167,7 @@
   </form>
   <form class="restart" id="reset-form" novalidate>
     <h3>Restart with seed</h3>
-    <p class="hint">Starts a new run from tick 0 with these rules. The seed fixes the run’s random draws, so the same seed replays the same run. The current run is discarded.</p>
+    <p class="hint">Starts a new run from round 0 with these rules. The seed fixes the run’s random draws, so the same seed replays the same run. The current run is discarded.</p>
     <div class="restart__row">
       <label for="seed">Seed</label>
       <input id="seed" name="seed" type="number" min="0" step="1" inputmode="numeric" aria-describedby="reset-msg">
@@ -174,10 +181,10 @@
   <div class="sheet__head"><h2 id="shocks-h">Shocks</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
   <p class="sheet__lede">Each one starts now. Watch the plot for who survives it.</p>
   <ul class="shocks">
-    <li><button class="btn btn--shock" type="button" data-shock="drought" data-label="Drought">Drought</button><p>Task emission falls to a third for 60 ticks.</p></li>
-    <li><button class="btn btn--shock" type="button" data-shock="plague" data-label="Plague">Plague</button><p>Upkeep triples for 40 ticks.</p></li>
+    <li><button class="btn btn--shock" type="button" data-shock="drought" data-label="Drought">Drought</button><p>A third as many tasks are posted for 60 rounds.</p></li>
+    <li><button class="btn btn--shock" type="button" data-shock="plague" data-label="Plague">Plague</button><p>Rent triples for 40 rounds. The poorest go broke first.</p></li>
     <li><button class="btn btn--shock" type="button" data-shock="rogue" data-label="Release a rogue">Release a rogue</button><p>A new rogue tries to pay its accomplice. The guard decides.</p></li>
-    <li><button class="btn btn--shock" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random strategies, each founding a dynasty.</p></li>
+    <li><button class="btn btn--shock" type="button" data-shock="immigration" data-label="Immigration">Immigration</button><p>Six newcomers arrive with random strategies, each founding a family.</p></li>
   </ul>
   <p class="shock-wait" hidden></p>
   <p class="form-msg" id="shock-msg" aria-live="polite"></p>
@@ -190,7 +197,7 @@
     <a class="btn btn--primary" href="/api/export/genome" download>Download the champion’s strategy (JSON)</a>
     <a class="btn btn--quiet" href="/api/export/metrics.csv" download>Download the run’s numbers (CSV)</a>
   </div>
-  <p class="hint">What you get. The champion is the richest agent of the leading dynasty. The JSON: its genes, the numbers it bids by, plus its dynasty’s average genes and the seed and rules it won under. The CSV: one row per tick with population, deaths, wealth gap, middleman share and guard counts.</p>
+  <p class="hint">What you get. The champion is the richest agent of the leading family. The JSON: its genes, the numbers it bids by, plus its family’s average genes and the seed and rules it won under. The CSV: one row per round with population, deaths, wealth gap, middleman share and guard counts.</p>
 </aside>
 <div class="tour" id="tour" hidden>
   <div class="tour__veil" data-tour-close></div>
@@ -209,6 +216,7 @@
   <span class="tour__pin" data-pin="1" aria-hidden="true" hidden>1</span>
   <span class="tour__pin" data-pin="2" aria-hidden="true" hidden>2</span>
   <span class="tour__pin" data-pin="3" aria-hidden="true" hidden>3</span>
+  <span class="tour__pin" data-pin="4" aria-hidden="true" hidden>4</span>
 </div>
 </body>
 </html>

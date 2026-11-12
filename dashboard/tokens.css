@@ -52,7 +52,12 @@
   --pigment-deep-4: #149290;  /* cyan */
   --pigment-deep-5: #c4533f;  /* coral */
   /* Dynasties that never pass a small share of the population share one muted band. */
-  --pigment-other: #2a2a2a; /* recedes: background population, not a dynasty */
+  /* A mid grey with a lighter hatch (drawn in app.js): real agents pooled together, never read as missing data. */
+  --pigment-other: #3d3d3b;
+  --pigment-other-hatch: #575754;
+  /* Claude's decisions: NEAR purple, on the lane under the plot, the decision line and the field notes. */
+  --color-ai: #9797ff;
+  --color-ai-ink: #000000;
   /* Task kinds in the specimen drawer: four distinct NEAR hues, green left to the UI signal. */
   --kind-arith: #17d9d4;    /* NEAR cyan */
   --kind-extract: #9797ff;  /* NEAR purple */
