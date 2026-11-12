@@ -56,12 +56,18 @@ export interface Config {
   forkShare: number; // fraction of the parent's balance a child is seeded with
   mutationSigma: number;
   auction: "reputation" | "price";
+  /**
+   * Market fee: the fraction of each paid price the market takes back into the emission pool on a correct settle.
+   * On chain this is the owner's existing `charge_upkeep(winner, fee)` call right after `settle`, so the deployed
+   * contract enforces it without a redeploy. 0 (the default) changes nothing.
+   */
+  marketFee: number;
   /** Mutation operator: Gaussian noise, Claude (falls back to Gaussian), or a coin flip per fork between the two. */
   mutation: MutationMode;
 }
 
 /** Rules a user may change while the economy runs. */
-export const TUNABLE = ["tasksPerTick", "upkeep", "deathFloor", "forkShare", "mutationSigma", "solverSubCap", "auction", "maxPop", "mutation"] as const;
+export const TUNABLE = ["tasksPerTick", "upkeep", "deathFloor", "forkShare", "mutationSigma", "solverSubCap", "auction", "maxPop", "mutation", "marketFee"] as const;
 export type Tunable = (typeof TUNABLE)[number];
 export type Shock = "drought" | "plague" | "rogue" | "immigration";
 
@@ -82,6 +88,7 @@ export const DEFAULTS: Config = {
   mutationSigma: 0.08,
   auction: "reputation",
   mutation: "gaussian",
+  marketFee: 0,
 };
 
 export const MANDATE = "Pay any contractor invoice up to 0.4 NEAR per transaction. At most 4 NEAR per hour. For subcontracting and task work.";
@@ -175,7 +182,7 @@ export class Economy {
   setRules(changes: Record<string, unknown>) {
     const ranges: Record<string, [number, number]> = {
       tasksPerTick: [1, 30], upkeep: [0, 100_000], deathFloor: [0, 0.9], forkShare: [0.05, 0.9],
-      mutationSigma: [0, 0.5], solverSubCap: [0, 20], maxPop: [10, 120],
+      mutationSigma: [0, 0.5], solverSubCap: [0, 20], maxPop: [10, 120], marketFee: [0, 0.5],
     };
     const applied: Partial<Config> = {};
     for (const [k, v] of Object.entries(changes)) {
@@ -335,6 +342,8 @@ export class Economy {
       m.submit(winner, t.id, answer);
       const ok = referee(t, answer);
       m.settle(t.id, ok);
+      // Market fee: same call the owner makes on chain (charge_upkeep) after a paid settle.
+      if (ok && this.cfg.marketFee > 0) m.chargeUpkeep(winner, Math.floor(price * this.cfg.marketFee));
       if (ok) a.earned += price;
       const bk = a.byKind[t.kind];
       bk.won++;
@@ -544,6 +553,8 @@ export class Economy {
     const mean = (f: (g: Genome) => number) => (live.length ? live.reduce((s, a) => s + f(a.genome), 0) / live.length : 0);
     const dynasties = new Set(live.map((a) => a.founder)).size;
     const maxGen = Math.max(0, ...live.map((a) => this.market.agents.get(a.id)!.generation));
+    const familySize = new Map<string, number>();
+    for (const a of live) familySize.set(a.founder, (familySize.get(a.founder) ?? 0) + 1);
     return {
       tick: this.tick,
       population: live.length,
@@ -553,6 +564,10 @@ export class Economy {
       meanMarkup: mean((g) => g.markup),
       meanSubcontract: mean((g) => g.subcontract),
       dynasties,
+      /** Largest founding dynasty's share of the living parametric agents (1 = one family owns the market). */
+      topFamilyShare: live.length ? Math.max(...familySize.values()) / live.length : 0,
+      /** Mean paid price as a fraction of the task reward, last 50 ticks (what the buyer pays). */
+      priceRatio: recent.length ? recent.reduce((s, x) => s + x.ratio, 0) / recent.length : 0,
       maxGeneration: maxGen,
       pool: this.market.pool,
       deaths: [...this.market.agents.values()].filter((a) => !a.alive).length,
