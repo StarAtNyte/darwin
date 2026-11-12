@@ -1,7 +1,8 @@
 // PUBLIC_MODE: the shared run refuses steering (403) and rate-limits shocks globally (429).
-import { test, before, after } from "node:test";
+import { test as baseTest, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
+import net from "node:net";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -13,7 +14,18 @@ const PORT = 18000 + Math.floor(Math.random() * 1000);
 const base = `http://127.0.0.1:${PORT}`;
 let srv: ChildProcess;
 
+// Some sandboxes (e.g. Codex workspace-write) forbid binding any TCP port (listen EPERM). Then this suite cannot
+// run at all, so skip it loudly rather than fail on something the code under test did not do.
+const canListen = await new Promise<boolean>((res) => {
+  const s = net.createServer();
+  s.once("error", () => res(false));
+  s.listen(0, "127.0.0.1", () => s.close(() => res(true)));
+});
+if (!canListen) console.warn("SKIPPED public.test.ts: sandbox forbids listening on TCP ports (EPERM)");
+const test = canListen ? baseTest : ((n: string) => baseTest.skip(n)) as typeof baseTest;
+
 before(async () => {
+  if (!canListen) return;
   srv = spawn(process.execPath, ["--import", "tsx", path.join(here, "../src/main.ts")], {
     cwd: path.join(here, ".."),
     env: { ...process.env, MUTATION_BASE_URL: "", ANTHROPIC_API_KEY: "", PUBLIC_MODE: "1", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "50" },
@@ -26,6 +38,7 @@ before(async () => {
   throw new Error("server did not start");
 });
 after(() => {
+  if (!canListen) return;
   srv.kill("SIGTERM");
   fs.rmSync(dir, { recursive: true, force: true });
 });

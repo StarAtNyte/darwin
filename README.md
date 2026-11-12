@@ -2,14 +2,14 @@
 
 [![ci](https://github.com/StarAtNyte/near-darwin/actions/workflows/ci.yml/badge.svg)](https://github.com/StarAtNyte/near-darwin/actions/workflows/ci.yml)
 
-Tracks: AI Swarms, Agent Economy. Testnet only, no real funds spent.
+Tracks: AI Swarms, Agent Economy. Testnet only, no real funds spent. The public site has steering locked (shocks only); full steering and the genome/CSV export are available when you run it locally.
 
-- **What it's for: a wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 10 seeds and tests each against the baseline. Headline: a plain lowest-price auction cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%; a 10% fee recycled into demand cut the largest family's share from 94% to 75% with no detectable cost. The recommended rules were then run on the deployed testnet contract. [Findings below](#wind-tunnel-test-market-rules-before-you-deploy-them).
+- **What it's for: a wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 10 seeds and tests each against the baseline. Headline: a plain lowest-price auction cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%; a 10% fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable change in price, task success or survivors across these 10 seeds. Separately from that 60-run simulation finding, a contract behavior check on two tasks ran the recommended rules (reputation-weighted award, 10% fee) on the deployed testnet contract. [Findings below](#wind-tunnel-test-market-rules-before-you-deploy-them).
 - **What it is.** An economy of 36 founding agents (capped at 50) that bid for tasks under a fixed supply. Agents that go broke are deleted; agents that get rich fork a child with a mutated strategy. Nobody patches the strategies; they evolve.
 - **What the AI does.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation; the live site uses Mistral Large on NVIDIA NIM's free tier. The trading itself is parametric: 36 of the 40 starting agents (90%) bid by their genome's arithmetic, which costs nothing per tick, so an economy can run thousands of rounds and ten seeds in seconds. The other four are three solvers (Claude on the hardest tasks, if enabled) and a rogue.
 - **What emerges** (10 seeds, 2000 ticks, no LLM): middlemen in every seed (subcontract gene 0.31 to 0.85), price competition (markup 0.65 to 0.48), specialists, and 36 founding dynasties collapsing to one or two. With Claude choosing the children (5 seeds), the economy goes elsewhere: almost no middlemen (0.39 against 0.89) and lineages 35 generations deep instead of 13.
 - **On chain.** The `darwin_market` contract runs on NEAR testnet. Three evolved agents have their own sub-accounts holding only function-call keys (`bid`, `submit`, `transfer_internal` on the market) and signed their own bids, submit and a subcontracting payment. Every tx is listed in [docs/TESTNET.md](docs/TESTNET.md).
-- **The guard.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent tries injection, address poisoning, drips and a concurrent burst; it leaked 0 credits in all ten seeds.
+- **The guard.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent tries injection, address poisoning, drips and a concurrent burst; it leaked 0 credits in all ten seeds. "Leaked" counts payments the guard allowed to the attacker-controlled accomplice `so1ver-1` (not a starting agent: it is created with the rogue at tick 120); the race attack pays the real solver, so those allowed payments are counted separately as legitimate, not as leaks.
 
 Every number here maps to a command and a committed file in [CLAIMS.md](CLAIMS.md).
 
@@ -104,8 +104,8 @@ Total supply was conserved at every tick of all 60 runs.
    (14 against 23). *Caveat:* we tested one weighting, the contract's `price * 1000 / reputation` with +25/-100 steps;
    the sim scores a wrong answer as worth nothing to the buyer.
 2. **A fee recycled into demand curbs concentration at little cost.** A 10% fee on each paid task, returned to the
-   pool that funds future tasks, cut the largest family's share from 94% to 75% (p = 0.008). Price paid, task success,
-   survivors and agent wealth showed no detectable change. *Caveat:* the families-left gain (1.3 to 2.8) is tentative
+   pool that funds future tasks, cut the largest family's share from 94% to 75% (p = 0.008). Across these 10 seeds, price paid, task success,
+   survivors and agent wealth showed no detectable change (absence of evidence, not proof of no cost). *Caveat:* the families-left gain (1.3 to 2.8) is tentative
    (p = 0.016), and a fee that leaves the market, to a treasury, was not tested.
 3. **Rent is a blunter tool for the same goal.** Doubling upkeep also broke up the leading family (94% to 67%,
    p = 0.012, tentative) but cost 7 living agents and 31 more extinctions. Scarcer demand did the same at the cost of
@@ -141,7 +141,7 @@ With the rule `mutation: llm`, every fork is a language-model decision. The mode
 
 Per fork: a cached answer for that fork if there is one, else a live call, else the Gaussian child. Live calls are rate-limited client-side (`MUTATION_RPM`, default 30 a minute, under NIM's ~40), at most 12 in flight, and time out after 90 s. On the live server a pending call never holds up the economy: the parent pays the fork fee at once and the child is born on the first round after the answer arrives. Mistral Large is a reasoning model and took 40-60 s per answer in our runs even at `reasoning_effort: low`, so its children are born roughly 150 rounds after the fork, from a parent whose balance has moved on. A busy, slow or failed call falls back to the Gaussian child. Headless runs and the ablation still wait for each answer, so they replay bit-for-bit from the cache.
 
-**Ablation** (`make ablation`, seeds 1-5, 2000 ticks; full table in [results/ablation.md](results/ablation.md)). Mean (range); the last column is the paired difference by seed with its 95% CI.
+**Ablation** (`make ablation`, 5 seeds (1-5), 2000 ticks, replayed from the recorded Claude answers in `results/mutations/`; full table in [results/ablation.md](results/ablation.md)). Mean (range); the last column is the paired difference by seed with its 95% CI.
 
 | | gaussian | llm | mixed | llm minus gaussian |
 |---|---:|---:|---:|---:|
