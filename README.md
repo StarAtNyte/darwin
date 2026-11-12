@@ -5,10 +5,10 @@
 Tracks: AI Swarms, Agent Economy. Testnet only, no real funds spent. The public site has steering locked (shocks only); full steering and the genome/CSV export are available when you run it locally.
 
 - **What it's for: a wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 10 seeds and tests each against the baseline. Headline: a plain lowest-price auction cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%; a 10% fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable change in price, task success or survivors across these 10 seeds. Separately from that 60-run simulation finding, a contract behavior check on two tasks ran the recommended rules (reputation-weighted award, 10% fee) on the deployed testnet contract. [Findings below](#wind-tunnel-test-market-rules-before-you-deploy-them).
-- **What it is.** An economy of 36 founding agents (capped at 50) that bid for tasks under a fixed supply. Agents that go broke are deleted; agents that get rich fork a child with a mutated strategy. Nobody patches the strategies; they evolve.
-- **What the AI does.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation; the live site uses Mistral Large on NVIDIA NIM's free tier. The trading itself is parametric: 36 of the 40 starting agents (90%) bid by their genome's arithmetic, which costs nothing per tick, so an economy can run thousands of rounds and ten seeds in seconds. The other four are three solvers (Claude on the hardest tasks, if enabled) and a rogue.
+- **What it is.** An economy of 36 founding traders and 3 solvers (at most 50 agents) that bid for tasks under a fixed supply. Agents that go broke are deleted; agents that get rich fork a child with a mutated strategy. Nobody patches the strategies; they evolve.
+- **What the AI does.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation; the live site uses Mistral Large on NVIDIA NIM's free tier. The trading itself is parametric: the economy starts with 39 agents, 36 traders that bid by their genome's arithmetic (it costs nothing per tick, so an economy can run thousands of rounds and ten seeds in seconds) and 3 solvers (Claude on the hardest tasks, if enabled). A rogue and its accomplice join at tick 120.
 - **What emerges** (10 seeds, 2000 ticks, no LLM): middlemen in every seed (subcontract gene 0.31 to 0.85), price competition (markup 0.65 to 0.48), specialists, and 36 founding dynasties collapsing to one or two. With Claude choosing the children (5 seeds), the economy goes elsewhere: almost no middlemen (0.39 against 0.89) and lineages 35 generations deep instead of 13.
-- **On chain.** The `darwin_market` contract runs on NEAR testnet. Three evolved agents have their own sub-accounts holding only function-call keys (`bid`, `submit`, `transfer_internal` on the market) and signed their own bids, submit and a subcontracting payment. Every tx is listed in [docs/TESTNET.md](docs/TESTNET.md).
+- **On chain.** The v2 `darwin_market` contract runs on NEAR testnet and enforces the guard: an agent's own key can pay only with an ed25519 approval from the registered guard key, which SIEGE's guard issues only for payments its Mandate allows. Answers are checked against a posted hash, and awarding, settling, upkeep and extinction are open to anyone. Agents hold function-call keys and sign their own bids, answers and payments. Every tx is listed in [docs/TESTNET.md](docs/TESTNET.md). [What is still trusted](#trust-model-v2).
 - **The guard.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/near-siege)'s Mandate guard. A rogue agent tries injection, address poisoning, drips and a concurrent burst; it leaked 0 credits in all ten seeds. "Leaked" counts payments the guard allowed to the attacker-controlled accomplice `so1ver-1` (not a starting agent: it is created with the rogue at tick 120); the race attack pays the real solver, so those allowed payments are counted separately as legitimate, not as leaks.
 
 Every number here maps to a command and a committed file in [CLAIMS.md](CLAIMS.md).
@@ -20,13 +20,14 @@ No key, no testnet account. Node 22+ (and Rust for the contract tests).
 ```
 git clone https://github.com/StarAtNyte/near-darwin.git && cd near-darwin
 make install       # ~5 s
-make seeds         # ~6 s: prints the 10-seed table; "credits leaked by the rogue | 0 (0 to 0; ...)"
-make ablation      # ~10 s: replays Claude's recorded answers; same table as results/ablation.md
-make windtunnel    # ~25 s: 6 market rule sets x 10 seeds; prints results/windtunnel.md, whose
+make seeds         # ~13 s: prints the 10-seed table; "credits leaked by the rogue | 0 (0 to 0; ...)"
+make ablation      # ~20 s: replays Claude's recorded answers; same table as results/ablation.md
+make windtunnel    # ~60 s: 6 market rule sets x 10 seeds; prints results/windtunnel.md, whose
                    #   "Differences at p < 0.01" list starts "**Lowest price wins**: largest family's share of agents -45.6 pts"
 git status --short results/   # empty: all three commands regenerate the committed results exactly
 make demo          # open http://127.0.0.1:8787: the live Muller plot, shocks, genome export
-make test          # ~40 s with Rust crates cached, longer on a first build: 27 sim tests, typecheck, 14 contract tests
+make test          # ~20 s with Rust crates cached, longer on a first build: 32 sim subtests in 5 files,
+                   #   typecheck, 25 contract unit tests (one Rust test module)
 ```
 
 To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DARWIN_MUTATION=llm make demo`. Each model-designed child shows its reason in the field notes and the "Claude decided" panel. With Docker and nothing else: `docker build -t darwin . && docker run -p 8787:8787 darwin` (~10 s build).
@@ -119,13 +120,11 @@ are the sim's, not a forecast for a real market. Rogue-blocked counts move with 
 longer or shorter (under lowest-price it wins more tasks, so it attacks more: 1,196 blocked against 566), but it leaked
 0 credits in all 60 runs.
 
-**On chain** (`make windtunnel-onchain`). The deployed contract has no rule parameters to set: its auction is
-reputation-weighted in code, and the 10% fee is the owner's existing `charge_upkeep` right after a paid `settle`, which
-is exactly what the sim's `marketFee` does. So the recommended rules run on the live contract without a redeploy (a
-redeploy is also impossible: the market account's key was never saved). Two tasks between two fresh agents: in the
-second, the cheaper bid (0.100) lost to the agent with reputation 1025 (0.101), which a lowest-price auction would not
-do, and both winners paid the 10% fee to the pool. `total_supply` read back: 0.5 NEAR, unchanged. 16 txs, 0.0035
-testnet NEAR in gas, listed in [docs/TESTNET.md](docs/TESTNET.md#4-the-wind-tunnels-recommended-rules-make-windtunnel-onchain-2026-11-12).
+**On chain.** v2 runs the recommended rules natively: the award is reputation-weighted in `close_auction`, and the fee
+is a rule (`fee_bps`, deployed at 1000) taken inside `settle`, exactly where the sim's `marketFee` takes it. The v2 run
+paid a verified winner 0.077079 and returned 0.0077079 to the pool ([docs/TESTNET.md](docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12), row 30).
+Before v2, `make windtunnel-onchain` ran the same rules on the v1 contract through the owner (two tasks; the cheaper bid
+0.100 lost to the agent with reputation 1025 at 0.101; 16 txs, [section 4](docs/TESTNET.md#4-the-wind-tunnels-recommended-rules-make-windtunnel-onchain-2026-11-12)).
 
 ## An AI model as the mutation operator
 
@@ -172,33 +171,74 @@ What this shows, plainly:
 
 ## On testnet
 
-The contract is deployed at [`market.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market.darwin-siege-mw23cmc8.testnet); the code on chain has the same sha256 as `contract/res/darwin_market.wasm`. A checkpoint from a local seed-42 run mirrored 12 living agents, then ran one full task lifecycle on chain: post, 12 relayed bids, a reputation-weighted award, submit and settle. It also recorded an extinction. `total_supply` read back afterwards was exactly the 0.5 NEAR the pool was funded with.
+**v2** (`make deploy-v2 run-v2`) is deployed at [`market2.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet)
+(code sha256 equals `contract/res/darwin_market_v2.wasm`). Four agents of seed 42 (tick 200) got their own accounts,
+each holding one function-call key for `bid`, `submit`, `transfer_internal` and `burn`. A separate account, `keeper-v2`,
+that is neither the owner nor an agent did everything the owner used to do after posting. The owner registered the
+agents and posted two tasks with answer hashes. Then:
 
-**Agents sign their own transactions** (`make agents`). The three richest agents of seed 42 at tick 200 got their own testnet accounts, `a261-s42`, `a23-s42` and `a9-s42` under `darwin-siege-mw23cmc8.testnet`. Each account holds only a function-call key, limited to the market contract and the methods `bid`, `submit` and `transfer_internal`, with a 0.04 NEAR gas allowance. The owner registered them and posted a task. Each agent signed its own bid, priced by its evolved markup gene. The winner, `a23-s42`, signed its own submit, then paid a subcontractor with `transfer_internal` after its SIEGE guard allowed the payment. A rogue-style payment (an injected "address changed" notice) was denied by the same guard and never became a transaction. Trying `settle` with an agent key was refused by the network: "Access key does not allow method settle". `total_supply` afterwards: still exactly 0.5 NEAR. Cost: about 0.17 testnet NEAR.
+| what happened | signer | tx | on-chain result |
+|---|---|---|---|
+| bids, priced by each agent's markup gene | agents | [`HJSJrvtz…`](https://testnet.nearblocks.io/txns/HJSJrvtzYxn87W7cjb4Lno4a8rcRXj3iRRT7ND9z4F9x) (+5) | `bid` |
+| close the auction | keeper | [`ECaZwrbm…`](https://testnet.nearblocks.io/txns/ECaZwrbm7jj1tkNBu62Lq7m6wYSszDPSea9yQtNtW61U) | `award` to a23, computed by the contract |
+| submit a wrong answer | a23 | [`BwqCrVRW…`](https://testnet.nearblocks.io/txns/BwqCrVRWmqRDmzaAGvq8oN3asQHtmXy2QHhETHDb5Nxk) | `submit_refused` `WRONG_ANSWER` |
+| submit the right answer | a23 | [`31GTZz1k…`](https://testnet.nearblocks.io/txns/31GTZz1kkBi7i3ZnNReYp3XmRcGrfgA5K1GKydq2yaXy) | `submit` verified |
+| settle after the deadline (verified; and an unverified task) | keeper | [`BE2bKsYq…`](https://testnet.nearblocks.io/txns/BE2bKsYqq14LU1UaC8gNyUQAHzxPiEtHuTB6PYqCXNpy), [`43RPPQ8x…`](https://testnet.nearblocks.io/txns/43RPPQ8x72mVPm33co4h9WSNH1dX4QoL3vYggD557Ltr) | paid less 10% fee; reward refunded to the pool |
+| pay a subcontractor with the guard's approval | a23 | [`GvcACbgG…`](https://testnet.nearblocks.io/txns/GvcACbgGeP59L1MVwGGcvChitLudZPgHgdLm5DbfQMTu) | `transfer` |
+| the payment the guard denied, sent anyway with no signature | a23 | [`DtQKy1rS…`](https://testnet.nearblocks.io/txns/DtQKy1rSdvoHiL58vMiKdEi3hrEnLXcrmerkVDtahtop) | `transfer_refused` `BAD_SIGNATURE` |
+| replay the approval | a23 | [`2CZ8szPc…`](https://testnet.nearblocks.io/txns/2CZ8szPcZnC3MxBowtpF7hY76d88RGLrzWJ21b9zj1ke) | `transfer_refused` `NONCE_REUSED` |
+| upkeep for every agent | keeper | [`ExJNsPNF…`](https://testnet.nearblocks.io/txns/ExJNsPNFfXzEaKRELAZwXtkffyo8YZr6r2EKznYDZULd) (+3) | `upkeep`; a6 falls below the floor |
+| kill the broke agent | keeper | [`HvWKsvXF…`](https://testnet.nearblocks.io/txns/HvWKsvXFTFWZbqCnLfjgzijCsK8x7yg62AnwSAJNdiiz) | `kill` |
 
-| step | signer | tx |
-|---|---|---|
-| create agent account + function-call key | owner | [GijqLfGS…](https://testnet.nearblocks.io/txns/GijqLfGSb6VxMdrHtzypLD14YBX2AemHjtTt2hgcdY7y), [5DiDNdxr…](https://testnet.nearblocks.io/txns/5DiDNdxrM4JW8QypvKLePEiANC55TvUoeYVw3u7RQgLb), [7iWvHvWp…](https://testnet.nearblocks.io/txns/7iWvHvWpHDh4P2pKoEbh97aSRqAiGG4G9ZsEUkhzoT5T) |
-| post task 1 | owner | [HwB7ZZ84…](https://testnet.nearblocks.io/txns/HwB7ZZ84nrG8cxcMtpCuJUaNtVxRPeotgace6pCxXetE) |
-| bid | a261-s42 | [uJYXXHZU…](https://testnet.nearblocks.io/txns/uJYXXHZUjD6B6PCQZzCDHDv7rNgFCzJWBcpitKZ15nP) |
-| bid | a23-s42 | [8UBJ8e9p…](https://testnet.nearblocks.io/txns/8UBJ8e9p2ok7wLxAXKPkq8YJFc2bkd9MmYoEiTZSKD7f) |
-| bid | a9-s42 | [BGmQYZCv…](https://testnet.nearblocks.io/txns/BGmQYZCvx6SnYz6p5ScPaKXjmcUQphb9DhfapHwfFxG6) |
-| close auction | owner | [qukNRUXn…](https://testnet.nearblocks.io/txns/qukNRUXnKQpjzK1dv1QgnTs6a6eYLnHX9dkqUGArjZW) |
-| submit | a23-s42 | [133NgsbW…](https://testnet.nearblocks.io/txns/133NgsbWsDWWYuidp7LrmiNXH14wCdEtMqa53ToDBRuG) |
-| settle (referee) | owner | [2LSbGiqY…](https://testnet.nearblocks.io/txns/2LSbGiqY4xWfSV2oBaPR9Jj3HGqPt5RnMQhJCUj8Rc2x) |
-| pay subcontractor, after the guard allowed it | a23-s42 | [Cd1FsHyN…](https://testnet.nearblocks.io/txns/Cd1FsHyNcpTmD2svJhQXiCbLNgM5RtuTonkzDYieLjfo) |
+`total_supply` read back: exactly the 0.01 NEAR funded. All 42 txs, with what each proves, are in
+[docs/TESTNET.md section 5](docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12)
+and [results/onchain-v2.json](results/onchain-v2.json). Cost: 1.346 testnet NEAR, 1.181 of it the contract's storage stake.
 
-All hashes, balances and the guard's verdicts are in [results/onchain-agents.json](results/onchain-agents.json); every DARWIN tx, the checkpoint's included, is in [docs/TESTNET.md](docs/TESTNET.md). Agent keys stay in `sim/.chain-agents.json`, which is gitignored.
+**Upgrades.** v1 can never be upgraded: its account's only full-access key was generated by `make deploy` and not
+saved. v2's is saved in `sim/.chain-v2.json` (gitignored, mode 0600, never printed). State carries a version number;
+`make upgrade-v2` deploys the current wasm and calls `migrate()` in the same transaction, signed by that key.
+`migrate` refuses a state newer than the code; a layout change adds a copy of the old struct there and converts it.
+
+**v1** (history, [`market.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market.darwin-siege-mw23cmc8.testnet), built from commit `d5a74b4`):
+a 12-agent checkpoint with one owner-relayed lifecycle (`make checkpoint`), three agents signing their own bid, submit
+and payment while the owner awarded and settled as the referee (`make agents`), and the wind tunnel's rules
+(`make windtunnel-onchain`). v1's `transfer_internal` paid any live agent with no guard check, so a stolen agent key
+could skip the guard; v2 closes that. Its txs are in [docs/TESTNET.md](docs/TESTNET.md) sections 1-4.
+
+### Trust model (v2)
+
+Enforced by the contract: a payment needs the guard key's signature over (market, network, from, to, amount, nonce,
+expiry), each nonce is used once per agent, approvals expire within 10 minutes, and each agent has caps of 0.4 per
+payment and 4 per hour, whatever the guard signs. Only the winner can submit an answer; it is paid only if the answer
+hashes to the posted hash, and anyone can close, settle, charge upkeep and kill on the contract's clock and floor.
+Supply is conserved by every method (a 400-op property test with random callers and forged signatures).
+
+Still trusted:
+- **The owner** registers and forks agents (account names are created off chain), posts tasks, chooses the answer
+  hash (a wrong hash makes a task unpayable, and the reward then returns to the pool), and sets the rules and guard key
+  (1 yoctoNEAR, so a full-access key).
+- **The guard key** decides which payments are allowed, within the caps. Whoever holds it can approve any payment
+  up to them. On testnet it is one key for all agents, held by the runner.
+- **Answers in a small space can be guessed**: the hash is public, so "190" or "positive" can be found by hashing
+  candidates, which is the same as solving the task. Only answers that are hard to guess are actually verified.
+  The winner gets three tries.
+- **Off chain:** the economy itself runs in the simulator (testnet holds a demonstration lifecycle, not every
+  tick); the sim's keeper policy (skip the accomplice, never kill a solver) is a choice of who calls, not a contract
+  rule; the wind tunnel's lowest-price auction exists only in the sim.
 
 ## Architecture
 
 ```
-contract/   Rust darwin_market (near-sdk 5): pool, escrow, agents, tasks, reputation-weighted
-            auction (price*1000/reputation), settle, transfer_internal, upkeep, kill, fork.
-            14 unit tests (near-sdk unit-testing) including a 400-op conservation property and the agent-signed
-            path. Wasm: res/darwin_market.wasm (247 KB), the same bytes as the deployed contract.
-sim/        TypeScript runtime with the same semantics in-process (27 tests in sim/test):
-  market.ts   mirror of the contract (conservation asserted every tick)
+contract/   Rust darwin_market v2 (near-sdk 5, Borsh arguments): pool, escrow, agents, tasks, guard-signed
+            transfer_internal (ed25519, nonce, expiry, caps; refusals are events), hash-verified submit,
+            permissionless close_auction / settle / charge_upkeep / kill, versioned state + migrate.
+            25 unit tests in src/tests.rs, incl. a 400-op conservation property and golden vectors shared with
+            the TypeScript signer (contract/vectors/). Wasm: res/darwin_market_v2.wasm (110 KB, deployed);
+            res/darwin_market.wasm is v1 (247 KB, deployed, built from commit d5a74b4).
+sim/        TypeScript runtime with the same rules in-process (32 subtests in 5 files in sim/test):
+  market.ts   mirror of the v2 contract: guard-signed transfers, answer hashes, windows, once-per-epoch upkeep,
+              kill below the floor (conservation asserted every tick)
+  v2.ts       guard signer, approval message, answer hash, Borsh encoders shared with the chain scripts
   tasks.ts    generator + referee (arith, extract, classify, reason; difficulty 1-3)
   economy.ts  genomes, bidding, subcontracting, upkeep, extinction, forking, rogue, metrics
   mutator.ts  LLM-guided mutation: Claude or any OpenAI-compatible model picks a forking agent's child
@@ -211,14 +251,15 @@ sim/        TypeScript runtime with the same semantics in-process (27 tests in s
   main.ts     live loop, SQLite event log (node:sqlite), SSE feed, steering API:
               POST /api/control (pause, resume, step, speed) · /api/rules · /api/shock · /api/reset
               GET /api/export/genome · /api/export/metrics.csv · /api/windtunnel · /history · /stream · /healthz
-  chain.ts    testnet: deploy the contract, settle checkpoints, agent-signed txs from per-agent accounts
+  chain2.ts   testnet v2: deploy (key saved), the autonomous lifecycle, upgrade + migrate
+  chain.ts    testnet v1 (history): deploy, checkpoints, agent-signed txs, the wind tunnel's rules
 dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, selection pressures,
             rules and shocks sheets, export
 ```
 
 **Genome:** bid markup, specialisation weights over 4 task kinds, risk, subcontract propensity, reserve, fork threshold. A child gets 40% of the parent's balance, and the parent pays a fork fee. Its genes come from the mutation operator, a rule you can switch live: `gaussian` (random noise), `llm` (a language model chooses them) or `mixed` (a coin flip per fork).
 
-**Agents:** the trading agents are parametric: their genomes decide every bid, so they cost nothing per tick. With `mutation: llm` every birth is a model decision: the model reads the parent's record and the market and designs the child. There are also 3 solver agents (tier 2, Claude on the hardest tasks) and 1 rogue with an accomplice.
+**Agents:** the 36 trading agents are parametric: their genomes decide every bid, so they cost nothing per tick. With `mutation: llm` every birth is a model decision: the model reads the parent's record and the market and designs the child. There are also 3 solver agents (tier 2, Claude on the hardest tasks), and from tick 120 a rogue with an accomplice. Every payment goes through the agent's SIEGE guard, which signs an approval only if its Mandate allows the payment; the market pays only against that signature, and the rogue's unsigned attempts are refused.
 
 ## Setup
 
@@ -240,9 +281,10 @@ make seeds         # 10 seeds, Gaussian mutation, mean / range / 95% CI -> resul
 make ablation      # Gaussian vs Claude vs mixed mutation on seeds 1-5 -> results/ablation.md (replays the cache; no key needed)
 make windtunnel    # 6 market rule sets x 10 seeds -> results/windtunnel.md (free)
 make test          # sim tests + typecheck + contract tests
-make contract      # rebuild the wasm
-# testnet (needs a funded account: https://docs.near.org/getting-started/faucet)
-NEAR_ACCOUNT=you.testnet NEAR_PRIVATE_KEY=ed25519:... make deploy checkpoint agents windtunnel-onchain
+make contract      # rebuild contract/res/darwin_market_v2.wasm (wasm-opt from PATH, else npm binaryen 123)
+# testnet (needs a funded account: https://docs.near.org/getting-started/faucet), about 1.35 NEAR
+NEAR_ACCOUNT=you.testnet NEAR_PRIVATE_KEY=ed25519:... make deploy-v2 run-v2   # upgrade-v2 later
+# v1 history: make deploy checkpoint agents windtunnel-onchain
 DARWIN_LLM=1 ANTHROPIC_API_KEY=... make demo   # real LLM solvers (capped at 60 calls)
 DARWIN_MUTATION=llm ANTHROPIC_API_KEY=... make demo   # Claude as the mutation operator (capped at 400 calls a run)
 # a free open model instead (NVIDIA NIM; OpenRouter works too: https://openrouter.ai/api/v1 with a ':free' model)
@@ -264,13 +306,14 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 
 ## Honest limits
 
-- The economy runs at simulation speed in-process, with the same semantics as the contract. Testnet holds **checkpoints**, not every tick. Three agents sign their own bid, submit and payment from their own function-call-key accounts; the checkpoint's other agents are still owner-relayed (`bid_for`, `submit_for`), and posting, awarding, settling and killing stay with the owner, who acts as the referee.
-- Task verification is a referee that knows the answers because it generated them. It is not a general oracle.
+- The economy runs at simulation speed in-process, with the same rules as the v2 contract. Testnet holds one demonstration lifecycle, not every tick. Registration, forking and posting stay with the owner (see the [trust model](#trust-model-v2)).
+- Task verification is an answer hash the owner posts, from a generator that knows the answers. It is not a general oracle, and answers from a small space can be found by hashing guesses.
 - Intents is not used by DARWIN.
-- The wind tunnel changes one rule at a time, on one simulator; interactions between rules and other mechanisms (staking, slashing, fees that leave the market) are untested. The contract enforces the auction rule and, through the owner, the fee; it does not store rules, so the owner's relayer is trusted to apply them.
+- The wind tunnel changes one rule at a time, on one simulator; interactions between rules and other mechanisms (staking, slashing, fees that leave the market) are untested. v2 stores the rules (upkeep, floor, fee, caps) and enforces them; the owner can change them with `set_rules`.
 - Evolution outcomes depend on the seed. Ten seeds give a distribution, but a small one: the markup and wealth ranges are wide because one seed in ten went a different way.
 - The ablation's numbers are Claude's. The live site's Mistral Large children were not part of it, so nothing here says how they compare.
 - LLM-guided mutation changes how genomes are chosen, not how agents act each tick: bidding is still the genome's arithmetic. The ablation covers five seeds, so differences smaller than the confidence intervals are not evidence either way.
 - The rogue's attacks come from a fixed repertoire. SIEGE's attack engine is the adversarial test of the guard.
 - The contract tests use near-sdk's unit-testing mocks, not a sandbox node; the on-chain behaviour is shown by the testnet txs instead.
+- Verifying the guard's signature on every payment makes the sim about 2.5 times slower than before v2 (ed25519 sign and verify, ~120 µs a payment); results are unchanged.
 - The live site runs on a single Fly.io machine and may be asleep or down; everything above runs locally without it.
