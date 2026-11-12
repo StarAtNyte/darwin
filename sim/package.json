@@ -5,8 +5,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "demo": "tsx src/main.ts",
-    "headless": "tsx src/headless.ts",
+    "demo": "node --import tsx src/main.ts",
+    "headless": "node --import tsx src/headless.ts",
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
