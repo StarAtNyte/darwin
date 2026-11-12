@@ -189,8 +189,62 @@ async function agentSigned(ticks: number, n: number) {
   console.log(`winner ${winner.id}; guard: subcontract ${pay.verdict}, rogue ${rogue.verdict}; settle with agent key: ${keyScope}`);
 }
 
+// windtunnel: the wind tunnel's recommended rule set (reputation-weighted auction + 10% market fee) applied to the
+// deployed contract. The contract stores no rule parameters: its auction is reputation-weighted in code, and a fee is
+// the owner's existing charge_upkeep call right after a paid settle (the same thing economy.ts does), so this needs
+// no redeploy. Two owner-relayed tasks: in task 2 the cheaper bid loses to the agent that earned reputation in task 1,
+// which a lowest-price auction would not do. Reads total_supply back. Tx hashes -> results/onchain-windtunnel.json.
+const WT_LOG = path.resolve(here, "../../results/onchain-windtunnel.json");
+async function windtunnelOnChain() {
+  const me = owner();
+  const provider = new JsonRpcProvider({ url: RPC });
+  const { marketId } = JSON.parse(fs.readFileSync(STATE, "utf8"));
+  const scale = (micro: number) => (BigInt(micro) * 10n ** 12n).toString();
+  const FEE = 0.1;
+  const txs: { step: string; method: string; hash: string }[] = [];
+  const call = async (step: string, methodName: string, args: Record<string, unknown>) => {
+    const r: any = await me.callFunctionRaw({ contractId: marketId, methodName, args, gas: 50_000_000_000_000n });
+    txs.push({ step, method: methodName, hash: hashOf(r) });
+    const v = r?.status?.SuccessValue;
+    return v ? JSON.parse(Buffer.from(v, "base64").toString()) : undefined;
+  };
+  const view = (method: string, args: Record<string, unknown> = {}): Promise<any> => provider.callFunction({ contractId: marketId, method, args });
+  const before = await provider.viewAccount({ accountId: me.accountId });
+  const tag = Date.now().toString(36);
+  const [a, b] = [`wt-a-${tag}.${marketId}`, `wt-b-${tag}.${marketId}`];
+  for (const id of [a, b]) await call(`register ${id.split(".")[0]}`, "register_agent", { agent_id: id, parent: null, seed: scale(200_000) });
+  const supply0 = await view("total_supply");
+  const tasks: { taskId: number; bids: Record<string, number>; winner: string; price: number; fee: number }[] = [];
+  for (const bids of [{ [a]: 100_000, [b]: 110_000 }, { [a]: 101_000, [b]: 100_000 }]) {
+    const n = tasks.length + 1;
+    const taskId = await call(`task ${n}: post`, "post_task", { kind: "arith", reward: scale(150_000), deadline_ms: Date.now() + 3_600_000 });
+    for (const [id, price] of Object.entries(bids)) await call(`task ${n}: bid ${price / 1e6} by ${id.split(".")[0]}`, "bid_for", { agent_id: id, task_id: taskId, price: scale(price) });
+    await call(`task ${n}: close auction (reputation-weighted)`, "close_auction", { task_id: taskId });
+    const t = await view("get_task", { task_id: taskId });
+    await call(`task ${n}: submit`, "submit_for", { agent_id: t.winner, task_id: taskId, answer_hash: "sha256:windtunnel" });
+    await call(`task ${n}: settle`, "settle", { task_id: taskId, correct: true });
+    const price = bids[t.winner];
+    const fee = Math.floor(price * FEE);
+    await call(`task ${n}: 10% market fee back to the pool`, "charge_upkeep", { agent_id: t.winner, amount: scale(fee) });
+    tasks.push({ taskId, bids: Object.fromEntries(Object.entries(bids).map(([k, v]) => [k, v / 1e6])), winner: t.winner, price: price / 1e6, fee: fee / 1e6 });
+  }
+  const agents = Object.fromEntries(await Promise.all([a, b].map(async (id) => [id, await view("get_agent", { agent_id: id })])));
+  const after = await provider.viewAccount({ accountId: me.accountId });
+  const out = {
+    at: new Date().toISOString(), marketId,
+    rules: { auction: "reputation (price * 1000 / reputation, in the contract's close_auction)", marketFee: FEE, source: "results/windtunnel.md" },
+    tasks, agents, totalSupplyBefore: supply0, totalSupplyAfter: await view("total_supply"),
+    ownerSpentNear: Number(BigInt(before.amount) - BigInt(after.amount)) / 1e24,
+    txs,
+  };
+  fs.writeFileSync(WT_LOG, JSON.stringify(out, null, 2) + "\n");
+  for (const t of txs) console.log(`${t.step.padEnd(48)} ${t.hash}`);
+  console.log(`task winners: ${tasks.map((t) => `${t.winner.split(".")[0]} at ${t.price}`).join(", ")}; total_supply ${out.totalSupplyBefore} -> ${out.totalSupplyAfter}; owner spent ${out.ownerSpentNear.toFixed(4)} NEAR`);
+}
+
 const [cmd, arg, arg2] = process.argv.slice(2);
 if (cmd === "deploy") await deploy();
 else if (cmd === "checkpoint") await checkpoint(Number(arg ?? 300));
 else if (cmd === "agents") await agentSigned(Number(arg ?? 200), Number(arg2 ?? 3));
-else console.log("usage: chain.ts deploy | checkpoint [ticks] | agents [ticks] [n]");
+else if (cmd === "windtunnel") await windtunnelOnChain();
+else console.log("usage: chain.ts deploy | checkpoint [ticks] | agents [ticks] [n] | windtunnel");

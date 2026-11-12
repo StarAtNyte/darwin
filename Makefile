@@ -1,5 +1,5 @@
 
-.PHONY: sync-siege install demo headless seeds ablation windtunnel test contract deploy checkpoint agents
+.PHONY: sync-siege install demo headless seeds ablation windtunnel test contract deploy checkpoint agents windtunnel-onchain
 install:
 	cd sim && npm install
 sync-siege:      ## refresh vendor/siege from a SIEGE checkout (default ../siege)
@@ -25,3 +25,5 @@ checkpoint:
 	cd sim && npx tsx src/chain.ts checkpoint 300
 agents:          ## agent-signed txs: per-agent testnet accounts with function-call keys (needs NEAR_ACCOUNT + NEAR_PRIVATE_KEY)
 	cd sim && npx tsx src/chain.ts agents 200 3
+windtunnel-onchain: ## the wind tunnel's recommended rules (reputation auction + 10% fee) on the deployed contract (needs NEAR_ACCOUNT + NEAR_PRIVATE_KEY)
+	cd sim && npx tsx src/chain.ts windtunnel

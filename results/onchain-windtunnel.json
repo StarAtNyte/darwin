@@ -1,0 +1,136 @@
+{
+  "at": "2026-11-12T07:33:32.219Z",
+  "marketId": "market.darwin-siege-mw23cmc8.testnet",
+  "rules": {
+    "auction": "reputation (price * 1000 / reputation, in the contract's close_auction)",
+    "marketFee": 0.1,
+    "source": "results/windtunnel.md"
+  },
+  "tasks": [
+    {
+      "taskId": 2,
+      "bids": {
+        "wt-a-mwd8b517.market.darwin-siege-mw23cmc8.testnet": 0.1,
+        "wt-b-mwd8b517.market.darwin-siege-mw23cmc8.testnet": 0.11
+      },
+      "winner": "wt-a-mwd8b517.market.darwin-siege-mw23cmc8.testnet",
+      "price": 0.1,
+      "fee": 0.01
+    },
+    {
+      "taskId": 3,
+      "bids": {
+        "wt-a-mwd8b517.market.darwin-siege-mw23cmc8.testnet": 0.101,
+        "wt-b-mwd8b517.market.darwin-siege-mw23cmc8.testnet": 0.1
+      },
+      "winner": "wt-a-mwd8b517.market.darwin-siege-mw23cmc8.testnet",
+      "price": 0.101,
+      "fee": 0.0101
+    }
+  ],
+  "agents": {
+    "wt-a-mwd8b517.market.darwin-siege-mw23cmc8.testnet": {
+      "balance": "380900000000000000",
+      "reputation": 1050,
+      "alive": true,
+      "parent": null,
+      "generation": 0,
+      "wins": 2,
+      "losses": 0
+    },
+    "wt-b-mwd8b517.market.darwin-siege-mw23cmc8.testnet": {
+      "balance": "200000000000000000",
+      "reputation": 1000,
+      "alive": true,
+      "parent": null,
+      "generation": 0,
+      "wins": 0,
+      "losses": 0
+    }
+  },
+  "totalSupplyBefore": "500000000000000000000000",
+  "totalSupplyAfter": "500000000000000000000000",
+  "ownerSpentNear": 0.0035220703595754,
+  "txs": [
+    {
+      "step": "register wt-a-mwd8b517",
+      "method": "register_agent",
+      "hash": "GLVgULa3BULhmzpvPxvYGvhw8oT2fxuXXRandLdWRnLE"
+    },
+    {
+      "step": "register wt-b-mwd8b517",
+      "method": "register_agent",
+      "hash": "7CrheYb9UrSiUwc1s7QPQPraqLKwYBmrbBpvYMXHTJuF"
+    },
+    {
+      "step": "task 1: post",
+      "method": "post_task",
+      "hash": "D6vyhxyCJfEL8Y6NzPjWj8cNx5KEtQLc7Rp38Hx3tX4s"
+    },
+    {
+      "step": "task 1: bid 0.1 by wt-a-mwd8b517",
+      "method": "bid_for",
+      "hash": "DSki696roSMnDpuWGFWemg8dWFT5PiL87jRKToDvoVVF"
+    },
+    {
+      "step": "task 1: bid 0.11 by wt-b-mwd8b517",
+      "method": "bid_for",
+      "hash": "6B9nVpe4fGYECeYq1d2hAXMTDV5kDPX6Pxu84LRyx7j8"
+    },
+    {
+      "step": "task 1: close auction (reputation-weighted)",
+      "method": "close_auction",
+      "hash": "7duJyojp7BoVU5L9dKeM2mAUqToGpS3tPSPd7jdHzMBC"
+    },
+    {
+      "step": "task 1: submit",
+      "method": "submit_for",
+      "hash": "8p1VrvTd53vZ3vnuHJF9WZ5ZbjsMBvwT2bZU4cuwBm3U"
+    },
+    {
+      "step": "task 1: settle",
+      "method": "settle",
+      "hash": "Bun2MBevx5dyrpBzMew7n4NF5YGK1UTt8K8PQcYcByne"
+    },
+    {
+      "step": "task 1: 10% market fee back to the pool",
+      "method": "charge_upkeep",
+      "hash": "3o83xNA3XTaStCRP1SnVb5YSh4XKofvtHwbyGiLe2j8i"
+    },
+    {
+      "step": "task 2: post",
+      "method": "post_task",
+      "hash": "77u3KqZixhmTFPbHeG2J81Mm7DaQKNkh19g1No88BTmJ"
+    },
+    {
+      "step": "task 2: bid 0.101 by wt-a-mwd8b517",
+      "method": "bid_for",
+      "hash": "296fcqqwGmnxMey7XCixPt5Fkqn5wBcEwewpnrRbhMi9"
+    },
+    {
+      "step": "task 2: bid 0.1 by wt-b-mwd8b517",
+      "method": "bid_for",
+      "hash": "DZLhqfSAaCccqEA2XbAmeZMEK5sF95a17KdzkrC3BGjh"
+    },
+    {
+      "step": "task 2: close auction (reputation-weighted)",
+      "method": "close_auction",
+      "hash": "F2QWiERjs9TFT4mvWqHwernTxHnSjrV2HMCq7GTnkpPJ"
+    },
+    {
+      "step": "task 2: submit",
+      "method": "submit_for",
+      "hash": "BfKZ3t5s49XnkWGMDyFDbwAKBXUCbMmDGFajBAkZQfUy"
+    },
+    {
+      "step": "task 2: settle",
+      "method": "settle",
+      "hash": "56bKF4Sky8cWfe74drSWTHLFQLkti6mb81GSTRJSEX4P"
+    },
+    {
+      "step": "task 2: 10% market fee back to the pool",
+      "method": "charge_upkeep",
+      "hash": "52AoXKRwWRMzUhe8Hka4y2GkBo1jPSxVciTxo6SvjcZN"
+    }
+  ]
+}
