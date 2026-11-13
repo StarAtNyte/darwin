@@ -811,7 +811,7 @@ function otherPattern(c) {
   hatch = { key, p: c.createPattern(t, "repeat") };
   return hatch.p;
 }
-function labelOther(c, b, h) {
+function labelOther(c, b, h, pin) {
   const { samples, x, otherCount, otherShare } = geo;
   // Label from the left edge (the newest rounds, on the right, carry the narration pin), at the latest sample
   // where the band is tall enough for one line of text.
@@ -825,12 +825,20 @@ function labelOther(c, b, h) {
   const brief = `${fmt(n)} small ${plural(n, "family", "families")}, ${Math.round(otherShare[si] * 100)}%`;
   c.save();
   c.font = `600 12px ${T.body}`;
-  const room = geo.w - 2 * left;
-  const text = c.measureText(full).width + 12 <= room ? full : brief;
-  const tw = c.measureText(text).width + 12;
-  if (tw > room + 8) { c.restore(); return; }
   const cy = ((b.y0[si] + b.y1[si]) / 2) * h;
-  const rx = left;
+  // Where the label may go: at the left edge, or, when the narration pin sits on that line, wholly to one side of
+  // it (R px clear of its pulse). The full wording first, then the brief one.
+  const R = 14;
+  const hitsPin = pin && Math.abs(pin.y - cy) < 9 + R;
+  let text = null, rx = left;
+  for (const t of [full, brief]) {
+    const tw = c.measureText(t).width + 12;
+    const spots = !hitsPin ? [left] : [left, pin.x + R].filter((x0) => x0 + tw <= pin.x - R || x0 >= pin.x + R);
+    const at = spots.find((x0) => x0 >= 0 && x0 + tw <= geo.w - 2);
+    if (at !== undefined) { text = t; rx = at; break; }
+  }
+  if (!text) { c.restore(); return; }
+  const tw = c.measureText(text).width + 12;
   c.fillStyle = T.paper;
   c.globalAlpha = 0.8;
   c.beginPath();
@@ -974,7 +982,6 @@ function drawPlot() {
     c.globalAlpha = S.hover && S.hover !== f ? 0.78 : 1;
     c.fill();
     c.globalAlpha = 1;
-    if (f === OTHER) labelOther(c, b, h);
     c.lineWidth = 0.75;
     c.strokeStyle = T["paper-3"];
     c.stroke();
@@ -1003,35 +1010,6 @@ function drawPlot() {
       c.stroke();
       c.restore();
     }
-  }
-
-  // Direct labels: each named family's name and true share now, at the right edge of its band when it fits.
-  {
-    const lastLin = S.metrics[n - 1].lineages || {};
-    let tot = 0;
-    for (const f in lastLin) tot += valueOf(lastLin[f], S.mode);
-    c.save();
-    c.font = `600 12px ${T.body}`;
-    c.textBaseline = "middle";
-    c.textAlign = "right";
-    for (const f of order) {
-      if (f === OTHER || !lastLin[f] || !tot) continue;
-      const b = bands.get(f);
-      const hh = (b.y1[lastSi] - b.y0[lastSi]) * h;
-      if (hh < 15) continue;
-      const text = `${short(f)} ${Math.round((valueOf(lastLin[f], S.mode) / tot) * 100)}%`;
-      const tw = c.measureText(text).width + 10;
-      const cy = ((b.y0[lastSi] + b.y1[lastSi]) / 2) * h;
-      c.fillStyle = T.paper;
-      c.globalAlpha = 0.72;
-      c.beginPath();
-      c.roundRect(w - tw - 22, cy - 9, tw, 18, 2);
-      c.fill();
-      c.globalAlpha = 1;
-      c.fillStyle = T.ink;
-      c.fillText(text, w - 27, cy + 0.5);
-    }
-    c.restore();
   }
 
   // The squeezed opening: a hairline where the scale turns linear, at the round the families diverged.
@@ -1112,6 +1090,37 @@ function drawPlot() {
   // another note or a leader is dropped.
   drawNotes(turningPoints(sc), xt);
 
+  // Labels go on last, so no hairline (the squeezed opening, a scar) ever runs through their text.
+  // Direct labels: each named family's name and true share now, at the right edge of its band when it fits.
+  {
+    const lastLin = S.metrics[n - 1].lineages || {};
+    let tot = 0;
+    for (const f in lastLin) tot += valueOf(lastLin[f], S.mode);
+    c.save();
+    c.font = `600 12px ${T.body}`;
+    c.textBaseline = "middle";
+    c.textAlign = "right";
+    for (const f of order) {
+      if (f === OTHER || !lastLin[f] || !tot) continue;
+      const b = bands.get(f);
+      const hh = (b.y1[lastSi] - b.y0[lastSi]) * h;
+      if (hh < 15) continue;
+      const text = `${short(f)} ${Math.round((valueOf(lastLin[f], S.mode) / tot) * 100)}%`;
+      const tw = c.measureText(text).width + 10;
+      const cy = ((b.y0[lastSi] + b.y1[lastSi]) / 2) * h;
+      c.fillStyle = T.paper;
+      c.globalAlpha = 0.72;
+      c.beginPath();
+      c.roundRect(w - tw - 22, cy - 9, tw, 18, 2);
+      c.fill();
+      c.globalAlpha = 1;
+      c.fillStyle = T.ink;
+      c.fillText(text, w - 27, cy + 0.5);
+    }
+    c.restore();
+  }
+
+
   // Guard lane: every tick the guard blocked a payment, in the signal colour.
   // Ticks closer than a few pixels merge into the one already drawn, so a busy stretch reads as a row of marks,
   // not a solid smear (on a phone a pixel spans several rounds).
@@ -1136,6 +1145,9 @@ function drawPlot() {
   renderAxis(geo);
   renderKey(sc, D);
   narrate();
+  // The pooled band's label is drawn once the narration pin is placed, so the two never cover each other.
+  const ob = order.includes(OTHER) && bands.get(OTHER);
+  if (ob && ob.first >= 0) labelOther(c, ob, h, pinPos());
 }
 
 // The AI lane: one mark per round in which an AI model designed a child, taller for more; the decision shown
@@ -1199,7 +1211,7 @@ function announce(text, now = false) {
 }
 
 function drawNotes(points, xt) {
-  const ROW_H = 18, MAX_ROWS = 3, PAD = 6;
+  const ROW_H = 20, MAX_ROWS = 3, PAD = 10;
   const rows = Array.from({ length: MAX_ROWS }, () => []); // row 0 sits nearest the plot
   const placed = [];
   const w = canvas.clientWidth;
@@ -1510,9 +1522,17 @@ function narrate() {
 // The pin: where the narrated event sits on the chart, in the band it is about when there is one.
 function placeNarrPin() {
   const pin = $("#narr-pin");
-  const c = N.cur;
-  if (!c || !geo || plot.dataset.state !== "full") { pin.hidden = true; return; }
+  const p = pinPos();
+  if (!p) { pin.hidden = true; return; }
   const well = $(".plot__well").getBoundingClientRect(), box = plot.getBoundingClientRect();
+  pin.style.transform = `translate(${well.left - box.left + p.x}px, ${well.top - box.top + p.y}px)`;
+  pin.hidden = false;
+}
+// The pin's centre in the plot well's own coordinates (the canvas's), or null when there is none.
+function pinPos() {
+  const c = N.cur;
+  if (!c || !geo || plot.dataset.state !== "full") return null;
+  const well = $(".plot__well").getBoundingClientRect();
   const x = Math.max(0, Math.min(geo.w, geo.xt(c.tick)));
   let y = 10;
   if (c.at === "guard") y = guardCv.getBoundingClientRect().top - well.top + guardCv.clientHeight / 2;
@@ -1525,8 +1545,7 @@ function placeNarrPin() {
     const fy = pick(c.f) ?? pick(OTHER);
     if (fy !== null) y = fy * well.height;
   }
-  pin.style.transform = `translate(${well.left - box.left + x}px, ${well.top - box.top + y}px)`;
-  pin.hidden = false;
+  return { x, y };
 }
 
 function shockSpans() {
