@@ -20,6 +20,7 @@
   --color-ink: #ffffff;
   --color-ink-2: #d6d5d3;   /* white over #acaba6, half and half */
   --color-muted: #acaba6;
+  --color-muted-strong: #c4c3bf; /* muted text below the chart, where it is read rather than glanced at */
   --color-rule: #595959;
   --color-rule-soft: #333333;
 

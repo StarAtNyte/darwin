@@ -270,6 +270,12 @@ function connect() {
     if (S.status === "loading") S.status = "live";
     schedule("all");
   });
+  es.addEventListener("chain", (e) => {
+    heard();
+    const t = JSON.parse(e.data);
+    S.live = { ...(S.live ?? { enabled: true, intervalSec: 45 }), recent: [t, ...(S.live?.recent ?? [])].slice(0, 5) };
+    renderLive();
+  });
   es.addEventListener("ev", (e) => {
     heard();
     ingestEvent(JSON.parse(e.data));
@@ -281,6 +287,7 @@ function connect() {
     S.selected = null;
     clearAll();
     schedule("all");
+    renderLive();
     try { await loadHistory(); } catch {}
   });
   es.addEventListener("error", (e) => {
@@ -414,7 +421,8 @@ function renderChrome() {
 
   const parts = [];
   // The tick lives in the big counter; the status line says only what the run is doing. A finished run says so in the banner.
-  if (!st.finished) parts.push(st.paused ? "Paused" : `Running at ${SPEED_WORDS[st.speed] ?? "custom"} speed, ${roundsPerSec(st)}`);
+  // One line: what a round is, and how fast they pass.
+  if (!st.finished) parts.push(st.paused ? "Each round agents bid for tasks and pay rent. Paused" : `Each round agents bid for tasks and pay rent, ${roundsPerSec(st)}`);
   status.title = `Seed ${st.seed}`;
   const shocks = Object.entries(st.shocks || {}).filter(([, end]) => end > st.tick);
   for (const [k, end] of shocks) parts.push(`<span class="shock">${k === "drought" ? "Drought" : "Plague"}, ${end - st.tick} ${plural(end - st.tick, "round")} left</span>`);
@@ -446,9 +454,8 @@ function renderChrome() {
 
   const llm = st.rules?.mutation === "llm" || st.rules?.mutation === "mixed";
   const who = operatorName();
-  const tag = llm
-    ? `An economy of AI agents that evolves: agents that earn have children who inherit their strategy (${who === "an AI model" ? "an AI model" : who} designs each child), and agents that go broke die out.`
-    : "An economy of AI agents that evolves: agents that earn have children who inherit their strategy with small random changes, and agents that go broke die out.";
+  const loop = "Agents bid for tasks, earn, have children that inherit their strategy, or go broke and die.";
+  const tag = llm ? `${loop} ${who === "an AI model" ? "An AI model" : who} designs each child.` : `${loop} Each child is a small random change of its parent.`;
   if ($("#tagline").textContent !== tag) $("#tagline").textContent = tag;
   $("#tick").textContent = fmt(st.tick);
   $("#tick-of").textContent = `of ${fmt(st.maxTicks)} rounds`;
@@ -463,6 +470,12 @@ function renderChrome() {
       ? `The run finished at round ${fmt(st.tick)}.${st.autoRestart ? ` ${st.mutation?.recording ? "The next recorded run" : "A new run"} starts on its own shortly.` : ""}`
       : `The run finished at round ${fmt(st.tick)}. Export the champion, or start a new run with the same rules.`;
     noticeAction.hidden = shared;
+  } else if (st.takeover && st.tick < 150) {
+    // The last run was decided (one family held the line), so the server started a new one: say so.
+    const t = st.takeover;
+    notice.hidden = false;
+    noticeText.textContent = `${short(t.founder)}’s family took over the last run at round ${fmt(t.since)} (${Math.round((st.epochRule?.share ?? 0.9) * 100)}% of agents for ${fmt(st.epochRule?.hold ?? 100)} rounds). A new run started.`;
+    noticeAction.hidden = true;
   } else notice.hidden = true;
 
   if ($("#sheet-rules").hidden === false) syncRules(false);
@@ -1080,13 +1093,19 @@ function drawPlot() {
   drawNotes(turningPoints(sc), xt);
 
   // Guard lane: every tick the guard blocked a payment, in the signal colour.
+  // Ticks closer than a few pixels merge into the one already drawn, so a busy stretch reads as a row of marks,
+  // not a solid smear (on a phone a pixel spans several rounds).
   const D = S.derived;
+  const narrow = gl.w < 560, gap = narrow ? 7 : 4, bw = narrow ? 2 : 3;
+  let lastX = -Infinity;
   for (let i = 0; i < n; i++) {
     const d = D[i];
-    if (d.blocked > 0) {
+    const x = xt(S.metrics[i].tick);
+    if (d.blocked > 0 && x - lastX >= gap) {
+      lastX = x;
       gl.c.fillStyle = T.accent;
       const hh = Math.min(gl.h, 8 + d.blocked * 3);
-      gl.c.fillRect(xt(S.metrics[i].tick) - 1.5, (gl.h - hh) / 2, 3, hh);
+      gl.c.fillRect(x - bw / 2, (gl.h - hh) / 2, bw, hh);
     }
     if (d.leaked > 0) {
       gl.c.fillStyle = T.error;
@@ -1132,9 +1151,10 @@ function renderKey(sc, D) {
     shock: shockSpans().length > 0 || S.shockMarks.length > 0,
     guard: D.some((d) => d.blocked > 0),
     gens: !!geo?.gens,
-    open: geo?.tD != null,
   };
-  if (geo?.tD != null) $("#key-open-text").textContent = `Left of the dashed line: early rounds ${geo.t0} to ${geo.tD}, compressed`;
+  const note = $("#axis-note");
+  note.hidden = geo?.tD == null;
+  if (geo?.tD != null) note.textContent = `Left of the dashed line: rounds ${geo.t0} to ${geo.tD}, compressed.`;
   void last;
   $("#read-sentence").textContent = S.mode === "wealth" ? "Each colour is a family of agents. Thicker = more of the money." : "Each colour is a family of agents. Thicker = more of them alive.";
   if (geo?.gens) {
@@ -2329,6 +2349,12 @@ async function loadProof() {
     const p = await r.json();
     if (!p.txs?.length) return;
     $("#proof-contract").href = p.contractUrl;
+    $("#proof-contract").textContent = p.contract;
+    $("#chain-contract").href = p.contractUrl;
+    $("#chain-contract").title = p.contract;
+    $("#chain-name").textContent = p.contract.replace(/^([^.]+\.[^-.]+-[^-.]+)-.*(\.testnet)$/, "$1-…$2");
+    S.live = p.live ?? null;
+    renderLive();
     $("#proof-when").textContent = p.source === "rpc" ? "re-read from testnet RPC" : "as recorded";
     $("#proof-list").innerHTML = p.txs.map((t) =>
       `<li><a href="${esc(t.url)}" rel="noopener"><span class="proof__ev${t.reason ? " is-refused" : ""}">${esc(EVENT_WORDS[t.event] ?? t.event)}${t.reason ? ` · ${esc(t.reason)}` : ""}</span>` +
@@ -2336,6 +2362,30 @@ async function loadProof() {
     $("#proof").hidden = false;
   } catch {}
 }
+
+// This run's own testnet txs: the server mirrors guard blocks on the market (when a settler key is configured).
+function ago(iso) {
+  const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  return s < 60 ? `${s} s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(iso).toISOString().slice(11, 16) + " UTC";
+}
+function renderLive() {
+  const L = S.live, box = $("#proof-live");
+  const last = L?.recent?.[0];
+  box.hidden = !L?.enabled;
+  if (!L?.enabled) return;
+  if (!last) {
+    box.innerHTML = `<p class="proof__live-h">This run, live</p><p class="proof__live-wait">The next guard block goes to the contract (at most one every ${L.intervalSec} s).</p>`;
+    return;
+  }
+  const same = S.state && last.seed === S.state.seed;
+  box.innerHTML = `<p class="proof__live-h">This run, live</p>` + L.recent.slice(0, 3).map((t, i) =>
+    `<a class="proof__live-tx${i ? " is-old" : ""}" href="${esc(t.url)}" rel="noopener"><span class="proof__live-what">${t.seed === S.state?.seed ? "" : "Previous run, "}round ${fmt(t.tick)}: the guard blocked ${esc(short(t.agent))}; sent unsigned, the contract refused it${t.reason ? ` (${esc(t.reason)})` : ""}</span><span class="proof__live-meta">tx ${esc(t.hash.slice(0, 8))}… ↗ · <time datetime="${esc(t.at)}">${ago(t.at)}</time></span></a>`).join("");
+  $("#chain-proof").href = last.url;
+  $("#chain-proof").rel = "noopener";
+  $("#chain-proof-k").textContent = "Live";
+  $("#chain-proof-text").textContent = `${same ? "this run" : "last run"}, round ${fmt(last.tick)}: guard block refused on chain`;
+}
+setInterval(() => S.live?.recent?.length && renderLive(), 15_000);
 
 // ---------- the field guide: three steps for a first visit, reopened by "What is this?" ----------
 const TOUR_KEY = "darwin-tour-seen";
@@ -2362,28 +2412,30 @@ const TOUR = [
 ];
 
 function tourTargets() { return $$(".tour-target"); }
-// The tooltip sits under its target with an arrow pointing up; the chart's sits beside its right edge on a wide
-// screen and under it on a phone, so the simulation stays in view. It scrolls with the page.
+// The tooltip always sits inside the chart's well, never over text: the chart step in its top right corner, the
+// other steps under their target with an arrow pointing up at it. Only the plot is ever covered. It scrolls with the page.
 function placeTour() {
   if (!tour.open) return;
   const card = $("#tour"), step = TOUR[tour.i];
   const el = $(step.target) && !$(step.target).hidden ? $(step.target) : $("#headline");
   const r = el.getBoundingClientRect();
+  const well = $(".plot__well").getBoundingClientRect();
   const w = card.offsetWidth, h = card.offsetHeight, pad = 12;
-  const wide = matchMedia("(min-width: 60rem)").matches;
   let x, y, side;
-  if (step.target === ".plot__well" && wide) {
-    // Beside the chart, over the summary rail, with the arrow pointing at the chart's right edge.
-    side = innerWidth - r.right > w * 0.6 ? "right" : "inside";
-    x = side === "right" ? Math.min(r.right + pad, innerWidth - w - pad) : r.right - w - pad;
-    y = r.top + pad;
+  if (step.target === ".plot__well") {
+    side = "inside";
+    x = well.right - w - pad;
+    y = well.top + pad;
   } else {
     side = "below";
-    x = Math.max(pad, Math.min(r.left, innerWidth - w - pad));
-    y = r.bottom + pad;
+    // Under the target, pulled into the chart's span so it never reaches the column beside it.
+    x = Math.max(well.left + pad, Math.min(r.left, well.right - w - pad));
+    y = Math.max(r.bottom + pad, well.top + pad);
   }
+  x = Math.max(pad, Math.min(x, innerWidth - w - pad));
   card.dataset.side = side;
-  card.style.setProperty("--arrow-y", "28px");
+  // The arrow points at the target; when the card is too far below it, no arrow.
+  card.dataset.far = String(side === "below" && y - r.bottom > 60);
   card.style.setProperty("--arrow-x", `${Math.round(Math.max(12, Math.min(w - 24, r.left + Math.min(40, r.width / 2) - x)))}px`);
   card.style.transform = `translate(${Math.round(x + scrollX)}px, ${Math.round(y + scrollY)}px)`;
   return { top: y + scrollY, bottom: y + h + scrollY };

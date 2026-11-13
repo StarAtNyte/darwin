@@ -30,9 +30,9 @@
   <div class="bar__inner container">
     <div class="brand">
       <div class="brand__row"><h1 class="wordmark">DARWIN</h1><button class="whatis" type="button" id="tour-open" aria-haspopup="dialog">What is this?</button></div>
-      <p class="tagline" id="tagline">An economy of AI agents that evolves: agents that earn have children who inherit their strategy, and agents that go broke die out.</p>
+      <p class="tagline" id="tagline">Agents bid for tasks, earn, have children that inherit their strategy, or go broke and die.</p>
     </div>
-    <p class="chain" aria-label="On NEAR testnet"><span class="chain__dot" aria-hidden="true"></span><a href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener"><span class="chain__k">Contract</span> darwin_market on NEAR testnet</a><a href="https://testnet.nearblocks.io/txns/DtQKy1rSdvoHiL58vMiKdEi3hrEnLXcrmerkVDtahtop" rel="noopener"><span class="chain__k">Proof</span> see a forged payment rejected by the NEAR contract</a></p>
+    <p class="chain" aria-label="On NEAR testnet"><span class="chain__dot" aria-hidden="true"></span><a id="chain-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" title="market2.darwin-siege-mw23cmc8.testnet" rel="noopener"><span class="chain__k">Contract</span> <span id="chain-name">market2.darwin-siege-…testnet</span></a><a id="chain-proof" href="#proof"><span class="chain__k" id="chain-proof-k">Proof</span> <span id="chain-proof-text">a forged payment, rejected on chain</span></a></p>
     <div class="transport" role="group" aria-label="Run controls">
       <button class="btn btn--quiet" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
       <button class="btn btn--quiet" type="button" id="step" hidden>Step one round</button>
@@ -53,9 +53,8 @@
     </div>
     <nav class="actions" aria-label="Steer the run">
       <button class="btn btn--quiet" type="button" data-sheet="rules" aria-expanded="false" aria-controls="sheet-rules">Rules</button>
-      <button class="btn btn--quiet" type="button" data-sheet="shocks" aria-expanded="false" aria-controls="sheet-shocks">Shocks</button>
       <button class="btn btn--quiet" type="button" data-sheet="export" aria-expanded="false" aria-controls="sheet-export" id="export-open">Export</button>
-      <a class="btn btn--quiet" href="#tunnel">Wind tunnel</a>
+      <a class="finding" href="#tunnel"><span class="finding__k">Wind tunnel</span> Lowest-price-wins cut task success 81% → 57%</a>
     </nav>
   </div>
 </header>
@@ -70,7 +69,7 @@
 <main class="container">
   <section class="record" aria-labelledby="record-h">
     <div class="record__head">
-      <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">rounds</span><small>each round, agents bid for tasks and pay rent</small><span class="status" id="status" aria-live="polite">Connecting to the run</span></span></p>
+      <p class="counter"><span class="counter__n" id="tick">0</span><span class="counter__of"><span id="tick-of">rounds</span><span class="status" id="status" aria-live="polite">Connecting to the run</span></span></p>
       <div class="record__tools">
       <div class="try" id="try">
         <p class="try__lede">Hit the market with a shock</p>
@@ -115,8 +114,9 @@
       <div class="lane lane--ai" aria-hidden="true" hidden><canvas id="ai-lane"></canvas></div>
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
+      <p class="axis__note" id="axis-note" hidden></p>
     </div>
-    <p class="key" id="key"><span data-key="ai" hidden><i class="k-ai"></i>Purple marks: an AI model designed a child’s strategy</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks: the guard blocked a theft</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass die-off</span><span data-key="other" hidden><i class="k-other"></i>Speckled: many small families, pooled</span><span data-key="shock" hidden><i class="k-shock"></i>Strip on top: shocks</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span data-key="open" hidden><i class="k-open"></i><span id="key-open-text"></span></span><span class="key__hint">Band heights are compressed so small families stay visible. Hover or tap a band for its true share.</span></p>
+    <p class="key" id="key"><span data-key="ai" hidden><i class="k-ai"></i>Purple marks: an AI model designed a child’s strategy</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks: the guard blocked a theft</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass die-off</span><span data-key="other" hidden><i class="k-other"></i>Speckled: many small families, pooled</span><span data-key="shock" hidden><i class="k-shock"></i>Strip on top: shocks</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Band heights are compressed so small families stay visible. Hover or tap a band for its true share.</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
     </div>
     <aside class="take" id="take" aria-labelledby="take-h">
@@ -125,7 +125,9 @@
       <div class="take__body" id="take-body"><p class="placeholder">The summary starts with the first rounds.</p></div>
       <section class="proof" id="proof" aria-labelledby="proof-h" hidden>
         <h3 class="proof__h" id="proof-h">On NEAR testnet</h3>
-        <p class="proof__sub">The same market runs as the <a id="proof-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener">darwin_market contract</a>. Its transactions, <span id="proof-when">as recorded</span>:</p>
+        <p class="proof__sub">The same market runs as the contract <a id="proof-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener">market2.darwin-siege-mw23cmc8.testnet</a>.</p>
+        <div class="proof__live" id="proof-live" hidden></div>
+        <p class="proof__sub proof__sub--rec">The full lifecycle, <span id="proof-when">as recorded</span>:</p>
         <ol class="proof__list" id="proof-list"></ol>
       </section>
     </aside>
