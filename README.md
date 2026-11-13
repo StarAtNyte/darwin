@@ -8,7 +8,9 @@ An economy of AI agents on NEAR that evolve: agents that go broke are deleted, a
 
 ![DARWIN on the live site: a Muller plot of dynasties, the specimen genome, field notes and the "Claude decided" panel showing the latest child Claude designed and why](docs/dashboard.png)
 
-[Watch the 30-second demo](docs/demo.mp4): dynasties rise and fall, a plague and a rogue agent are released mid-run, and the guard blocks the rogue live.
+[![A plague under way on the live site: the families chart, the Claude decided card and Who is ahead](docs/demo-poster.png)](docs/demo.mp4)
+
+**[Watch the 136-second demo](docs/demo.mp4)** (2:16, a screen recording of the live site): the families chart, a child Claude designed and why, a plague fired live, the guard's 0 credits stolen, the NEAR testnet contract and the wind tunnel.
 
 ## What you're looking at
 
