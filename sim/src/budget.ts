@@ -16,17 +16,30 @@ export class BudgetExceeded extends Error {}
 const file = () => process.env.NEAR_LLM_BUDGET_FILE ?? path.join(os.homedir(), ".near-hackathon-llm-spend-darwin.json");
 const cap = () => Number(process.env.NEAR_LLM_BUDGET_USD ?? 2.5);
 
+const read = (): { usd?: number; day?: string; dayUsd?: number } => {
+  try {
+    return JSON.parse(fs.readFileSync(file(), "utf8"));
+  } catch {
+    return {};
+  }
+};
+const today = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
 export const budget = {
   spent(): number {
-    try {
-      return JSON.parse(fs.readFileSync(file(), "utf8")).usd ?? 0;
-    } catch {
-      return 0;
-    }
+    return read().usd ?? 0;
   },
-  add(usd: number) {
-    const next = this.spent() + usd;
-    fs.writeFileSync(file(), JSON.stringify({ usd: next, updated: new Date().toISOString() }));
+  /** Spend recorded so far on this UTC day (the file also keeps the day's total, for daily caps such as live AI). */
+  spentToday(now = Date.now()): number {
+    const j = read();
+    return j.day === today(now) ? (j.dayUsd ?? 0) : 0;
+  },
+  add(usd: number, now = Date.now()) {
+    const j = read();
+    const day = today(now);
+    const next = (j.usd ?? 0) + usd;
+    const dayUsd = (j.day === day ? (j.dayUsd ?? 0) : 0) + usd;
+    fs.writeFileSync(file(), JSON.stringify({ usd: next, updated: new Date(now).toISOString(), day, dayUsd }));
     return next;
   },
   /** Throws once the spend file reaches the cap. `reserve` refuses a call that could cross it. */

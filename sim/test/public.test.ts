@@ -28,7 +28,7 @@ before(async () => {
   if (!canListen) return;
   srv = spawn(process.execPath, ["--import", "tsx", path.join(here, "../src/main.ts")], {
     cwd: path.join(here, ".."),
-    env: { ...process.env, MUTATION_BASE_URL: "", ANTHROPIC_API_KEY: "", PUBLIC_MODE: "1", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "50" },
+    env: { ...process.env, MUTATION_BASE_URL: "", ANTHROPIC_API_KEY: "", PUBLIC_MODE: "1", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "400" },
     stdio: "ignore",
   });
   for (let i = 0; i < 100; i++) {
@@ -49,6 +49,16 @@ test("public mode: state says so", async () => {
   const st = await (await fetch(`${base}/api/state`)).json();
   assert.equal(st.publicMode, true);
   assert.equal(st.shockWaitSec, 0);
+});
+
+test("public mode: the run opens at round 135, with rounds 1 to 135 kept in the history", async () => {
+  const h = await (await fetch(`${base}/history`)).json();
+  assert.equal(h.state.startRound, 135);
+  assert.ok(h.state.tick >= 135);
+  assert.equal(h.metrics[0].tick, 1);
+  assert.ok(h.metrics.length >= 135);
+  assert.ok(h.metrics[134].rogueAttempts > 0, "the first rogue (round 120) has already struck");
+  assert.ok(h.events.some((e: { event: string }) => e.event === "guard_block"));
 });
 
 test("public mode: pause, step, speed, rules and reset are refused with 403", async () => {

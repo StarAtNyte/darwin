@@ -292,6 +292,11 @@ export class Mutator {
   cache: Record<string, CacheEntry> = {};
   readonly provider?: MutationProvider;
   readonly timeoutMs: number;
+  /**
+   * Live AI in a shared run (liveai.ts): when set, the model is asked only on the forks this gate allows, even when
+   * the recording has an answer, and never on any other fork. Unset: cache, then a live call, then Gaussian.
+   */
+  live?: { take(): boolean };
   private dirty = false;
 
   constructor(private opts: MutatorOptions = {}) {
@@ -319,11 +324,19 @@ export class Mutator {
   start(ctx: MutationContext, gaussian: GenomeLike): MutationResult | Promise<MutationResult> {
     const key = `${ctx.tick}:${ctx.parent.id}:${genomeKey(ctx.parent.genome)}`;
     const hit = this.cache[key];
+    const p = this.provider;
+    if (this.live && p && this.live.take() && this.calls < this.maxCalls) {
+      const slot = p.gate.acquire();
+      if (!("refused" in slot)) {
+        this.calls++;
+        return this.ask(p, slot.wait, key, ctx, gaussian);
+      }
+    }
     if (hit) {
       this.hits++;
       return { genome: { ...hit.genome, spec: [...hit.genome.spec] }, source: "cache", rationale: hit.rationale, model: hit.model };
     }
-    const p = this.provider;
+    if (this.live) return { genome: gaussian, source: "fallback", why: "not a live turn" };
     if (!p) return { genome: gaussian, source: "fallback", why: "no key" };
     if (this.calls >= this.maxCalls) return { genome: gaussian, source: "fallback", why: "call cap" };
     if (p.billed) {
@@ -336,10 +349,10 @@ export class Mutator {
     const slot = p.gate.acquire();
     if ("refused" in slot) return { genome: gaussian, source: "fallback", why: slot.refused };
     this.calls++;
-    return this.live(p, slot.wait, key, ctx, gaussian);
+    return this.ask(p, slot.wait, key, ctx, gaussian);
   }
 
-  private async live(p: MutationProvider, wait: number, key: string, ctx: MutationContext, gaussian: GenomeLike): Promise<MutationResult> {
+  private async ask(p: MutationProvider, wait: number, key: string, ctx: MutationContext, gaussian: GenomeLike): Promise<MutationResult> {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), this.timeoutMs);
     try {

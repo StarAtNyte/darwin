@@ -10,6 +10,7 @@ import { Mutator, providerFromEnv } from "./mutator.ts";
 import { chainProof } from "./chainproof.ts";
 import { Settler, nearSender } from "./settler.ts";
 import { EpochWatch, type Takeover } from "./epoch.ts";
+import { LiveGate, liveAiFromEnv } from "./liveai.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -35,10 +36,16 @@ const DB_PATH = process.env.DARWIN_DB ?? path.resolve(here, "../darwin.sqlite");
 // up the tick: the child is born when the answer arrives. A public run makes live calls only to a free provider.
 // A public run defaults to replaying Claude's recorded seed 3 (see recordingFor), so visitors see the model's choices.
 const MUTATION = process.env.DARWIN_MUTATION ?? (PUBLIC_MODE ? "llm" : "gaussian");
-const PROVIDER = providerFromEnv(process.env, PUBLIC_MODE);
-const MUTATION_CALLS = PUBLIC_MODE
-  ? Number(process.env.DARWIN_PUBLIC_MUTATION_CALLS ?? (PROVIDER && !PROVIDER.billed ? 1000 : 0))
-  : Number(process.env.DARWIN_MUTATION_MAX_CALLS ?? 400);
+// Live Claude (DARWIN_LIVE_AI=1 with ANTHROPIC_API_KEY; off by default): every Nth fork asks Claude live instead of
+// replaying the recording, at most one call a minute and $0.30 a day (budget.ts). See liveai.ts.
+const LIVE_AI = liveAiFromEnv(process.env);
+const PROVIDER = LIVE_AI?.provider ?? providerFromEnv(process.env, PUBLIC_MODE);
+const MUTATION_CALLS = LIVE_AI
+  ? Number.MAX_SAFE_INTEGER // the gate's rate limit and daily cap bound the calls
+  : PUBLIC_MODE
+    ? Number(process.env.DARWIN_PUBLIC_MUTATION_CALLS ?? (PROVIDER && !PROVIDER.billed ? 1000 : 0))
+    : Number(process.env.DARWIN_MUTATION_MAX_CALLS ?? 400);
+const liveGate: LiveGate | undefined = LIVE_AI?.gate;
 const MUTATION_DIR = path.resolve(here, "../../results/mutations");
 const LIVE_CACHE_DIR = path.resolve(here, "../.mutations-live");
 // A committed recording for a seed and mode: a past run whose every fork was designed by a model (Claude for
@@ -64,6 +71,11 @@ const nextSeed = (seed: number) => {
   return RECORDED_SEEDS.find((s) => s > seed) ?? RECORDED_SEEDS[0];
 };
 const SPEEDS = [1000, 300, 120, 40];
+// A shared run opens where the action starts. Every recorded seed spends its first ~140 rounds as a flat field
+// (no deaths, the first rogue at round 120, the first die-off near round 145), so a public run plays rounds 1 to
+// START_ROUND at full speed on reset, before anyone sees it, and streams from there. The skipped rounds are real
+// rounds of the same run: their metrics and events are kept, and the chart shows them compressed at the left.
+const START_ROUND = Math.max(0, Math.floor(Number(process.env.DARWIN_START_ROUND ?? (PUBLIC_MODE ? 135 : 0))));
 // The wind tunnel's committed results (make windtunnel), served read-only to the dashboard, with a trimmed per-seed table.
 const WINDTUNNEL = (() => {
   try {
@@ -122,15 +134,27 @@ class Run {
   seed = Number(process.env.SEED ?? (PUBLIC_MODE ? 3 : 42));
   /** The last run that ended because one family took over, shown as a note on the next run. */
   takeover: (Takeover & { seed: number; at: number }) | null = null;
+  /** The round this run opened at for visitors (START_ROUND, or 0); rounds before it were played on reset. */
+  startRound = 0;
+  /** True while reset fast-forwards: nothing is streamed and the testnet settler is not offered the old rounds. */
+  private quiet = false;
   private sub = 0;
   private insEv!: ReturnType<DatabaseSync["prepare"]>;
   private insM!: ReturnType<DatabaseSync["prepare"]>;
 
-  constructor() {
-    this.reset(this.seed);
+  /** True while reset() runs (it awaits the fast-forward); the loop does not step meanwhile. */
+  resetting = false;
+
+  async reset(seed: number, rules: Record<string, unknown> = {}) {
+    this.resetting = true;
+    try {
+      await this.resetNow(seed, rules);
+    } finally {
+      this.resetting = false;
+    }
   }
 
-  reset(seed: number, rules: Record<string, unknown> = {}) {
+  private async resetNow(seed: number, rules: Record<string, unknown>) {
     this.db?.close();
     for (const ext of ["", "-wal", "-shm"]) fs.rmSync(DB_PATH + ext, { force: true });
     this.db = new DatabaseSync(DB_PATH);
@@ -149,17 +173,45 @@ class Run {
     const mode = this.eco.cfg.mutation === "gaussian" ? "llm" : this.eco.cfg.mutation;
     this.eco.deferLiveBirths = true;
     this.eco.mutator = new Mutator({ provider: PROVIDER, maxCalls: MUTATION_CALLS, cachePath: path.join(MUTATION_DIR, `seed-${seed}-${mode}.json`), savePath: path.join(LIVE_CACHE_DIR, `seed-${seed}-${mode}.json`) });
+    this.startRound = 0;
+    if (START_ROUND > 0 && fastForwardable(rules)) await this.fastForward(Math.min(START_ROUND, MAX_TICKS - 1));
+    // Live calls start after the fast-forward, so every skipped round replays the recording exactly.
+    this.eco.mutator.live = liveGate;
     broadcast("reset", this.state());
+  }
+
+  /** Play rounds 1..to now, as fast as they compute (about 0.3 s for 135 rounds), with nothing streamed. */
+  private async fastForward(to: number) {
+    this.quiet = true;
+    this.eco.deferLiveBirths = false;
+    try {
+      this.db.exec("BEGIN");
+      while (this.eco.tick < to) {
+        await this.eco.step();
+        this.record();
+      }
+      this.db.exec("COMMIT");
+    } finally {
+      this.quiet = false;
+      this.eco.deferLiveBirths = true;
+    }
+    this.startRound = this.eco.tick;
+  }
+
+  private record() {
+    const m = this.eco.lastMetrics;
+    this.metrics.push(m);
+    this.insM.run(this.eco.tick, JSON.stringify(m));
   }
 
   private onEvent(e: SimEvent & { tick: number }) {
     this.insEv.run(e.tick, e.event, JSON.stringify(e));
-    if (e.event === "guard_block") settler.offer({ tick: e.tick, seed: this.seed, agent: e.agent, to: e.to, amount: e.amount, attack: e.attack });
+    if (e.event === "guard_block" && !this.quiet) settler.offer({ tick: e.tick, seed: this.seed, agent: e.agent, to: e.to, amount: e.amount, attack: e.attack });
     if (!notable.has(e.event)) return;
     if (e.event === "subcontract" && this.sub++ % 5 !== 0) return;
     this.recent.push(e);
     if (this.recent.length > 400) this.recent.shift();
-    broadcast("ev", e);
+    if (!this.quiet) broadcast("ev", e);
   }
 
   state() {
@@ -171,10 +223,11 @@ class Run {
       speed: this.speed,
       speeds: SPEEDS,
       seed: this.seed,
+      startRound: this.startRound,
       rules: Object.fromEntries(TUNABLE.map((k) => [k, this.eco.cfg[k]])),
       shocks: Object.fromEntries(this.eco.shocks),
       publicMode: PUBLIC_MODE,
-      mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats, designers: this.eco.designers, liveModel: MUTATION_CALLS > 0 ? (PROVIDER?.model ?? null) : null, recording: this.eco.cfg.mutation === "gaussian" ? null : recordingFor(this.seed, this.eco.cfg.mutation) },
+      mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats, designers: this.eco.designers, liveModel: MUTATION_CALLS > 0 ? (PROVIDER?.model ?? null) : null, live: liveGate ? { every: liveGate.every, minIntervalSec: liveGate.minIntervalMs / 1000, dailyCapUsd: liveGate.dailyCapUsd, calls: liveGate.calls } : null, recording: this.eco.cfg.mutation === "gaussian" ? null : recordingFor(this.seed, this.eco.cfg.mutation) },
       autoRestart: AUTO_RESTART_MS > 0,
       shockCooldownSec: PUBLIC_MODE ? SHOCK_COOLDOWN_MS / 1000 : 0,
       shockWaitSec: shockWait(),
@@ -187,9 +240,7 @@ class Run {
     this.db.exec("BEGIN");
     try {
       await this.eco.step();
-      const m = this.eco.lastMetrics;
-      this.metrics.push(m);
-      this.insM.run(this.eco.tick, JSON.stringify(m));
+      this.record();
       this.db.exec("COMMIT");
     } catch (e) {
       this.db.exec("ROLLBACK");
@@ -205,7 +256,13 @@ class Run {
   }
 }
 
+// Fast-forward only replays: a reset with steering rules (a "Try it" rule set) starts from round 0 so its effect shows.
+function fastForwardable(rules: Record<string, unknown>) {
+  return Object.keys(rules).every((k) => k === "mutation");
+}
+
 const run = new Run();
+await run.reset(run.seed);
 
 async function body(req: http.IncomingMessage): Promise<Record<string, unknown>> {
   let raw = "";
@@ -293,7 +350,7 @@ const server = http.createServer(async (req, res) => {
       const b = await body(req);
       const seed = b.seed === undefined ? Math.floor(Math.random() * 1e6) : Number(b.seed);
       if (!Number.isInteger(seed) || seed < 0) return send(res, 400, { error: "seed must be a non-negative integer" });
-      run.reset(seed, (b.rules as Record<string, unknown>) ?? {});
+      await run.reset(seed, (b.rules as Record<string, unknown>) ?? {});
       return send(res, 200, run.state());
     }
     if (req.method === "GET") {
@@ -330,10 +387,10 @@ async function loop() {
       finishedAt ||= t0;
       if (AUTO_RESTART_MS && t0 - finishedAt > AUTO_RESTART_MS) {
         finishedAt = 0;
-        run.reset(nextSeed(run.seed));
+        await run.reset(nextSeed(run.seed));
       }
     } else finishedAt = 0;
-    if (!run.paused && run.eco.tick < MAX_TICKS) {
+    if (!run.paused && !run.resetting && run.eco.tick < MAX_TICKS) {
       try {
         await run.step();
       } catch (e) {
@@ -346,7 +403,7 @@ async function loop() {
       if (took) {
         console.log(`t=${took.tick} ${took.founder}'s family held ${Math.round(epoch.share * 100)}% from round ${took.since}: new run`);
         run.takeover = { ...took, seed: run.seed, at: Date.now() };
-        run.reset(nextSeed(run.seed));
+        await run.reset(nextSeed(run.seed));
       }
       if (run.eco.tick === MAX_TICKS) {
         broadcast("state", run.state());

@@ -118,7 +118,8 @@ test("server: a takeover starts a new run and the state carries the note", { ski
     assert.equal(st.takeover.tick - st.takeover.since + 1, 5);
     assert.equal(st.takeover.seed, 3);
     assert.notEqual(st.seed, 3, "the next run is a different seed");
-    assert.ok(st.tick < 5 + 3, "the new run started from round 0");
+    assert.equal(st.startRound, 135, "the new run opens at round 135, like every public run");
+    assert.ok(st.tick < st.startRound + 8, "and streams on from there");
     assert.deepEqual(st.epochRule, { share: 0, hold: 5 });
     const chain = await (await fetch(`http://127.0.0.1:${PORT}/api/chain`)).json();
     assert.equal(chain.live.enabled, false, "no settler without its env vars");

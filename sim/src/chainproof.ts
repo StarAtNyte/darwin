@@ -4,7 +4,8 @@
 import fs from "node:fs";
 
 type Recorded = { step: string; signer: string; method: string; hash: string; events?: string[]; result?: string };
-export type ProofTx = { hash: string; label: string; method: string; event: string; reason: string | null; status: "final" | "recorded"; url: string };
+/** `at`: the block time from RPC, or the recorded run's start time (runAt) when RPC is unreachable. */
+export type ProofTx = { hash: string; label: string; method: string; event: string; reason: string | null; status: "final" | "recorded"; url: string; at: string | null };
 export type Proof = { contract: string; contractUrl: string; source: "rpc" | "recorded"; checkedAt: string | null; txs: ProofTx[] };
 
 // The lifecycle in order, picked by the recorded step text so no hash is typed by hand here.
@@ -33,31 +34,44 @@ function firstEvent(logs: string[]): { event: string; reason: string | null } | 
   return null;
 }
 
-async function rpcTx(hash: string, signer: string): Promise<string[] | null> {
+async function rpc(url: string, method: string, params: unknown) {
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    signal: AbortSignal.timeout(8000),
+  });
+  return r.json();
+}
+
+/** The tx's logs and the time of the block that included it. */
+async function rpcTx(hash: string, signer: string): Promise<{ logs: string[]; at: string | null } | null> {
   for (const url of RPCS) {
     try {
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tx", params: { tx_hash: hash, sender_account_id: signer, wait_until: "NONE" } }),
-        signal: AbortSignal.timeout(8000),
-      });
-      const j = await r.json();
-      if (j.result?.receipts_outcome) return j.result.receipts_outcome.flatMap((o: { outcome: { logs: string[] } }) => o.outcome.logs);
+      const j = await rpc(url, "tx", { tx_hash: hash, sender_account_id: signer, wait_until: "NONE" });
+      if (!j.result?.receipts_outcome) continue;
+      const logs = j.result.receipts_outcome.flatMap((o: { outcome: { logs: string[] } }) => o.outcome.logs);
+      let at: string | null = null;
+      try {
+        const b = await rpc(url, "block", { block_id: j.result.transaction_outcome.block_hash });
+        const ns = b.result?.header?.timestamp_nanosec ?? b.result?.header?.timestamp;
+        if (ns) at = new Date(Number(BigInt(ns) / 1_000_000n)).toISOString();
+      } catch {}
+      return { logs, at };
     } catch {}
   }
   return null;
 }
 
 export function chainProof(file: string) {
-  let rec: { marketId: string; txs: Recorded[] } | null = null;
+  let rec: { marketId: string; runAt?: string; txs: Recorded[] } | null = null;
   try {
     rec = JSON.parse(fs.readFileSync(file, "utf8"));
   } catch {}
   const picks = rec ? PICKS.map((p) => ({ ...p, tx: rec!.txs.find((t) => p.match.test(t.step)) })).filter((p) => p.tx) : [];
   const recorded = (): ProofTx[] => picks.map(({ label, tx }) => {
     const ev = firstEvent(tx!.events ?? []);
-    return { hash: tx!.hash, label, method: tx!.method, event: ev?.event ?? tx!.method, reason: ev?.reason ?? null, status: "recorded", url: explorer(tx!.hash) };
+    return { hash: tx!.hash, label, method: tx!.method, event: ev?.event ?? tx!.method, reason: ev?.reason ?? null, status: "recorded", url: explorer(tx!.hash), at: rec!.runAt ?? null };
   });
   let cache: Proof | null = null, at = 0, pending: Promise<Proof> | null = null;
 
@@ -65,10 +79,10 @@ export function chainProof(file: string) {
     const base = { contract: rec!.marketId, contractUrl: `https://testnet.nearblocks.io/address/${rec!.marketId}` };
     const fallback = recorded();
     const txs = await Promise.all(picks.map(async ({ tx }, i) => {
-      const logs = await rpcTx(tx!.hash, tx!.signer);
-      if (!logs) return null;
-      const ev = firstEvent(logs);
-      return { ...fallback[i], event: ev?.event ?? tx!.method, reason: ev?.reason ?? null, status: "final" as const };
+      const got = await rpcTx(tx!.hash, tx!.signer);
+      if (!got) return null;
+      const ev = firstEvent(got.logs);
+      return { ...fallback[i], event: ev?.event ?? tx!.method, reason: ev?.reason ?? null, status: "final" as const, at: got.at ?? fallback[i].at };
     }));
     const ok = txs.every(Boolean);
     return { ...base, source: ok ? "rpc" : "recorded", checkedAt: ok ? new Date().toISOString() : null, txs: ok ? (txs as ProofTx[]) : fallback };
