@@ -32,7 +32,7 @@
       <div class="brand__row"><h1 class="wordmark">DARWIN</h1><button class="whatis" type="button" id="tour-open" aria-haspopup="dialog">What is this?</button></div>
       <p class="tagline" id="tagline">An economy of AI agents that evolves: agents that earn have children who inherit their strategy, and agents that go broke die out.</p>
     </div>
-    <p class="chain" aria-label="On NEAR testnet"><span class="chain__dot" aria-hidden="true"></span><a href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener"><span class="chain__k">Contract</span> darwin_market on NEAR testnet</a><a href="https://testnet.nearblocks.io/txns/DtQKy1rSdvoHiL58vMiKdEi3hrEnLXcrmerkVDtahtop" rel="noopener"><span class="chain__k">Tx</span> an unsigned payment, refused on chain</a></p>
+    <p class="chain" aria-label="On NEAR testnet"><span class="chain__dot" aria-hidden="true"></span><a href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener"><span class="chain__k">Contract</span> darwin_market on NEAR testnet</a><a href="https://testnet.nearblocks.io/txns/DtQKy1rSdvoHiL58vMiKdEi3hrEnLXcrmerkVDtahtop" rel="noopener"><span class="chain__k">Proof</span> see a forged payment rejected by the NEAR contract</a></p>
     <div class="transport" role="group" aria-label="Run controls">
       <button class="btn btn--quiet" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
       <button class="btn btn--quiet" type="button" id="step" hidden>Step one round</button>
@@ -116,14 +116,18 @@
       <div class="lane lane--guard" aria-hidden="true"><canvas id="guard-lane"></canvas></div>
       <div class="axis" id="axis" aria-hidden="true"></div>
     </div>
-    <p class="key" id="key"><span data-key="ai" hidden><i class="k-ai"></i>Purple marks: an AI model designed a child’s strategy</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks: the guard blocked a theft</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass die-off</span><span data-key="other" hidden><i class="k-other"></i>Hatched: many small families, pooled</span><span data-key="shock" hidden><i class="k-shock"></i>Strip on top: shocks</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span data-key="open" hidden><i class="k-open"></i><span id="key-open-text"></span></span><span class="key__hint">Hover or tap a colour to see that family’s strategy</span></p>
+    <p class="key" id="key"><span data-key="ai" hidden><i class="k-ai"></i>Purple marks: an AI model designed a child’s strategy</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks: the guard blocked a theft</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass die-off</span><span data-key="other" hidden><i class="k-other"></i>Speckled: many small families, pooled</span><span data-key="shock" hidden><i class="k-shock"></i>Strip on top: shocks</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span data-key="open" hidden><i class="k-open"></i><span id="key-open-text"></span></span><span class="key__hint">Band heights are compressed so small families stay visible. Hover or tap a band for its true share.</span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
     </div>
     <aside class="take" id="take" aria-labelledby="take-h">
       <p class="narr" id="narr" hidden><span class="narr__ring" aria-hidden="true"></span><span class="narr__label">Just now</span> <span id="narr-text"></span></p>
       <h2 class="take__h" id="take-h">Who is ahead</h2>
       <div class="take__body" id="take-body"><p class="placeholder">The summary starts with the first rounds.</p></div>
-      <p class="take__run" id="take-run"></p>
+      <section class="proof" id="proof" aria-labelledby="proof-h" hidden>
+        <h3 class="proof__h" id="proof-h">On NEAR testnet</h3>
+        <p class="proof__sub">The same market runs as the <a id="proof-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener">darwin_market contract</a>. Its transactions, <span id="proof-when">as recorded</span>:</p>
+        <ol class="proof__list" id="proof-list"></ol>
+      </section>
     </aside>
     </div>
   </section>
@@ -166,8 +170,21 @@
       <h2 id="tunnel-h">Wind tunnel: test market rules before you deploy them.</h2>
       <p class="tunnel__result">Weight the auction by reputation: lowest-price-wins cut the price paid from 0.48 to 0.12 of the reward, but task success fell from 81% to 57%. A 10% fee recycled into demand cut the largest family from 94% to 75% of agents, with no detectable change in price, task success or survivors.</p>
       <p class="tunnel__caveat">Simulated, not this live run: end-of-run means over 10 seeds of 2,000 rounds each, random mutation, one rule changed at a time.</p>
-      <p class="tunnel__lede">The detail: each rule set runs on the same 10 seeds (<code>make windtunnel</code>). Each cell is the mean over seeds; underneath, the change from the baseline. <span class="tunnel__sig-key"><b>Bright</b></span> changes held up in a paired permutation test (p &lt; 0.01); grey ones did not.</p>
+      <p class="tunnel__lede">Each rule set runs on the same 10 seeds. Each cell is the mean over seeds; underneath, the change from the baseline. <span class="tunnel__sig-key"><b>Bright</b></span> changes held up in a paired permutation test (p &lt; 0.01); grey ones did not.</p>
     </div>
+    <div class="wt" id="wt" hidden>
+      <div class="wt__controls">
+        <fieldset class="wt__sets">
+          <legend>Rule set</legend>
+          <div class="wt__chips" id="wt-sets"></div>
+        </fieldset>
+        <label class="wt__seed">Seed <select id="wt-seed"></select></label>
+      </div>
+      <p class="wt__q" id="wt-q"></p>
+      <dl class="wt__grid" id="wt-grid"></dl>
+      <p class="wt__legend"><span class="wt__k wt__k--base"></span>Baseline <span class="wt__k wt__k--set"></span><span id="wt-set-name">This rule set</span> · each dot is one seed of 2,000 rounds</p>
+    </div>
+    <h3 class="tunnel__th">Every rule set, mean over 10 seeds</h3>
     <div class="tunnel__scroll">
       <table class="tunnel__table">
         <caption class="visually-hidden">Outcomes of six market rule sets, mean over 10 seeds, and the change from the baseline</caption>
@@ -176,7 +193,6 @@
       </table>
     </div>
     <p class="form-msg" id="tunnel-msg" aria-live="polite"></p>
-    <p class="hint tunnel__readonly" id="tunnel-readonly" hidden>This shared run is read-only. To try a rule set, run DARWIN locally (<code>make demo</code>) and press Try it.</p>
     <div class="tunnel__advice">
       <h3>If you’re designing an agent market</h3>
       <ol>

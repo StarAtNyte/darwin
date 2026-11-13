@@ -66,12 +66,12 @@ const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") 
 const OTHER = "__other";
 const TOP_BANDS = 10;
 // The opening, while the founders are still a near-equal field, is squeezed into at most this share of the width.
-const OPENING_SHARE = 0.12;
+const OPENING_SHARE = 0.14;
 const OTHER_CAP = 0.2;
 // While many founders are still near-equal the pooled band can hold most agents. It is drawn no taller than
-// OTHER_DRAW of the plot, the named bands share the rest in their true proportions, and the band's label and
-// tooltip give its real share.
+// OTHER_DRAW of the plot (see layout's compressed scale), and the band's label and tooltip give its real share.
 const OTHER_DRAW = 0.2;
+const BAND_POW = 0.65;
 const LEAD_SHARE_EARLY = 0.25;
 
 function colourOf(f, deep = false) {
@@ -395,6 +395,7 @@ function renderChrome() {
   if (S.status === "disconnected") {
     status.hidden = false;
     status.textContent = "Reconnecting…";
+    status.dataset.kind = "conn";
     toggle.disabled = true;
     step.hidden = true;
     $$("#speed input").forEach((i) => (i.disabled = true));
@@ -402,6 +403,7 @@ function renderChrome() {
     return;
   }
   if (!st) return;
+  delete status.dataset.kind;
   $$("#speed input").forEach((i) => {
     i.disabled = false;
     i.checked = Number(i.value) === st.speed;
@@ -557,22 +559,34 @@ function layout(w) {
   const others = new Float64Array(samples.length);
   const otherCount = new Uint16Array(samples.length);
   const otherShare = new Float32Array(samples.length);
+  // Band heights use a compressed scale (share to the power BAND_POW): small families stay readable and a leader
+  // with half the agents no longer flattens the rest into one slab, while a near-monoculture still fills the plot.
+  // The pooled band is drawn at half its scaled share and never above OTHER_DRAW. Labels and tooltips give true shares.
   samples.forEach((mi, si) => {
     const lin = M[mi].lineages || {};
     const total = totals[si];
     for (const f in lin) if (pooledAt(f, si)) { others[si] += valueOf(lin[f], S.mode); otherCount[si]++; }
-    const g = total ? others[si] / total : 0;
-    otherShare[si] = g;
-    const squash = g > OTHER_DRAW && g < 1;
-    const kNamed = squash ? (1 - OTHER_DRAW) / (1 - g) : 1, kOther = squash ? OTHER_DRAW / g : 1;
+    otherShare[si] = total ? others[si] / total : 0;
+    const wt = new Map();
+    let named = 0;
+    for (const f of order) {
+      if (f === OTHER) continue;
+      const v = lin[f] && !pooledAt(f, si) ? (Math.max(0, valueOf(lin[f], S.mode)) / (total || 1)) ** BAND_POW : 0;
+      wt.set(f, v);
+      named += v;
+    }
+    let pool = otherCount[si] ? otherShare[si] ** BAND_POW * 0.5 : 0;
+    if (named > 0 && pool / (named + pool) > OTHER_DRAW) pool = (OTHER_DRAW / (1 - OTHER_DRAW)) * named;
+    if (named === 0 && pool > 0) pool = 1;
+    wt.set(OTHER, pool);
+    const W = named + pool;
     let cum = 0;
     for (const f of order) {
       const b = bands.get(f);
       const here = f === OTHER ? otherCount[si] > 0 : !!lin[f] && !pooledAt(f, si);
-      const v = (f === OTHER ? others[si] * kOther : here ? valueOf(lin[f], S.mode) * kNamed : 0);
-      b.y0[si] = total ? cum / total : 0;
-      cum += v;
-      b.y1[si] = total ? cum / total : 0;
+      b.y0[si] = W ? cum / W : 0;
+      cum += wt.get(f) || 0;
+      b.y1[si] = W ? cum / W : 0;
       if (here) {
         if (b.first < 0) b.first = si;
         b.last = si;
@@ -767,20 +781,25 @@ function drawGenerations(c, mono, b, x, h) {
 
 // The pooled band of small families: a mid grey with a fine hatch, so it reads as real agents taken together,
 // not as missing data, and a label inside it saying how many families it holds.
+// The pooled band: a stipple of every family colour on a dark ground, read as "many small families".
 let hatch = null;
 function otherPattern(c) {
-  if (hatch?.key === T.other + T.otherHatch) return hatch.p;
+  const key = T.other + T.pigments.join();
+  if (hatch?.key === key) return hatch.p;
   const t = document.createElement("canvas");
-  t.width = t.height = 8;
+  t.width = t.height = 12;
   const g = t.getContext("2d");
   g.fillStyle = T.other;
-  g.fillRect(0, 0, 8, 8);
-  g.strokeStyle = T.otherHatch;
-  g.lineWidth = 1.5;
-  g.beginPath();
-  for (const o of [-8, 0, 8]) { g.moveTo(o, 8); g.lineTo(o + 8, 0); }
-  g.stroke();
-  hatch = { key: T.other + T.otherHatch, p: c.createPattern(t, "repeat") };
+  g.fillRect(0, 0, 12, 12);
+  const dots = [[2, 2], [8, 5], [4, 9], [10, 11]];
+  dots.forEach(([dx, dy], k) => {
+    g.fillStyle = T.pigments[k % T.pigments.length] || T.muted;
+    g.globalAlpha = 0.75;
+    g.beginPath();
+    g.arc(dx, dy, 1.3, 0, Math.PI * 2);
+    g.fill();
+  });
+  hatch = { key, p: c.createPattern(t, "repeat") };
   return hatch.p;
 }
 function labelOther(c, b, h) {
@@ -797,7 +816,7 @@ function labelOther(c, b, h) {
   const n = otherCount[mid];
   if (!n) return;
   const l1 = `${fmt(n)} small ${plural(n, "family", "families")}, ${Math.round(otherShare[mid] * 100)}% of ${S.mode === "wealth" ? "the money" : "agents"}`;
-  const l2 = otherShare[mid] > OTHER_DRAW ? "pooled, and drawn smaller than their share" : "pooled until one grows";
+  const l2 = "pooled, and drawn smaller than their share";
   c.save();
   c.font = `600 13px ${T.body}`;
   const w1 = c.measureText(l1).width;
@@ -889,16 +908,15 @@ function renderAI() {
     $("#ai-tag").textContent = recorded ? `${who} decided · recorded run` : `${who} decided`;
     set("#ai-what", `Round ${fmt(cur.born)}: ${idHtml(cur.parent)} got rich and forked ${idHtml(cur.id)}. ${esc(who)} chose the child’s strategy:`);
     set("#ai-why", `“${esc(reasonText(cur.rationale))}”`);
+    // One line of provenance; the full breakdown is in the title.
     const born = [...S.agents.values()].filter((a) => a.parent && a.role === "parametric").length;
-    const fb = st.mutation?.fallback || 0;
-    const by = new Map();
-    for (const a of claudeChildren()) by.set(modelName(a.model), (by.get(modelName(a.model)) || 0) + 1);
-    const parts = [...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} ${fmt(k)}`);
-    parts.push(`random ${fmt(Math.max(0, born - kids))}`);
-    const tail = mode === "mixed" ? " Random children compete with them." : mode === "gaussian" ? " Mutation is now set to random." : "";
-    const replay = rec ? `A replay of a recorded run: ${esc(modelName(rec.model))} (${esc(rec.model)}) designed all ${fmt(rec.children)} children of seed ${st.seed} ahead of time, and each reason shown is the one it gave. While the run follows the recording, no model is called. ` : "";
-    const off = rec && S.offRecord !== null ? ` A visitor’s shock moved the economy off the recording at round ${fmt(S.offRecord)}; children born since then ${st.mutation?.liveModel ? `ask ${esc(modelName(st.mutation.liveModel))} live, or are random when it is busy` : "are random"}.` : "";
-    set("#ai-meta", `${replay}Designed by an AI model so far: ${fmt(kids)} of ${fmt(born)} children (${parts.join(", ")}).${tail}${off}${fb && mode !== "gaussian" && !off ? ` ${fmt(fb)} fell back to random (model busy, slow or unavailable).` : ""} Purple marks under the chart show when.`);
+    const meta = rec && S.offRecord === null
+      ? `Replayed from a recorded ${esc(modelName(rec.model))} run (${fmt(rec.children)} children).`
+      : rec
+        ? `Replayed from a recorded ${esc(modelName(rec.model))} run until a shock at round ${fmt(S.offRecord)}; later children ${st.mutation?.liveModel ? `ask ${esc(modelName(st.mutation.liveModel))} live` : "are random"}.`
+        : `Designed by an AI model so far: ${fmt(kids)} of ${fmt(born)} children.`;
+    set("#ai-meta", meta);
+    $("#ai-meta").title = rec ? `${modelName(rec.model)} (${rec.model}) designed all ${rec.children} children of seed ${st.seed} ahead of time; each reason shown is the one it gave. No model is called during the replay. Purple marks under the chart show each design.` : "";
     if (was !== cur.id) { box.classList.remove("is-new"); void box.offsetWidth; box.classList.add("is-new"); }
     return;
   }
@@ -1067,8 +1085,8 @@ function drawPlot() {
     const d = D[i];
     if (d.blocked > 0) {
       gl.c.fillStyle = T.accent;
-      const hh = Math.min(gl.h, 4 + d.blocked * 2);
-      gl.c.fillRect(xt(S.metrics[i].tick) - 1, (gl.h - hh) / 2, 2, hh);
+      const hh = Math.min(gl.h, 8 + d.blocked * 3);
+      gl.c.fillRect(xt(S.metrics[i].tick) - 1.5, (gl.h - hh) / 2, 3, hh);
     }
     if (d.leaked > 0) {
       gl.c.fillStyle = T.error;
@@ -1116,7 +1134,7 @@ function renderKey(sc, D) {
     gens: !!geo?.gens,
     open: geo?.tD != null,
   };
-  if (geo?.tD != null) $("#key-open-text").textContent = `Left of the dashed line, squeezed: rounds ${geo.t0} to ${geo.tD}, while the founding families were still near-equal`;
+  if (geo?.tD != null) $("#key-open-text").textContent = `Left of the dashed line: early rounds ${geo.t0} to ${geo.tD}, compressed`;
   void last;
   $("#read-sentence").textContent = S.mode === "wealth" ? "Each colour is a family of agents. Thicker = more of the money." : "Each colour is a family of agents. Thicker = more of them alive.";
   if (geo?.gens) {
@@ -1490,20 +1508,38 @@ function shockSpans() {
 function renderAxis(g) {
   const axis = $("#axis");
   if (!g) { axis.innerHTML = ""; return; }
+  const W = axis.clientWidth || g.w;
   const from = g.tD ?? g.t0;
   const span = g.t1 - from;
-  const raw = span / ((axis.clientWidth < 560 ? 4 : 8) * (1 - (g.tD === null ? 0 : g.fD)));
+  const raw = span / ((W < 560 ? 3 : 7) * (1 - (g.tD === null ? 0 : g.fD)));
   const mag = 10 ** Math.floor(Math.log10(raw));
   // Ticks are whole numbers: never step by less than one.
   const stepT = Math.max(1, Math.round([1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw) || raw));
+  const px = (t) => (g.xt(t) / g.w) * W;
   const at = (t) => `${(g.xt(t) / g.w) * 100}%`;
-  const out = [`<span style="left:0">${g.tD !== null && axis.clientWidth < 560 ? "" : "round "}${g.t0}</span>`];
-  if (g.tD !== null) out.push(`<span class="axis__brk" style="left:${at(g.tD)}">${g.tD}</span>`);
-  for (let t = Math.ceil((from + stepT * 0.6) / stepT) * stepT; t < g.t1 - stepT * 0.4; t += stepT) out.push(`<span style="left:${at(t)}">${t}</span>`);
-  out.push(`<span style="left:100%">${g.t1}</span>`);
+  const out = [];
+  let lastPx = -Infinity;
+  if (g.tD !== null) {
+    // The squeezed opening gets a bracket and a name instead of crowded round numbers.
+    const wpx = px(g.tD);
+    const name = wpx >= 96 ? "early rounds (compressed)" : "early";
+    out.push(`<span class="axis__early" style="left:0;width:${at(g.tD)}" title="Rounds ${g.t0} to ${g.tD}, while the founding families were still near-equal, squeezed into this strip">${name}</span>`);
+    out.push(`<span class="axis__brk" style="left:${at(g.tD)}">${g.tD}</span>`);
+    lastPx = wpx;
+  } else {
+    out.push(`<span class="axis__first" style="left:0">round ${g.t0}</span>`);
+    lastPx = 60;
+  }
+  const endPx = W - (W < 560 ? 150 : 170);
+  for (let t = Math.ceil((from + stepT * 0.6) / stepT) * stepT; t < g.t1; t += stepT) {
+    const p = px(t);
+    if (p - lastPx < 48 || p > endPx) continue;
+    out.push(`<span style="left:${at(t)}">${t}</span>`);
+    lastPx = p;
+  }
+  out.push(`<span class="axis__now" style="left:100%">now · round ${fmt(g.t1)}</span>`);
   axis.innerHTML = out.join("");
 }
-
 
 // Hover and selection
 function hitTest(px, py) {
@@ -1572,7 +1608,7 @@ canvas.addEventListener("mousemove", (e) => {
     const small = Object.keys(m.lineages).filter((f) => geo.pooledAt(f, si));
     const n = small.reduce((a, f) => a + m.lineages[f].n, 0);
     tip.innerHTML = `<b>Small families</b><span>At round ${m.tick}: ${lower(word(small.length))} small ${plural(small.length, "family", "families")}, ${n} agents in all.</span><br>` +
-      `<span>None is big enough yet for a colour of its own, so they share this hatched band, drawn no taller than a fifth of the chart so the named families stay readable. Any that grows gets its own colour.</span>`;
+      `<span>None is big enough yet for a colour of its own, so they share this speckled band, drawn smaller than their share so the named families stay readable. Any that grows gets its own colour.</span>`;
   } else {
   const lin = m.lineages[hit.f];
   const { living, founder, gens } = dynastyFacts(hit.f);
@@ -1657,38 +1693,17 @@ function richestFounder() {
 }
 
 // Why a dynasty wins, in one sentence: its price and reselling against the market's averages, from the snapshot.
-function edgeSentence(mk, mkAvg, sub, subAvg) {
-  if (mkAvg === null) return "";
-  const parts = [];
-  const d = mk - mkAvg;
-  if (Math.abs(d) >= 0.03) parts.push(d < 0 ? `It asks ${mk.toFixed(2)} of each reward against a market average of ${mkAvg.toFixed(2)}, so it wins more auctions` : `It asks ${mk.toFixed(2)} of each reward against a market average of ${mkAvg.toFixed(2)}, so it earns more per task`);
-  if (subAvg !== null && sub - subAvg >= 0.05) parts.push(`it resells more of its work to cheaper solvers (${sub.toFixed(2)} against ${subAvg.toFixed(2)})`);
-  if (!parts.length) return `<p class="spec__edge">Its price and reselling sit close to the market average; compare the other genes below.</p>`;
-  const out = parts.join(", and ");
-  return `<p class="spec__edge">${out.charAt(0).toUpperCase() + out.slice(1)}.</p>`;
-}
-
-// Members whose genes an AI model chose as the mutation operator, and its latest reason in this dynasty.
-function designSentence(f, living) {
-  const byClaude = living.filter((a) => a.origin === "llm").length;
-  const last = [...S.designs].reverse().find((d) => d.founder === f);
-  if (!byClaude && !last) return "";
-  const head = byClaude ? `An AI model chose the genes of ${byClaude} of its ${living.length} living ${plural(living.length, "member")}.` : "";
-  const why = last ? ` Latest, at round ${last.tick}: ${esc(short(last.parent))} forked ${esc(short(last.child))}, and ${esc(modelName(last.model))} said “${esc(reasonText(last.rationale))}”` : "";
-  return `<p class="spec__edge spec__llm">${head}${why}</p>`;
-}
-
 function renderSpecimen() {
   const body = $("#spec-body");
   const sub = $("#spec-sub");
   const f = S.selected || richestFounder();
   if (!f) {
-    sub.textContent = "The richest family’s strategy, until you pick a band.";
+    sub.textContent = "The richest family’s genes, until you pick a band.";
     body.innerHTML = `<p class="placeholder">${S.metrics.length ? "No family is alive." : "No family has a record yet."}</p>`;
     return;
   }
-  $("#spec-h").textContent = S.selected && S.selected !== richestFounder() ? "Its strategy" : "Why it is winning";
-  sub.textContent = S.selected ? "The band you picked. Click it again, or press Escape on the plot, to go back to the richest." : "The richest family right now. Click a band to see another.";
+  $("#spec-h").textContent = "Family strategy";
+  sub.textContent = S.selected ? "The band you picked. Click it again, or press Escape on the plot, to go back to the richest." : "The richest family’s genes. Click a band to see another.";
   const { living, founder, gens } = dynastyFacts(f);
   const lead = leader();
   const colour = colourOf(f, !!lead && lead.f === f && lead.share >= LEAD_SHARE);
@@ -1738,8 +1753,6 @@ function renderSpecimen() {
   body.innerHTML =
     `<div class="spec__name"><span class="spec__swatch" style="background:${colour}"></span><h3>${esc(short(f))}’s family</h3></div>` +
     (strategyOf(f) ? `<p class="spec__strategy">Strategy: ${esc(strategyOf(f))}</p>` : "") +
-    edgeSentence(mean("markup"), avg("markup"), mean("subcontract"), avg("subcontract")) +
-    designSentence(f, living) +
     `<dl class="spec__facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` +
     `<dl class="genes">` +
     gene("Markup", "share of the reward it asks; lower wins more", mean("markup"), 1, mean("markup").toFixed(2), avg("markup")) +
@@ -2257,17 +2270,10 @@ function familyMeans(pred) {
   return { n: xs.length, markup: mean("markup"), subcontract: mean("subcontract"), spec, top, ai: xs.filter((a) => a.origin === "llm").length };
 }
 function renderTake() {
-  const body = $("#take-body"), run = $("#take-run"), st = S.state, M = S.metrics;
+  const body = $("#take-body"), st = S.state, M = S.metrics;
   const last = M[M.length - 1];
   const setHtml = (el, html) => { if (el.innerHTML !== html) el.innerHTML = html; };
-  if (!st || !last) { setHtml(run, ""); return; }
-  // The run itself, in simulation terms.
-  const rec = st.mutation?.recording;
-  const pace = st.finished ? "The run is over." : st.paused ? "The run is paused." : `It runs at ${SPEED_WORDS[st.speed] ?? "its own"} speed, ${roundsPerSec(st)}.`;
-  setHtml(run, `<span class="take__act">Try it: fire a plague or drought and watch which families survive. Green marks under the chart are the guard stopping a rogue agent’s theft.</span> ` +
-    `A simulation: each round, tasks are auctioned and every agent pays rent. ${pace}` +
-    (rec ? ` Seed ${st.seed}, recorded with ${esc(modelName(rec.model))} and replayed.` : "") +
-    ` The same rules run as a contract on NEAR testnet: <a href="https://github.com/StarAtNyte/darwin/blob/main/docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12" rel="noopener">one full lifecycle, every tx</a>.`);
+  if (!st || !last) return;
   if (M.length < 10) { setHtml(body, `<p>${fmt(S.founders.size)} founding agents start level, each the root of a family. Nothing has separated them yet.</p>`); return; }
   let i0 = 0;
   while (i0 < M.length - 1 && M[i0].tick < last.tick - TAKE_WINDOW) i0++;
@@ -2312,6 +2318,23 @@ function renderTake() {
   }
   if (why.length) out.push(`<p>${why.join(" ")}</p>`);
   setHtml(body, out.join(""));
+}
+
+// ---------- on NEAR testnet: real transactions of the deployed market, re-read from public RPC by the server ----------
+const EVENT_WORDS = { bid: "bid", award: "award", submit_refused: "submit refused", submit: "submit", settle: "settle", transfer_refused: "transfer refused", transfer: "transfer", kill: "kill", upkeep: "upkeep", expire: "expire" };
+async function loadProof() {
+  try {
+    const r = await fetch("/api/chain", { cache: "no-store" });
+    if (!r.ok) return;
+    const p = await r.json();
+    if (!p.txs?.length) return;
+    $("#proof-contract").href = p.contractUrl;
+    $("#proof-when").textContent = p.source === "rpc" ? "re-read from testnet RPC" : "as recorded";
+    $("#proof-list").innerHTML = p.txs.map((t) =>
+      `<li><a href="${esc(t.url)}" rel="noopener"><span class="proof__ev${t.reason ? " is-refused" : ""}">${esc(EVENT_WORDS[t.event] ?? t.event)}${t.reason ? ` · ${esc(t.reason)}` : ""}</span>` +
+      `<span class="proof__what">${esc(t.label)}</span><span class="proof__tx">${esc(t.hash.slice(0, 8))}… ↗</span></a></li>`).join("");
+    $("#proof").hidden = false;
+  } catch {}
 }
 
 // ---------- the field guide: three steps for a first visit, reopened by "What is this?" ----------
@@ -2450,13 +2473,54 @@ async function loadTunnel() {
   }).join("");
   $$(".tunnel__try").forEach((b) => b.addEventListener("click", () => tryRuleSet(b)));
   $("#tunnel").hidden = false;
+  buildExplorer();
   renderTunnelMode();
 }
 function renderTunnelMode() {
   if (!tunnel) return;
   const shared = !!S.state?.publicMode;
   $$(".tunnel__try").forEach((b) => (b.hidden = shared));
-  $("#tunnel-readonly").hidden = !shared;
+}
+
+// The explorer: pick a rule set and a seed and compare it with the baseline, from the committed per-seed results.
+// Nothing is re-run; every number is one of the 60 runs behind the table.
+const WT = { set: "price-auction", seed: "all" };
+function buildExplorer() {
+  if (!tunnel?.perSeed) return;
+  const sets = tunnel.ruleSets.slice(1);
+  if (!sets.some((s) => s.id === WT.set)) WT.set = sets[0].id;
+  $("#wt-sets").innerHTML = sets.map((s) => `<button class="wt__chip" type="button" data-wt="${s.id}" aria-pressed="${s.id === WT.set}">${esc(s.label)}</button>`).join("");
+  $("#wt-seed").innerHTML = `<option value="all">All ${tunnel.seeds.length} seeds (mean)</option>` + tunnel.seeds.map((n) => `<option value="${n}">Seed ${n}</option>`).join("");
+  $$("#wt-sets [data-wt]").forEach((b) => b.addEventListener("click", () => { WT.set = b.dataset.wt; renderExplorer(); }));
+  $("#wt-seed").addEventListener("change", (e) => { WT.seed = e.target.value; renderExplorer(); });
+  $("#wt").hidden = false;
+  renderExplorer();
+}
+function renderExplorer() {
+  const set = tunnel.ruleSets.find((s) => s.id === WT.set);
+  const base = tunnel.perSeed.baseline, mine = tunnel.perSeed[WT.set];
+  $$("#wt-sets [data-wt]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.wt === WT.set)));
+  $("#wt-set-name").textContent = set.label;
+  const one = WT.seed !== "all";
+  $("#wt-q").innerHTML = `${esc(set.question)} <span class="wt__rules">(${esc(tunnelRules(set))}${one ? `, seed ${WT.seed}` : ""})</span>`;
+  const pick = (rows) => (one ? rows.find((r) => String(r.seed) === WT.seed) : null);
+  const mean = (rows, k) => rows.reduce((t, r) => t + r[k], 0) / rows.length;
+  const W = 240, H = 34;
+  $("#wt-grid").innerHTML = TUNNEL_COLS.map((c) => {
+    const b = one ? pick(base)[c.k] : mean(base, c.k), m = one ? pick(mine)[c.k] : mean(mine, c.k);
+    const all = [...base, ...mine].map((r) => r[c.k]);
+    const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo || 1;
+    const X = (v) => (8 + ((v - lo) / span) * (W - 16)).toFixed(1);
+    const dots = (rows, y, cls) => rows.map((r) => `<circle class="${cls}${one && String(r.seed) === WT.seed ? " is-on" : ""}" cx="${X(r[c.k])}" cy="${y}" r="${one && String(r.seed) === WT.seed ? 5 : 3.5}"></circle>`).join("");
+    const v = tunnel.vsBaseline[WT.set][c.k];
+    const sig = !one && v.p < 0.01;
+    const d = m - b;
+    return `<div class="wt__cell${sig ? " is-sig" : ""}"><dt>${c.label}<small>${c.sub}</small></dt>` +
+      `<dd class="wt__nums"><span class="wt__b">${c.f(b)}</span><span class="wt__arrow" aria-hidden="true">→</span><span class="wt__m">${c.f(m)}</span>` +
+      `<span class="wt__d">${Math.abs(d) < 1e-9 ? "no change" : c.d(d)}${one ? "" : sig ? " · held up (p &lt; 0.01)" : " · within noise"}</span></dd>` +
+      `<dd class="wt__dots"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${c.label}: baseline ${c.f(b)}, ${esc(set.label)} ${c.f(m)}">` +
+      `<line x1="8" x2="${W - 8}" y1="${H / 2}" y2="${H / 2}" class="wt__axis"></line>${dots(base, 10, "wt__dot--base")}${dots(mine, 24, "wt__dot--set")}</svg></dd></div>`;
+  }).join("");
 }
 async function tryRuleSet(b) {
   const set = tunnel.ruleSets.find((s) => s.id === b.dataset.set);
@@ -2505,6 +2569,7 @@ function boot() {
   // Headless Chrome screenshots (docs/dashboard.png) never finish while a stream is open: render the history once instead.
   const still = /HeadlessChrome/.test(navigator.userAgent);
   loadTunnel();
+  loadProof();
   loadHistory().catch(() => {}).finally(() => {
     if (!still) connect();
     if (!tourSeen() && !sheetBtn) requestAnimationFrame(() => requestAnimationFrame(() => openTour()));
