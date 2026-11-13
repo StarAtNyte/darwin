@@ -521,7 +521,7 @@ input[aria-invalid="true"] { border-color: var(--color-error); }
   .notice__inner { padding-block: var(--space-xs); font-size: var(--text-sm); line-height: 1.35; }
   .chain { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3xs) var(--space-sm); padding-block: var(--space-3xs); }
   .counter .status:not([data-kind="conn"]):not(:has(.shock)) { display: none; }
-  .plot__well { height: clamp(220px, 56vw, 300px); }
+  .plot__well { height: clamp(260px, 70vw, 340px); }
   .key { gap: var(--space-3xs) var(--space-md); font-size: var(--text-xs); margin-top: var(--space-3xs); }
   .axis { height: 28px; font-size: var(--text-sm); }
   .axis__note { font-size: var(--text-xs); }
