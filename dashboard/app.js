@@ -399,6 +399,17 @@ function renderShockWait() {
   if (waiting) shockWaitTimer = setTimeout(renderShockWait, 1000);
 }
 
+// The server sends seconds left when a finished run will restart; turn that into a deadline once per state
+// object, then tick the notice every second so the wait reads as a countdown, not a frozen page.
+const restartDeadline = new WeakMap();
+function restartLeft(st) {
+  if (st.restartInSec == null) return "on its own in a moment";
+  if (!restartDeadline.has(st)) restartDeadline.set(st, Date.now() + st.restartInSec * 1000);
+  const sec = Math.ceil((restartDeadline.get(st) - Date.now()) / 1000);
+  return sec > 0 ? `in ${sec} s` : "now";
+}
+setInterval(() => { if (S.state?.finished && S.state?.restartInSec != null) renderChrome(); }, 1000);
+
 function renderChrome() {
   const st = S.state;
   const status = $("#status");
@@ -476,7 +487,7 @@ function renderChrome() {
   } else if (st.finished) {
     notice.hidden = false;
     noticeText.textContent = shared
-      ? `The run finished at round ${fmt(st.tick)}.${st.autoRestart ? ` ${st.mutation?.recording ? "The next recorded run" : "A new run"} starts on its own shortly.` : ""}`
+      ? `The run finished at round ${fmt(st.tick)}.${st.autoRestart ? ` ${st.mutation?.recording ? "The next recorded run" : "A new run"} starts ${restartLeft(st)}.` : ""}`
       : `The run finished at round ${fmt(st.tick)}. Export the champion, or start a new run with the same rules.`;
     noticeAction.hidden = shared;
   } else if (st.takeover && st.tick < (st.startRound || 0) + 150) {

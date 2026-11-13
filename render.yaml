@@ -15,7 +15,7 @@ services:
       - key: PUBLIC_MODE
         value: "1"
       - key: AUTO_RESTART_SEC
-        value: "120"
+        value: "15"
       - key: AUTO_RESUME_SEC
         value: "300"
       # Replay Claude's recorded run (results/mutations/seed-3-llm.json, claude-haiku-5-5): every child's genome

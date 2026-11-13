@@ -19,6 +19,8 @@ const MAX_TICKS = Number(process.env.TICKS ?? 2000);
 // Public deployments share one run between all visitors. Opt-in: start a fresh seed this long after a run finishes,
 // and resume a run someone paused and walked away from. 0 (the default) keeps both off.
 const AUTO_RESTART_MS = Number(process.env.AUTO_RESTART_SEC ?? 0) * 1000;
+// When the finished run was first seen (0 while running); the next run starts AUTO_RESTART_MS later.
+let pausedAt = 0, finishedAt = 0;
 const AUTO_RESUME_MS = Number(process.env.AUTO_RESUME_SEC ?? 0) * 1000;
 // PUBLIC_MODE=1: one shared run for every visitor. Nobody can pause, step, change speed or rules, or reset it;
 // shocks stay open but only one may fire per SHOCK_COOLDOWN_SEC across all visitors.
@@ -229,6 +231,7 @@ class Run {
       publicMode: PUBLIC_MODE,
       mutation: { calls: this.eco.mutator.calls, maxCalls: this.eco.mutator.maxCalls, replayed: this.eco.mutator.hits, ...this.eco.mutationStats, designers: this.eco.designers, liveModel: MUTATION_CALLS > 0 ? (PROVIDER?.model ?? null) : null, live: liveGate ? { every: liveGate.every, minIntervalSec: liveGate.minIntervalMs / 1000, dailyCapUsd: liveGate.dailyCapUsd, calls: liveGate.calls } : null, recording: this.eco.cfg.mutation === "gaussian" ? null : recordingFor(this.seed, this.eco.cfg.mutation) },
       autoRestart: AUTO_RESTART_MS > 0,
+      restartInSec: AUTO_RESTART_MS && finishedAt ? Math.max(0, Math.ceil((finishedAt + AUTO_RESTART_MS - Date.now()) / 1000)) : null,
       shockCooldownSec: PUBLIC_MODE ? SHOCK_COOLDOWN_MS / 1000 : 0,
       shockWaitSec: shockWait(),
       takeover: this.takeover,
@@ -375,7 +378,6 @@ server.listen(PORT, HOST, () => {
   console.log(`DARWIN: http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}   seed ${run.seed}, ${MAX_TICKS} ticks, log ${DB_PATH}${PUBLIC_MODE ? ", public mode" : ""}, mutation ${MUTATION}, live model ${MUTATION_CALLS > 0 && PROVIDER ? PROVIDER.model : "none (cache, then Gaussian)"}`);
 });
 
-let pausedAt = 0, finishedAt = 0;
 async function loop() {
   for (;;) {
     const t0 = Date.now();
@@ -385,7 +387,10 @@ async function loop() {
       broadcast("state", run.state());
     }
     if (run.eco.tick >= MAX_TICKS) {
-      finishedAt ||= t0;
+      if (!finishedAt) {
+        finishedAt = t0;
+        broadcast("state", run.state()); // carries restartInSec, so the dashboard can count down
+      }
       if (AUTO_RESTART_MS && t0 - finishedAt > AUTO_RESTART_MS) {
         finishedAt = 0;
         await run.reset(nextSeed(run.seed));
