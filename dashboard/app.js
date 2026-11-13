@@ -2548,7 +2548,6 @@ $("#tour-back").addEventListener("click", () => { tour.i = Math.max(0, tour.i - 
 $$("[data-tour-close]").forEach((b) => b.addEventListener("click", closeTour));
 addEventListener("keydown", (e) => { if (e.key === "Escape" && tour.open) closeTour(); });
 addEventListener("resize", placeTour);
-function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch { return true; } }
 
 // ---------- wind tunnel ----------
 const pts = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x) < 0.01 ? Math.abs(x * 100).toFixed(1) : Math.abs(Math.round(x * 100))} pts`;
@@ -2692,7 +2691,7 @@ function boot() {
   loadProof();
   loadHistory().catch(() => {}).finally(() => {
     if (!still) connect();
-    if (!tourSeen() && !sheetBtn) requestAnimationFrame(() => requestAnimationFrame(() => openTour()));
+    // The header line says what DARWIN is, so the guide waits for "What is this?" instead of covering the chart.
   });
   if (document.fonts?.ready) document.fonts.ready.then(() => { readTokens(); schedule("all"); });
 }
