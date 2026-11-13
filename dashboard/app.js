@@ -2052,7 +2052,7 @@ function renderFigs() {
   if (legit) through.push(`${fmt(legit)} ${plural(legit, "was", "were")} allowed`);
   if (other) through.push(`${fmt(other)} ${legit ? "more " : ""}${plural(other, "was", "were")} allowed inside its spending rules`);
   // Why an allowed payment is not theft, in one plain sentence: it paid an honest agent, not the accomplice.
-  const why = legit ? ` ${legit === 1 ? "That one is" : "Those are"} not theft: ${legit === 1 ? "it" : "they"} paid the honest solver <span class="id">solver-1</span> for real work, within the rogue’s normal spending limit, and none reached its accomplice.` : "";
+  const why = legit ? ` ${legit === 1 ? "That one is" : "Those are"} not theft: ${legit === 1 ? "it" : "they"} went to the honest agent <span class="id">solver-1</span>, within the rogue’s normal spending limit, and none reached its accomplice.` : "";
   const tail = through.length ? ` ${through.join("; ")}.${why}` : "";
   g.innerHTML = `<span class="big">${head}</span>${tally}${tail} ${parts.join(" ")}`;
 }
