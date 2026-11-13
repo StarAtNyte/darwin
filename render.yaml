@@ -21,6 +21,11 @@ services:
       # Replay Claude's recorded run (results/mutations/seed-3-llm.json, claude-haiku-5-5): every child's genome
       # and one-line reason come from the recording, so no model is called. Restarts cycle through seeds 1-5,
       # the seeds with a recording. A visitor's shock moves the run off the recording; later children are random.
+      # "Test your own rules": the dashboard's combinations come precomputed (results/test-rules.json, 5 runs of
+      # 2,000 rounds). Other values sent to POST /api/test-rules run live; at 0.1 CPU a 2,000-round run takes minutes,
+      # so live jobs here use 5 runs of 300 rounds (about 30 s), and the answer says so.
+      - key: TEST_RULES_ROUNDS
+        value: "300"
       - key: DARWIN_MUTATION
         value: llm
       - key: SEED

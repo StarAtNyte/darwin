@@ -54,6 +54,7 @@
       </select>
     </div>
     <nav class="actions" aria-label="Steer the run">
+      <button class="btn btn--primary" type="button" data-sheet="test" aria-expanded="false" aria-controls="sheet-test" id="test-open">Test your own rules</button>
       <button class="btn btn--quiet" type="button" data-sheet="shocks" aria-expanded="false" aria-controls="sheet-shocks">More shocks</button>
       <button class="btn btn--quiet" type="button" data-sheet="rules" aria-expanded="false" aria-controls="sheet-rules">Rules</button>
       <button class="btn btn--quiet" type="button" data-sheet="export" aria-expanded="false" aria-controls="sheet-export" id="export-open">Export</button>
@@ -180,6 +181,7 @@
     <div class="tunnel__head">
       <h2 id="tunnel-h">Wind tunnel: test market rules before you deploy them.</h2>
       <p class="tunnel__result">Weight the auction by reputation: lowest-price-wins cut the price paid from 0.48 to 0.12 of the reward, but task success fell from 81% to 57%. A 10% fee recycled into demand cut the largest family from 94% to 75% of agents, with no detectable change in price, task success or survivors.</p>
+      <p class="tunnel__own"><button class="btn btn--quiet btn--small" type="button" data-sheet="test" aria-expanded="false" aria-controls="sheet-test">Test your own rules</button> Pick an auction rule, a fee, rent and job supply, and compare them with the default rules.</p>
       <p class="tunnel__caveat">Simulated, not this live run: end-of-run means over 10 seeds of 2,000 rounds each, random mutation, one rule changed at a time.</p>
       <p class="tunnel__lede">Each rule set runs on the same 10 seeds. Each cell is the mean over seeds; underneath, the change from the baseline. <span class="tunnel__sig-key"><b>Bright</b></span> changes held up in a paired permutation test (p &lt; 0.01); grey ones did not.</p>
     </div>
@@ -243,6 +245,34 @@
     </div>
     <p class="form-msg" id="reset-msg" aria-live="polite"></p>
   </form>
+</aside>
+
+<aside class="sheet sheet--test" id="sheet-test" aria-labelledby="test-h" hidden>
+  <div class="sheet__head"><h2 id="test-h">Test your own rules</h2><button class="btn btn--quiet btn--small" type="button" data-close>Close</button></div>
+  <p class="sheet__lede" id="test-lede">Set the market’s rules, then compare them with the default rules: the same seeds for both, random mutation. The live run above is not touched.</p>
+  <div class="tr-presets">
+    <p class="tr-presets__k">Start from a finding</p>
+    <div class="wt__chips" id="tr-presets"></div>
+  </div>
+  <form id="test-form" novalidate>
+    <fieldset class="rule" data-rule="auction"><legend>How jobs are awarded</legend><div class="seg seg--small">
+      <input type="radio" name="auction" id="tr-rep" value="reputation"><label for="tr-rep">Weighted by reputation</label>
+      <input type="radio" name="auction" id="tr-price" value="price"><label for="tr-price">Lowest price</label></div>
+      <p class="hint">Reputation: a cheap bid from an agent with a record of wrong answers can lose to a reliable one. Lowest price: the cheapest bid always wins.</p></fieldset>
+    <div id="tr-fields"></div>
+    <div class="tr-run">
+      <button class="btn btn--primary" type="submit" id="test-go">Run the test</button>
+      <button class="btn btn--quiet btn--small" type="button" id="test-reset">Default rules</button>
+    </div>
+    <div class="tr-progress" id="tr-progress" hidden><i id="tr-bar"></i></div>
+    <p class="form-msg" id="test-msg" aria-live="polite"></p>
+  </form>
+  <section class="tr-result" id="tr-result" aria-labelledby="tr-headline" hidden>
+    <p class="tr-result__h" id="tr-headline" tabindex="-1"></p>
+    <p class="hint" id="tr-note"></p>
+    <dl class="tr-rows" id="tr-rows"></dl>
+    <p class="hint">Clear: every run moved the same way, or a paired sign-flip test gave p &lt; 0.05. With 5 runs, all 5 agreeing is the strongest result possible (p = 0.0625). Numbers are means over the runs; the arrow goes from the default rules to yours.</p>
+  </section>
 </aside>
 
 <aside class="sheet" id="sheet-shocks" aria-labelledby="shocks-h" hidden>

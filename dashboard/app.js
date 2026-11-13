@@ -2094,6 +2094,7 @@ function toggleSheet(name, btn) {
   setParam("sheet", name);
   if (name === "rules") syncRules(true);
   if (name === "export") refreshExport(true);
+  if (name === "test") openTest();
   openSheet.querySelector("h2").setAttribute("tabindex", "-1");
   openSheet.querySelector("h2").focus();
 }
@@ -2686,6 +2687,135 @@ async function tryRuleSet(b) {
   } finally {
     b.removeAttribute("aria-busy");
   }
+}
+
+
+// ---------- test your own rules ----------
+// POST /api/test-rules runs the visitor's rules and the defaults on the same seeds (a worker on the server; the live
+// run keeps going). Every combination of these steps is precomputed on the server, so most answers are instant.
+const TR_FIELDS = [
+  { k: "marketFee", label: "Market fee", steps: [0, 0.05, 0.1, 0.2], help: "Share of each paid job the market takes back into the pool that pays for future jobs.", show: (v) => `${Math.round(v * 100)}%` },
+  { k: "upkeep", label: "Rent per round", steps: [3000, 6000, 9000, 12000], help: "What every agent pays each round to stay listed. Agents that run out go broke.", show: (v) => `${(v / SEED).toFixed(3)} credits` },
+  { k: "tasksPerTick", label: "Jobs posted per round", steps: [4, 5, 7, 10], help: "How much work buyers post. Fewer jobs means harder competition.", show: (v) => fmt(v) },
+];
+const TR_DEFAULTS = { auction: "reputation", marketFee: 0, upkeep: 6000, tasksPerTick: 7 };
+const TR = { status: null, busy: false, built: false };
+function trBuild() {
+  if (TR.built) return;
+  TR.built = true;
+  const steps = TR.status?.grid?.steps;
+  if (steps) for (const f of TR_FIELDS) if (steps[f.k]) f.steps = steps[f.k];
+  $("#tr-fields").innerHTML = TR_FIELDS.map((f) => `<div class="rule" data-rule="${f.k}"><div class="rule__top"><label for="tr-${f.k}">${f.label}</label><output id="tro-${f.k}" for="tr-${f.k}"></output></div>` +
+    `<input type="range" id="tr-${f.k}" min="0" max="${f.steps.length - 1}" step="1" aria-describedby="trh-${f.k}"><p class="hint" id="trh-${f.k}">${f.help}</p></div>`).join("");
+  const presets = TR.status?.presets ?? [{ id: "price", label: "Lowest price always wins", rules: { auction: "price" } }, { id: "fee", label: "10% fee recycled into jobs", rules: { marketFee: 0.1 } }, { id: "scarce", label: "Fewer jobs: 4 a round", rules: { tasksPerTick: 4 } }];
+  $("#tr-presets").innerHTML = presets.map((p) => `<button class="wt__chip" type="button" data-preset="${esc(p.id)}" aria-pressed="false">${esc(p.label)}</button>`).join("");
+  $$("#tr-presets [data-preset]").forEach((b) => b.addEventListener("click", () => {
+    const p = presets.find((x) => x.id === b.dataset.preset);
+    trSet({ ...TR_DEFAULTS, ...p.rules });
+    runTest();
+  }));
+  for (const f of TR_FIELDS) $(`#tr-${f.k}`).addEventListener("input", trSync);
+  $$('#test-form input[name="auction"]').forEach((r) => r.addEventListener("change", trSync));
+  $("#test-reset").addEventListener("click", () => trSet(TR_DEFAULTS));
+  $("#test-form").addEventListener("submit", (e) => { e.preventDefault(); runTest(); });
+  trSet(TR_DEFAULTS);
+}
+function trRules() {
+  const r = { auction: $("#tr-price").checked ? "price" : "reputation" };
+  for (const f of TR_FIELDS) r[f.k] = f.steps[Number($(`#tr-${f.k}`).value)];
+  return r;
+}
+function trSet(rules) {
+  $(rules.auction === "price" ? "#tr-price" : "#tr-rep").checked = true;
+  for (const f of TR_FIELDS) {
+    const i = f.steps.indexOf(rules[f.k]);
+    $(`#tr-${f.k}`).value = String(i < 0 ? f.steps.indexOf(TR_DEFAULTS[f.k]) : i);
+  }
+  trSync();
+}
+function trSync() {
+  const r = trRules();
+  for (const f of TR_FIELDS) {
+    $(`#tro-${f.k}`).textContent = f.show(r[f.k]) + (r[f.k] === TR_DEFAULTS[f.k] ? " (default)" : "");
+    $(`[data-rule="${f.k}"]`, $("#tr-fields")).classList.toggle("is-changed", r[f.k] !== TR_DEFAULTS[f.k]);
+  }
+  $('#test-form [data-rule="auction"]').classList.toggle("is-changed", r.auction !== TR_DEFAULTS.auction);
+  const presets = TR.status?.presets ?? [];
+  $$("#tr-presets [data-preset]").forEach((b) => {
+    const p = presets.find((x) => x.id === b.dataset.preset);
+    const on = p && Object.keys(TR_DEFAULTS).every((k) => ({ ...TR_DEFAULTS, ...p.rules })[k] === r[k]);
+    b.setAttribute("aria-pressed", String(!!on));
+  });
+}
+async function openTest() {
+  if (!TR.status) {
+    try {
+      const r = await fetch("/api/test-rules", { cache: "no-store" });
+      if (r.ok) TR.status = await r.json();
+    } catch {}
+  }
+  trBuild();
+  const g = TR.status?.grid ?? TR.status?.live;
+  if (g) $("#test-lede").textContent = `Set the market’s rules, then compare them with the default rules: ${g.seeds.length ?? g.seeds} runs of ${fmt(g.rounds)} rounds each, the same seeds for both, random mutation. The live run above is not touched.`;
+}
+const trDiff = (unit, d) => {
+  const sgn = d > 0 ? "+" : d < 0 ? "−" : "";
+  const a = Math.abs(d);
+  return unit === "pct" ? `${sgn}${(a * 100).toFixed(1)} pts` : unit === "n1" ? `${sgn}${a.toFixed(1)}` : `${sgn}${a.toFixed(0)}`;
+};
+const trVal = (unit, v) => (unit === "pct" ? `${Math.round(v * 100)}%` : unit === "n1" ? v.toFixed(1) : fmt(Math.round(v)));
+async function runTest() {
+  if (TR.busy) return;
+  TR.busy = true;
+  const go = $("#test-go"), msg = $("#test-msg"), bar = $("#tr-bar"), prog = $("#tr-progress");
+  go.setAttribute("aria-busy", "true");
+  go.textContent = "Running";
+  msg.classList.remove("is-error");
+  msg.textContent = "Starting";
+  prog.hidden = false;
+  prog.classList.add("is-wait");
+  bar.style.width = "";
+  const t0 = Date.now();
+  // While a live job runs, the server reports how many runs are done.
+  const poll = setInterval(async () => {
+    try {
+      const st = await (await fetch("/api/test-rules", { cache: "no-store" })).json();
+      if (st.running) {
+        prog.classList.remove("is-wait");
+        bar.style.width = `${Math.round((st.running.done / st.running.total) * 100)}%`;
+        msg.textContent = `Run ${Math.min(st.running.done + 1, st.running.total)} of ${st.running.total}${st.queued ? `, ${st.queued} waiting` : ""} · ${Math.round((Date.now() - t0) / 1000)} s`;
+      } else if (st.queued) msg.textContent = `Waiting for ${st.queued} other test${st.queued > 1 ? "s" : ""}`;
+    } catch {}
+  }, 1000);
+  try {
+    const res = await post("/api/test-rules", { rules: trRules() });
+    prog.classList.remove("is-wait");
+    bar.style.width = "100%";
+    trShow(res);
+    msg.textContent = res.source === "live" ? `Done in ${(res.ms / 1000).toFixed(1)} s.` : res.source === "precomputed" ? "Answered from runs already done for this combination." : "Answered from an earlier test of the same rules.";
+  } catch (err) {
+    prog.hidden = true;
+    msg.classList.add("is-error");
+    msg.textContent = err.message;
+  } finally {
+    clearInterval(poll);
+    TR.busy = false;
+    go.removeAttribute("aria-busy");
+    go.textContent = "Run the test";
+    setTimeout(() => { if (!TR.busy) prog.hidden = true; }, 600);
+  }
+}
+function trShow(res) {
+  $("#tr-result").hidden = false;
+  $("#tr-headline").textContent = res.headline;
+  const changed = Object.entries(res.rules);
+  const words = { auction: (v) => (v === "price" ? "lowest price wins" : "weighted by reputation"), marketFee: (v) => `${Math.round(v * 100)}% fee`, upkeep: (v) => `rent ${(v / SEED).toFixed(3)} credits a round`, tasksPerTick: (v) => `${v} jobs a round`, forkShare: (v) => `children start with ${Math.round(v * 100)}%`, maxPop: (v) => `at most ${v} agents` };
+  $("#tr-note").textContent = `${changed.length ? `Your rules: ${changed.map(([k, v]) => (words[k] ? words[k](v) : `${k} ${v}`)).join(", ")}.` : "These are the default rules."} ${res.note}`;
+  $("#tr-rows").innerHTML = res.metrics.map((m) => `<div class="tr-row${m.verdict === "clear" ? " is-clear" : ""}"><dt>${esc(m.label)}</dt>` +
+    `<dd class="tr-v">${trVal(m.unit, m.baseline)} → ${trVal(m.unit, m.yours)}</dd>` +
+    `<dd class="tr-d"><span>${m.verdict === "no change" ? "no change" : trDiff(m.unit, m.diff)}</span><span class="tr-tag">${m.verdict === "clear" ? `clear · p = ${m.p}` : m.verdict}</span></dd></div>`).join("");
+  $("#tr-headline").focus({ preventScroll: true });
+  $("#tr-result").scrollIntoView({ block: "nearest", behavior: reduceMotion.matches ? "auto" : "smooth" });
 }
 
 // ---------- boot ----------

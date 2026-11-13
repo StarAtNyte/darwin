@@ -11,6 +11,7 @@ import { chainProof } from "./chainproof.ts";
 import { Settler, nearSender } from "./settler.ts";
 import { EpochWatch, type Takeover } from "./epoch.ts";
 import { LiveGate, liveAiFromEnv } from "./liveai.ts";
+import { GRID_PATH, HttpError, RuleTester } from "./testrules.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -116,6 +117,25 @@ const liveChain = () => ({ enabled: settler.enabled, intervalSec: settler.opts.m
 // New epoch: once one family holds DARWIN_EPOCH_SHARE of the agents for DARWIN_EPOCH_HOLD rounds, the run is decided,
 // so a new one starts (public runs only by default; 0 turns it off).
 const epoch = new EpochWatch(Number(process.env.DARWIN_EPOCH_SHARE ?? 0.9), Number(process.env.DARWIN_EPOCH_HOLD ?? (PUBLIC_MODE ? 100 : 0)));
+
+// "Test your rules": a visitor's rule set against the defaults, TEST_RULES_SEEDS runs of TEST_RULES_ROUNDS rounds each,
+// in a worker thread. Combinations of the dashboard's steps come precomputed from results/test-rules.json.
+const tester = new RuleTester({
+  seeds: Math.max(2, Math.min(10, Number(process.env.TEST_RULES_SEEDS ?? 5))),
+  rounds: Math.max(50, Math.min(2000, Number(process.env.TEST_RULES_ROUNDS ?? 2000))),
+  maxQueue: Number(process.env.TEST_RULES_QUEUE ?? 3),
+  perIpMs: PUBLIC_MODE ? Number(process.env.TEST_RULES_IP_SEC ?? 20) * 1000 : 0,
+  gridPath: GRID_PATH,
+});
+// When the live settings differ from the grid's, run the default rules once in the background, so a visitor's first
+// live test runs only their own rules.
+setTimeout(() => tester.warm(), Number(process.env.TEST_RULES_WARM_SEC ?? 20) * 1000).unref();
+// Behind Render's proxy the socket address is the proxy's; the edge's client-IP headers name the visitor. A spoofed
+// header only buys a separate per-IP slot: the queue cap still bounds the work.
+const clientIp = (req: http.IncomingMessage) => {
+  const h = (k: string) => String(req.headers[k] ?? "").split(",")[0].trim();
+  return h("true-client-ip") || h("cf-connecting-ip") || h("x-forwarded-for") || req.socket.remoteAddress || "?";
+};
 
 const notable = new Set(["born", "fork", "kill", "guard_block", "guard_allow_rogue", "subcontract", "shock", "rules"]);
 const clients = new Set<http.ServerResponse>();
@@ -301,6 +321,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/api/state") return send(res, 200, run.state());
     if (req.method === "GET" && p === "/history") return send(res, 200, { state: run.state(), metrics: run.metrics, events: run.recent });
     if (req.method === "GET" && p === "/api/windtunnel") return WINDTUNNEL ? send(res, 200, WINDTUNNEL) : send(res, 404, { error: "no wind tunnel results: run make windtunnel" });
+    if (req.method === "GET" && p === "/api/test-rules") return send(res, 200, tester.status(), { "cache-control": "no-cache" });
+    if (req.method === "POST" && p === "/api/test-rules") {
+      const b = await body(req);
+      try {
+        return send(res, 200, await tester.test(b.rules ?? {}, PUBLIC_MODE ? clientIp(req) : undefined));
+      } catch (e) {
+        if (!(e instanceof HttpError)) throw e;
+        return send(res, e.status, { error: e.message, ...(e.retryAfter ? { retryAfter: e.retryAfter } : {}) }, e.retryAfter ? { "retry-after": String(e.retryAfter) } : {});
+      }
+    }
     if (req.method === "GET" && p === "/api/chain") {
       const pr = await proof();
       return pr ? send(res, 200, { ...pr, live: liveChain() }, { "cache-control": "no-cache" }) : send(res, 404, { error: "no testnet record" });
@@ -431,6 +461,7 @@ async function loop() {
 }
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => {
   if (!PUBLIC_MODE) run.eco.mutator.save({ seed: run.seed });
+  tester.close();
   run.db.close();
   process.exit(0);
 });

@@ -38,6 +38,20 @@ make demo          # open http://127.0.0.1:8787
 
 Locally you can steer every rule (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, market fee, the auction rule), fire shocks (a drought, a plague, a rogue, a wave of immigrants) and export the winning genome as JSON, plus the full metrics as CSV. The public site has steering locked (shocks only). To watch Claude's recorded decisions without a key: `SEED=3 DARWIN_MUTATION=llm make demo`.
 
+### Test your own rules
+
+On the live site, **Test your own rules** (top of the page) sets how jobs are awarded (weighted by reputation or lowest price), the market fee, rent and jobs posted per round, then compares your rules with the default rules on the same 5 seeds of 2,000 rounds each (random mutation, no model, the live run untouched). You get task success, price paid as a share of the reward, the largest family's share of agents, survivors, families left and credits the rogue got past the guard, each with its paired difference. A difference is "clear" when all 5 runs moved the same way or the exact sign-flip test gives p < 0.05; otherwise it is "too close to call". Three presets start from the [wind tunnel](#wind-tunnel-test-market-rules-before-you-deploy-them)'s findings. The dashboard's 128 combinations are precomputed in `results/test-rules.json` (`make test-rules-grid`, ~2-3 min), so they answer at once. Any other values run live in a worker thread while the shared run keeps ticking: ~7-10 s locally (about 1 s a run). The same over HTTP:
+
+```
+curl -s -X POST https://near-darwin.onrender.com/api/test-rules \
+  -H 'content-type: application/json' -d '{"rules": {"auction": "price", "marketFee": 0.1}}'
+# {"rules":{...},"seeds":[1,2,3,4,5],"rounds":2000,"source":"precomputed",...,"headline":"Your rules: successful
+#   jobs 82% → 59%, buyers paid 48% → 11% of the reward, the biggest family held 97% → 46% of agents, 21 → 14 agents
+#   survived.","metrics":[{"key":"taskSuccess",...,"baseline":0.8182,"yours":0.585,"diff":-0.2332,"p":0.0625,"verdict":"clear",...},...]}
+```
+
+Rules you can set, each clamped to its range: `auction` (`reputation` or `price`), `marketFee` (0 to 0.3), `upkeep` (rent, 0 to 30,000 micro-credits a round; default 6,000), `tasksPerTick` (2 to 15; default 7), `forkShare` (0.1 to 0.8) and `maxPop` (20 to 80). Any other key is a 400. `GET /api/test-rules` lists the ranges, presets, steps and queue. One live job runs at a time, with up to 3 waiting; on the public site each visitor gets one live job every 20 s (then 429 with `retry-after`). Repeated and precomputed rules are free. On Render's free plan (0.1 CPU) a 2,000-round run takes minutes, so values off the dashboard's steps run there as 5 runs of 300 rounds, about 30 s (`TEST_RULES_ROUNDS` in `render.yaml`), and the answer says so; locally they use 2,000 rounds.
+
 ## How it works
 
 - **Agents.** Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. The 36 traders are parametric (their genomes decide every bid, so they cost nothing per tick) and 3 solvers answer the tasks (Claude on the hardest, if enabled).
@@ -71,7 +85,7 @@ make windtunnel    # ~60 s: 6 market rule sets x 10 seeds; prints results/windtu
                    #   "Differences at p < 0.01" list starts "**Lowest price wins**: largest family's share of agents -45.6 pts"
 git status --short results/   # empty: all three commands regenerate the committed results exactly
 make demo          # open http://127.0.0.1:8787: the live Muller plot, shocks, genome export
-make test          # ~35 s with Rust crates cached, longer on a first build: 55 sim tests in 9 files,
+make test          # ~40 s with Rust crates cached, longer on a first build: 61 sim tests in 10 files,
                    #   typecheck, 25 contract unit tests (one Rust test module)
 ```
 
@@ -119,7 +133,8 @@ sets on seeds 1-10 for 2000 ticks with Gaussian mutation. Each set changes one k
 same seeds, and each outcome is compared with the baseline paired by seed: mean difference, 95% bootstrap CI and an
 exact sign-flip permutation p-value (all 1,024 sign assignments). Full tables, every p-value and per-seed numbers:
 [results/windtunnel.md](results/windtunnel.md). The dashboard shows the same comparison under "Wind tunnel", with a
-"Try it" button that restarts the local run under that rule set.
+"Try it" button that restarts the local run under that rule set. On the live site, [Test your own rules](#test-your-own-rules) compares any mix of
+the auction rule, fee, rent and job supply with the defaults.
 
 Mean over 10 seeds; in brackets, the change from the baseline; **bold** where p < 0.01.
 
@@ -275,7 +290,7 @@ contract/   Rust darwin_market v2 (near-sdk 5, Borsh arguments): pool, escrow, a
             25 unit tests in src/tests.rs, incl. a 400-op conservation property and golden vectors shared with
             the TypeScript signer (contract/vectors/). Wasm: res/darwin_market_v2.wasm (110 KB, deployed);
             res/darwin_market.wasm is v1 (247 KB, deployed, built from commit d5a74b4).
-sim/        TypeScript runtime with the same rules in-process (55 tests in 9 files in sim/test):
+sim/        TypeScript runtime with the same rules in-process (61 tests in 10 files in sim/test):
   market.ts   mirror of the v2 contract: guard-signed transfers, answer hashes, windows, once-per-epoch upkeep,
               kill below the floor (conservation asserted every tick)
   v2.ts       guard signer, approval message, answer hash, Borsh encoders shared with the chain scripts
@@ -288,13 +303,15 @@ sim/        TypeScript runtime with the same rules in-process (55 tests in 9 fil
   budget.ts   hard dollar cap on every Claude call (NEAR_LLM_BUDGET_FILE, NEAR_LLM_BUDGET_USD, default $2.50)
   experiment.ts  multi-seed runner and mutation ablation (make seeds, make ablation) -> results/
   windtunnel.ts  market rule sets x seeds, paired bootstrap CI and exact sign-flip test vs baseline (make windtunnel)
+  testrules.ts   "Test your own rules": validation, cache, queue, per-IP limit; runs in testrules-worker.ts
+                 (a worker thread); make test-rules-grid precomputes the dashboard's combinations
   main.ts     live loop, SQLite event log (node:sqlite), SSE feed, steering API:
-              POST /api/control (pause, resume, step, speed) · /api/rules · /api/shock · /api/reset
-              GET /api/state · /api/chain · /api/export/genome · /api/export/metrics.csv · /api/windtunnel · /history · /stream · /healthz
+              POST /api/control (pause, resume, step, speed) · /api/rules · /api/shock · /api/reset · /api/test-rules
+              GET /api/state · /api/chain · /api/export/genome · /api/export/metrics.csv · /api/windtunnel · /api/test-rules · /history · /stream · /healthz
   chain2.ts   testnet v2: deploy (key saved), the autonomous lifecycle, upgrade + migrate
   chain.ts    testnet v1 (history): deploy, checkpoints, agent-signed txs, the wind tunnel's rules
 dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, selection pressures,
-            rules and shocks sheets, export
+            rules, shocks and "Test your own rules" sheets, export
 ```
 
 **Genome:** bid markup, specialisation weights over 4 task kinds, risk, subcontract propensity, reserve, fork threshold. A child gets 40% of the parent's balance, and the parent pays a fork fee. Its genes come from the mutation operator, a rule you can switch live: `gaussian` (random noise), `llm` (a language model chooses them) or `mixed` (a coin flip per fork).
@@ -350,6 +367,7 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 - Task verification is an answer hash the owner posts, from a generator that knows the answers. It is not a general oracle, and answers from a small space can be found by hashing guesses.
 - Intents is not used by DARWIN.
 - The wind tunnel changes one rule at a time, on one simulator; interactions between rules and other mechanisms (staking, slashing, fees that leave the market) are untested. v2 stores the rules (upkeep, floor, fee, caps) and enforces them; the owner can change them with `set_rules`.
+- "Test your own rules" uses 5 seeds, so a single comparison can be "clear" at best at p = 0.0625 (all 5 runs agreeing), and it reports six outcomes at once: read a lone clear result as a lead to check with `make windtunnel`-style 10-seed runs, not as proof. Live jobs on the free plan use 300 rounds, which shows only the early market; the 30 s figure is an estimate from a 10% CPU quota locally, not a measurement on Render.
 - Evolution outcomes depend on the seed. Ten seeds give a distribution, but a small one: the markup and wealth ranges are wide because one seed in ten went a different way.
 - The ablation's numbers are Claude's. Mistral Large children (Fly.io config only) were not part of it, so nothing here says how they compare.
 - LLM-guided mutation changes how genomes are chosen, not how agents act each tick: bidding is still the genome's arithmetic. The ablation covers five seeds, so differences smaller than the confidence intervals are not evidence either way.

@@ -10,6 +10,8 @@ COPY dashboard ./dashboard
 COPY results/mutations ./results/mutations
 # The wind tunnel's committed comparison, shown read-only in the dashboard.
 COPY results/windtunnel.json ./results/windtunnel.json
+# "Test your own rules": every combination of the dashboard's steps, precomputed, so the free plan answers at once.
+COPY results/test-rules.json ./results/test-rules.json
 # The v2 market's testnet record: the dashboard re-reads a few of its txs from public RPC.
 COPY results/onchain-v2.json ./results/onchain-v2.json
 WORKDIR /app/sim

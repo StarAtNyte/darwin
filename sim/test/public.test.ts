@@ -28,7 +28,7 @@ before(async () => {
   if (!canListen) return;
   srv = spawn(process.execPath, ["--import", "tsx", path.join(here, "../src/main.ts")], {
     cwd: path.join(here, ".."),
-    env: { ...process.env, MUTATION_BASE_URL: "", ANTHROPIC_API_KEY: "", PUBLIC_MODE: "1", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "400" },
+    env: { ...process.env, MUTATION_BASE_URL: "", ANTHROPIC_API_KEY: "", PUBLIC_MODE: "1", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "400", TEST_RULES_SEEDS: "2", TEST_RULES_ROUNDS: "60", TEST_RULES_WARM_SEC: "3600" },
     stdio: "ignore",
   });
   for (let i = 0; i < 100; i++) {
@@ -95,4 +95,40 @@ test("public mode: the wind tunnel results are readable, with a trimmed per-seed
   assert.equal(w.runs, undefined);
   assert.equal(w.perSeed.baseline.length, w.seeds.length);
   assert.deepEqual(Object.keys(w.perSeed.baseline[0]).sort(), ["extinctions", "middlemanShare", "population", "priceRatio", "seed", "taskSuccess", "topFamilyShare"]);
+});
+
+test("public mode: test your rules: a preset comes back precomputed; bad rules are refused with 400", async () => {
+  const st = await (await fetch(`${base}/api/test-rules`)).json();
+  assert.deepEqual(st.live, { seeds: 2, rounds: 60 });
+  assert.equal(st.grid.rounds, 2000);
+  assert.ok(st.presets.length >= 2);
+  assert.equal(st.perIpSec, 20);
+  const r = await post("/api/test-rules", { rules: st.presets[0].rules });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.source, "precomputed");
+  assert.match(j.headline, /^Your rules: successful jobs \d+% → \d+%/);
+  assert.deepEqual(Object.keys(j.metrics[0]).sort(), ["baseline", "ci", "diff", "key", "label", "p", "perSeed", "unit", "verdict", "yours"]);
+  for (const bad of [{ rules: { deathFloor: 0.5 } }, { rules: { auction: "free" } }, { rules: [] }]) {
+    const b = await post("/api/test-rules", bad);
+    assert.equal(b.status, 400, JSON.stringify(bad));
+    assert.ok((await b.json()).error);
+  }
+});
+
+test("public mode: test your rules: one live test per visitor every 20 s, then 429 with the wait", async () => {
+  const hdr = { "content-type": "application/json", "x-forwarded-for": "203.0.113.7" };
+  const one = await fetch(`${base}/api/test-rules`, { method: "POST", headers: hdr, body: JSON.stringify({ rules: { upkeep: 7777 } }) });
+  assert.equal(one.status, 200);
+  const j = await one.json();
+  assert.equal(j.source, "live");
+  assert.equal(j.rounds, 60);
+  const two = await fetch(`${base}/api/test-rules`, { method: "POST", headers: hdr, body: JSON.stringify({ rules: { upkeep: 7000 } }) });
+  assert.equal(two.status, 429);
+  const k = await two.json();
+  assert.ok(k.retryAfter > 0 && k.retryAfter <= 20);
+  assert.equal(two.headers.get("retry-after"), String(k.retryAfter));
+  // The same rules again are a cache hit, which costs nothing and is never limited.
+  const again = await fetch(`${base}/api/test-rules`, { method: "POST", headers: hdr, body: JSON.stringify({ rules: { upkeep: 7777 } }) });
+  assert.equal((await again.json()).source, "cache");
 });
