@@ -117,6 +117,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .proof__sub { color: var(--color-ink-2); font-size: var(--text-xs); line-height: 1.4; }
 .proof__sub a { color: var(--color-ink); }
 .proof__live { display: grid; gap: var(--space-2xs); padding: var(--space-xs) var(--space-sm); border: 1px solid var(--color-accent); border-radius: var(--radius-card); background: var(--color-paper-3); }
+.proof__live[data-off="true"] { border-color: var(--color-rule); background: none; }
 .proof__live-h { color: var(--color-accent); font-size: var(--text-xs); font-weight: 600; }
 .proof__live-wait { color: var(--color-ink-2); font-size: var(--text-xs); }
 .proof__live-tx { display: grid; gap: var(--space-3xs); color: var(--color-ink); text-decoration: none; font-size: var(--text-sm); line-height: 1.35; }

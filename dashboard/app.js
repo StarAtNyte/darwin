@@ -2421,14 +2421,18 @@ const hashText = (h) => (h.length > 12 ? `${h.slice(0, 6)}…${h.slice(-4)}` : h
 function renderLive() {
   const L = S.live, box = $("#proof-live");
   const last = L?.recent?.[0];
-  box.hidden = !L?.enabled;
-  if (!L?.enabled) return;
+  box.hidden = false;
+  box.dataset.off = String(!L?.enabled);
+  if (!L?.enabled) {
+    box.innerHTML = `<p class="proof__live-wait">Live settlement is off on this server; these are the recorded lifecycle txs.</p>`;
+    return;
+  }
   if (!last) {
     box.innerHTML = `<p class="proof__live-h">This run, live</p><p class="proof__live-wait">The next guard block goes to the contract (at most one every ${L.intervalSec} s).</p>`;
     return;
   }
   const same = S.state && last.seed === S.state.seed;
-  box.innerHTML = `<p class="proof__live-h">This run, live</p>` + L.recent.slice(0, 3).map((t, i) =>
+  box.innerHTML = `<p class="proof__live-h">This run, live · last on-chain tx <time class="proof__live-ago" datetime="${esc(last.at)}">${ago(last.at)}</time></p>` + L.recent.slice(0, 3).map((t, i) =>
     `<a class="proof__live-tx${i ? " is-old" : ""}" href="${esc(t.url)}" rel="noopener"><span class="proof__live-what">${t.seed === S.state?.seed ? "" : "Previous run, "}round ${fmt(t.tick)}: the guard blocked ${esc(short(t.agent))}; sent unsigned, the contract refused it${t.reason ? ` (${esc(t.reason)})` : ""}</span><span class="proof__live-meta"><time datetime="${esc(t.at)}">${ago(t.at)}</time> · <span class="proof__hash" title="${esc(t.hash)}">${esc(hashText(t.hash))}</span> · <span class="proof__view">view on nearblocks ↗</span></span></a>`).join("");
   $("#chain-proof").href = last.url;
   $("#chain-proof").rel = "noopener";
