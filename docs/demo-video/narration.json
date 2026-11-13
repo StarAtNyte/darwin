@@ -26,8 +26,8 @@
  },
  {
   "id": "s5_setup",
-  "text": "Now let's make it hard. Watch families alive, and deaths so far.",
-  "caption": "Now let's make it hard. Watch families alive, and deaths so far."
+  "text": "Now let's make it hard. Watch families alive, and how many agents went broke.",
+  "caption": "Now let's make it hard. Watch families alive, and how many agents went broke."
  },
  {
   "id": "s5_plague",
@@ -42,14 +42,14 @@
   "gap_after": 1.5
  },
  {
-  "id": "s8_tunnel",
-  "text": "Here's what it's for. We changed one rule: lowest price always wins. Buyers paid less, point one two of the reward instead of point four eight... but successful jobs dropped from eighty-one percent to fifty-seven. Agents undercut each other until the work went bad.",
-  "caption": "Here's what it's for. We changed one rule: lowest price always wins. Buyers paid less, 0.12 of the reward instead of 0.48, but successful jobs dropped from 81% to 57%. Agents undercut each other until the work went bad."
+  "id": "s8_test",
+  "text": "Here's what it's for. Say you're designing that marketplace. Pick a rule, lowest price always wins, and run it against the default rules. Successful jobs drop from eighty-two percent to fifty-seven. Buyers pay less, but agents undercut each other until the work goes bad.",
+  "caption": "Here's what it's for. Say you're designing that marketplace. Pick a rule, lowest price always wins, and run it against the default rules. Successful jobs drop from 82% to 57%. Buyers pay less, but agents undercut each other until the work goes bad."
  },
  {
   "id": "s8_fee",
-  "text": "And a small fee, ten percent, recycled back into new jobs, broke up the monopoly. The biggest family went from ninety-four percent of agents to seventy-five.",
-  "caption": "And a small fee, 10%, recycled back into new jobs, broke up the monopoly. The biggest family went from 94% of agents to 75%."
+  "text": "Or try a ten percent fee, recycled into new jobs. The biggest family shrinks, from ninety-seven percent of agents to seventy-eight... but over five runs, that's too close to call.",
+  "caption": "Or try a 10% fee, recycled into new jobs. The biggest family shrinks from 97% of agents to 78%, but over five runs, that's too close to call."
  },
  {
   "id": "s7_near",

@@ -47,6 +47,20 @@ await page.evaluateOnNewDocument(() => {
       'opacity:0;box-shadow:0 0 0 1px rgba(255,255,255,.22),0 0 0 3000px rgba(0,0,0,.62),0 0 40px 12px rgba(0,0,0,.4) inset;' +
       'transition-property:left,top,width,height,opacity;transition-timing-function:cubic-bezier(.65,0,.35,1)';
     root.appendChild(spot); root.appendChild(d);
+    // The camera transform on <body> makes position:fixed relative to the page, so a sheet becomes one screen tall
+    // at the top of the page and scrolls inside itself; the window itself never scrolls.
+    const st = document.createElement('style');
+    st.textContent = '.sheet{position:absolute!important;top:0!important;bottom:auto!important;height:1080px!important}';
+    document.head.appendChild(st);
+    addEventListener('scroll', () => { if (scrollX || scrollY) scrollTo(0, 0); });
+    Element.prototype.scrollIntoView = function () {
+      const s = this.closest('.sheet');
+      if (!s) return;
+      let top = 0;
+      for (let e = this; e && e !== s; e = e.offsetParent) top += e.offsetTop;
+      const want = Math.max(0, top + this.offsetHeight + 24 - s.clientHeight);
+      if (want > s.scrollTop) s.scrollTo({ top: want, behavior: 'smooth' });
+    };
     root.style.background = getComputedStyle(body).backgroundColor;
     body.style.transformOrigin = '0 0';
     body.style.willChange = 'transform';
@@ -171,6 +185,23 @@ async function point(sel, text, ms = 700, dx = 0) {
   await moveTo(dx ? r.x + dx : r.cx, r.cy, ms);
   return r;
 }
+// Point at the words themselves (a Range over the substring), not the centre of the element holding them.
+async function pointWords(sel, text, ms = 700) {
+  const r = await page.evaluate((sel, text) => {
+    const w = document.createTreeWalker(document.querySelector(sel), NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = w.nextNode())) {
+      const i = n.textContent.indexOf(text);
+      if (i < 0) continue;
+      const g = document.createRange(); g.setStart(n, i); g.setEnd(n, i + text.length);
+      const b = g.getBoundingClientRect();
+      return { cx: b.left + b.width / 2, cy: b.top + b.height / 2 };
+    }
+    return null;
+  }, sel, text);
+  if (!r) throw new Error(`not found: ${sel} ${text}`);
+  await moveTo(r.cx, r.cy, ms);
+}
 async function click(sel, text) {
   await point(sel, text, 600);
   await sleep(200);
@@ -285,9 +316,9 @@ await focus([['#try']], { maxScale: 1.6 });
 }
 await scene('s5_setup', async () => {
   await focus([['#statusline'], ['#headline']], { maxScale: 1.6 });
-  await point('#statusline', 'families alive', 800);
+  await pointWords('#statusline', 'families alive', 800);
   await sleep(900);
-  await point('#statusline', 'died', 800, 420);
+  await pointWords('#statusline', 'went broke', 800);
   info.before = await txt('#statusline');
 });
 await focus([['#try']], { maxScale: 1.6 });
@@ -304,61 +335,84 @@ await scene('s5_plague', async () => {
 });
 await scene('s5_after', async () => {
   await sleep(300);
-  await point('#statusline', 'died', 900, 420);
+  await pointWords('#statusline', 'went broke', 900);
   await sleep(1500);
   const m = await rect('#muller');
   await moveTo(m.x + m.w - 80, m.y + m.h * 0.5, 1000);
   await sleep(1200);
-  await point('#statusline', 'died', 800, 420);
+  await pointWords('#statusline', 'went broke', 800);
   info.after = await txt('#statusline');
 });
 
-await scene('s8_tunnel', async () => {
-  await focus([['#tunnel-h'], ['#wt-q'], ['#wt-grid']], { maxScale: 1.25 });
-  await point('#tunnel-h', null, 800);
-  await sleep(1200);
-  await point('#wt-q', 'lowest bid wins', 800);
-  await sleep(1000);
-  await point('#wt-grid', '0.48', 800);
-  await sleep(1400);
-  await point('#wt-grid', '0.12', 600);
-  await sleep(1800);
-  await point('#wt-grid', '81%', 800);
+// Test your own rules: the sheet opens on the right; lowest price wins, run against the defaults.
+const sheetTop = () => page.evaluate(() => document.getElementById('sheet-test').scrollTo({ top: 0, behavior: 'smooth' }));
+await scene('s8_test', async () => {
+  await focus([['.actions']], { maxScale: 1.5, spot: false });
+  await point('#test-open', null, 700);
+  await sleep(500);
+  await click('#test-open');
   await sleep(700);
-  await point('#wt-grid', '57%', 600);
-  info.wt = await txt('#wt-grid');
+  await focus([['#sheet-test .sheet__head'], ['#test-go']], { maxScale: 1.4, pad: 16 });
+  await point('#tr-presets', 'Lowest price always wins', 800);
+  await sleep(900);
+  await click('label[for=tr-price]');
+  await sleep(1500);
+  await click('#test-go');
+  await sleep(900);
+  info.test = await txt('#tr-result');
+  await focus([['#tr-headline'], ['#tr-rows', 'Biggest family']], { maxScale: 1.5, pad: 16 });
+  await point('#tr-rows', '82% → 57%', 800);
+  await sleep(2600);
+  await point('#tr-rows', 'Price paid', 800);
+  await sleep(900);
+  await point('#tr-rows', '48% → 11%', 800);
 });
 
 await scene('s8_fee', async () => {
-  await focus([['.tunnel__advice h3'], ['.tunnel__advice ol', 'A fee recycled']], { maxScale: 1.45 });
-  await point('.tunnel__advice ol', 'A fee recycled', 800);
-  await sleep(2500);
-  await point('.tunnel__advice ol', '94%', 800);
-  await sleep(600);
-  await point('.tunnel__advice ol', '75%', 600);
+  await sheetTop();
+  await focus([['#sheet-test .sheet__head'], ['#tr-presets']], { maxScale: 1.5, pad: 16 });
+  await click('#tr-presets', '10% fee recycled');
+  await sleep(1000);
+  info.fee = await txt('#tr-result');
+  await focus([['#tr-headline'], ['#tr-rows', 'Biggest family']], { maxScale: 1.5, pad: 16 });
+  await point('#tr-rows', '97% → 78%', 800);
+  await sleep(2200);
+  await point('#tr-rows .tr-row:nth-child(3)', 'too close', 800);
 });
+// Zoom out before closing: while the camera is on the result rows, the Close button is off screen.
+await sheetTop();
+await wide(600);
+await sleep(300);
+await click('#sheet-test [data-close]');
+await sleep(300);
+if (await page.evaluate(() => !document.getElementById('sheet-test').hidden)) {
+  console.error('test sheet still open after click; closing it directly');
+  await page.evaluate(() => document.querySelector('#sheet-test [data-close]').click());
+  await sleep(300);
+}
 
 await scene('s7_near', async () => {
-  // Frame from the panel heading to the refused payment; the heading must stay in shot.
-  await focus([['#proof-h'], ['#proof-list', 'BAD_SIGNATURE'], ['#proof-list', 'forged payment']], { maxScale: 1.35, pad: 30 });
+  // The NEAR block heads the sidebar: the contract, then the refused forged payment from the recorded testnet run.
+  await focus([['#proof-h'], ['#proof-live']], { maxScale: 1.6, pad: 30 });
   await point('#proof-h', null, 800);
   await sleep(900);
   await point('#proof-contract', null, 800);
-  await sleep(1300);
-  await point('#proof-list', 'own key', 800);
-  await sleep(2200);
-  await point('#proof-list', 'BAD_SIGNATURE', 900);
+  await sleep(2600);
+  await point('#proof-live', 'Recorded testnet run', 800);
+  await sleep(1600);
+  await point('#proof-live', 'BAD_SIGNATURE', 900);
   await sleep(1500);
-  await point('#proof-list', 'forged payment', 800);
+  await point('#proof-live', 'view on nearblocks', 800);
   info.proof = await txt('#proof');
+  info.proofList = await page.evaluate(() => document.getElementById('proof-list').innerText);
 });
 
 await scene('s9_close', async () => {
-  await focus([['.brand']], { maxScale: 1.6, spot: false, ms: 1300 });
-  await point('.purpose', null, 900, 200);
+  // End on the header: the line that says what the site is for, and the button that does it.
+  await focus([['.brand'], ['.actions']], { maxScale: 1.6, spot: false, ms: 1300 });
+  await pointWords('.purpose', 'its rules here', 900);
   await sleep(2600);
-  await focus([['#shared'], ['.foot', 'Code on GitHub']], { maxScale: 1.6, ms: 1500 });
-  await point('.foot', 'Code on GitHub', 900);
+  await point('#test-open', null, 900);
 });
 await sleep(1500);
 } catch (e) { console.error('FAILED', e); process.exitCode = 1; await page.screenshot({ path: path.join(out, 'error.png') }); }
