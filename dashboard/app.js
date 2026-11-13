@@ -57,8 +57,14 @@ const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
 const plural = (n, a, b = a + "s") => (n === 1 ? a : b);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const idHtml = (id) => `<span class="id">${esc(short(id))}</span>`;
-// A model's reason exactly as recorded, minus stray markup it sometimes appended ("</br", a closing brace).
-const reasonText = (r) => String(r).replace(/<\/?[a-z]+\s*\/?>?/gi, "").replace(/[\s}]+$/, "").trim();
+// A model's reason as recorded (stray markup removed), with code names shown in plain words (each marked, raw word
+// on hover) and a reason the old 160-character cap cut short ending at a whole word plus "…". The full raw text is
+// in the quote's title. quoteHtml lives in summary.js so the test can load it.
+const quote = (r) => {
+  const q = quoteHtml(r);
+  const note = q.clipped ? "Recorded runs kept only the first 160 characters of each reason. " : "";
+  return q.mapped || q.clipped ? `<span title="${esc(`${note}Claude’s words: “${q.raw}”`)}">“${q.html}”</span>` : `“${q.html}”`;
+};
 const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
 
 // Small dynasties share one thin, labelled band on the plot (see layout): the TOP_BANDS largest families now, plus up
@@ -98,7 +104,7 @@ function assignHues(named) {
 // The leading dynasty at the latest tick, once it holds at least this share, is drawn in its deep pigment.
 const LEAD_SHARE = 0.4;
 // Every count and the leader's name on the page come from DarwinSummary.summarize (summary.js) of the latest round.
-const { summarize, statusLine, leadSentence } = window.DarwinSummary;
+const { summarize, statusLine, leadSentence, quoteHtml } = window.DarwinSummary;
 let viewCache = null;
 function view() {
   const m = S.metrics[S.metrics.length - 1];
@@ -900,7 +906,7 @@ function renderAI() {
     $("#ai-tag").textContent = live ? `${who} decided · live` : recorded ? `${who} decided · recorded run` : `${who} decided`;
     box.dataset.live = String(live);
     set("#ai-what", `Round ${fmt(cur.born)}: ${idHtml(cur.parent)} got rich and forked ${idHtml(cur.id)}. ${esc(who)} chose the child’s strategy:`);
-    set("#ai-why", `“${esc(reasonText(cur.rationale))}”`);
+    set("#ai-why", quote(cur.rationale));
     // One line of provenance; the full breakdown is in the title.
     const born = [...S.agents.values()].filter((a) => a.parent && a.role === "parametric").length;
     const L = st.mutation?.live;
@@ -1924,7 +1930,7 @@ function renderNotes() {
   }
   // Every fork where an AI model chose the child's genes, each with the one-line reason it gave.
   for (const d of S.designs) {
-    entries.push({ t: d.tick + 0.4, from: d.tick, to: d.tick, ss: [mark("llm", `${idHtml(d.parent)} forked ${idHtml(d.child)}. ${esc(modelName(d.model))} chose the child’s genes: “${esc(reasonText(d.rationale))}”`)] });
+    entries.push({ t: d.tick + 0.4, from: d.tick, to: d.tick, ss: [mark("llm", `${idHtml(d.parent)} forked ${idHtml(d.child)}. ${esc(modelName(d.model))} chose the child’s strategy: ${quote(d.rationale)}`)] });
   }
   // A routine window sorts at its last tick, below any notable note from that same tick.
   for (const r of routine.values()) entries.push({ t: r.to - 0.25, from: r.from, to: r.to, ss: [routineSentence(r)], routine: true });

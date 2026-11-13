@@ -32,6 +32,53 @@
     };
   }
 
+
+  // Recorded runs kept at most this many characters of each reason (sim/src/mutator.ts used to cut there), so a
+  // reason of exactly this length lost its end. We show it up to the last whole word and mark the cut with "…".
+  const OLD_REASON_CAP = 160;
+  const escH = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+  const reasonRaw = (r) => String(r ?? "").replace(/<\/?[a-z]+\s*\/?>?/gi, "").replace(/[\s}]+$/, "").trim();
+
+  /** A model's reason for display: stray markup removed, and a reason cut mid-word by the old cap ends at a word. */
+  function quoteText(r) {
+    let t = reasonRaw(r);
+    const raw = String(r ?? "");
+    if (raw.length !== OLD_REASON_CAP || /[.!?"”)]$/.test(t)) return { text: t, clipped: false };
+    // Unless the cut fell on a space, the last fragment may be a partial word: drop it.
+    const sp = t.lastIndexOf(" ");
+    if (!/\s$/.test(raw) && sp > 0) t = t.slice(0, sp);
+    t = t.replace(/[\s,;:–—-]+$/, "");
+    // A trailing "and"/"so"/"the" reads as garbled; drop dangling joiners too.
+    while (/\s(and|or|so|but|the|a|an|to|of|while|with|at|in|is|are|its)$/i.test(t)) t = t.replace(/\s\S+$/, "").replace(/[\s,;:]+$/, "");
+    return { text: t + "…", clipped: true };
+  }
+
+  // Code names a model sometimes uses for the genes, mapped to the words the page uses. The raw words stay visible
+  // on hover, so a quote is never silently changed.
+  const TERMS = [
+    [/\bfork_?at\b/gi, "fork threshold"],
+    [/\bgini\b/gi, "wealth gap"],
+    [/\bgenomes\b/gi, "strategies"],
+    [/\bgenome\b/gi, "strategy"],
+  ];
+
+  /** HTML for a quote: plain words in place of code names, each marked, with the raw word in its title. */
+  function quoteHtml(r) {
+    const { text, clipped } = quoteText(r);
+    const re = new RegExp(TERMS.map(([x]) => x.source).join("|"), "gi");
+    let out = "", last = 0, m;
+    while ((m = re.exec(text))) {
+      const w = m[0];
+      let plain = TERMS.find(([x]) => new RegExp(`^(?:${x.source})$`, "i").test(w))[1];
+      if (/^\s*$|[.!?]\s+$/.test(text.slice(0, m.index))) plain = plain[0].toUpperCase() + plain.slice(1);
+      out += escH(text.slice(last, m.index)) + `<span class="term" title="Claude wrote “${escH(w)}”">${escH(plain)}</span>`;
+      last = m.index + w.length;
+    }
+    out += escH(text.slice(last));
+    return { html: out, raw: reasonRaw(r), clipped, mapped: out.includes('class="term"') };
+  }
+
   /** The one-line live status under the headline. */
   function statusLine(v) {
     if (!v) return "";
@@ -45,5 +92,5 @@
     return `No family leads yet: the largest ${v.tied ? "are tied at" : "has"} ${fmt(v.leaderN)} of ${fmt(v.population)} agents`;
   }
 
-  root.DarwinSummary = { summarize, statusLine, leadSentence, short };
+  root.DarwinSummary = { summarize, statusLine, leadSentence, short, quoteText, quoteHtml };
 })(typeof window !== "undefined" ? window : globalThis);

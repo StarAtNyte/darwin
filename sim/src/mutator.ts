@@ -158,7 +158,7 @@ export function parseChild(text: string, parent: GenomeLike): { genome: GenomeLi
     if (!Number.isFinite(v)) throw new Error("spec weight not a number");
     return near(clamp(v, 0, 1), parent.spec[i], STEP.spec);
   });
-  const rationale = String(j.rationale ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
+  const rationale = String(j.rationale ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
   if (!rationale) throw new Error("no rationale");
   return {
     genome: {

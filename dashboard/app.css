@@ -577,3 +577,6 @@ input[aria-invalid="true"] { border-color: var(--color-error); }
 .foot a { color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .foot a:hover { text-decoration-thickness: 2px; }
 .foot a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* A code name in a model's quote, shown in plain words; the raw word is in the title. */
+.term { text-decoration: underline dotted; text-underline-offset: 0.18em; text-decoration-thickness: 1px; cursor: help; }
