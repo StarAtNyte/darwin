@@ -222,7 +222,7 @@ agents and posted two tasks with answer hashes. Then:
 | upkeep for every agent | keeper | [`ExJNsPNF…`](https://testnet.nearblocks.io/txns/ExJNsPNFfXzEaKRELAZwXtkffyo8YZr6r2EKznYDZULd) (+3) | `upkeep`; a6 falls below the floor |
 | kill the broke agent | keeper | [`HvWKsvXF…`](https://testnet.nearblocks.io/txns/HvWKsvXFTFWZbqCnLfjgzijCsK8x7yg62AnwSAJNdiiz) | `kill` |
 
-`total_supply` read back: exactly the 0.01 NEAR funded. All 42 txs, with what each proves, are in
+`total_supply` read back: exactly the 0.01 NEAR funded. All 39 txs, with what each proves, are in
 [docs/TESTNET.md section 5](docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12)
 and [results/onchain-v2.json](results/onchain-v2.json). Cost: 1.346 testnet NEAR, 1.181 of it the contract's storage stake.
 
