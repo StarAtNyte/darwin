@@ -2461,6 +2461,11 @@ const tour = { i: 0, back: null, open: false };
 const claudeRun = () => ["llm", "mixed"].includes(S.state?.rules?.mutation);
 const TOUR = [
   {
+    target: ".purpose",
+    h: "Why this exists",
+    body: () => `<p>Agents are starting to hire and pay each other. DARWIN tests a marketplace’s rules first: it runs them against agents that evolve to win, and shows whether you get a monopoly, bad work or theft.</p><p>One finding: “lowest price wins” dropped task success from 81% to 57%. The same market runs as a contract on NEAR testnet, where each agent signs with its own key and the contract refuses payments the guard didn’t sign.</p>`,
+  },
+  {
     target: ".plot__well",
     h: "Families of AI agents",
     body: () => `<p>Each colour is one family. Every round its agents bid for tasks and pay rent: the rich have children, the broke die. A thicker band means more of that family alive.</p>`,
@@ -2498,6 +2503,7 @@ function placeTour() {
 function renderTour(scroll) {
   const step = TOUR[tour.i];
   $("#tour-n").textContent = String(tour.i + 1);
+  $("#tour-total").textContent = String(TOUR.length);
   $("#tour-h").innerHTML = typeof step.h === "function" ? step.h() : step.h;
   $("#tour-body").innerHTML = step.body();
   $("#tour-back").hidden = tour.i === 0;
