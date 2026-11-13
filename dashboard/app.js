@@ -1757,12 +1757,12 @@ function renderSpecimen() {
   const sub = $("#spec-sub");
   const f = S.selected || richestFounder();
   if (!f) {
-    sub.textContent = "The richest family’s genes, until you pick a band.";
+    sub.textContent = "The richest family’s strategy, until you pick a band.";
     body.innerHTML = `<p class="placeholder">${S.metrics.length ? "No family is alive." : "No family has a record yet."}</p>`;
     return;
   }
   $("#spec-h").textContent = "Family strategy";
-  sub.textContent = S.selected ? "The band you picked. Click it again, or press Escape on the plot, to go back to the richest." : "The richest family’s genes. Click a band to see another.";
+  sub.textContent = S.selected ? "The band you picked. Click it again, or press Escape on the plot, to go back to the richest." : "The richest family’s strategy. Click a band to see another.";
   const { living, founder, gens } = dynastyFacts(f);
   const lead = leader();
   const colour = colourOf(f, !!lead && lead.f === f && lead.share >= LEAD_SHARE);
@@ -1805,7 +1805,7 @@ function renderSpecimen() {
     ["Founder", short(f)],
     [isChampLine ? "Champion, its top earner" : "Champion, its richest member", short(champ)],
   ];
-  let note = `Genes are the numbers an agent bids by. ${living.some((a) => a.origin === "llm") ? "A child’s genes are its parent’s, adjusted by an AI model or by small random changes." : "A child inherits them with small random changes."} Bars average the family’s living members; the white mark is the whole market’s average.`;
+  let note = `A strategy is the set of numbers an agent bids by. ${living.some((a) => a.origin === "llm") ? "A child’s strategy is its parent’s, adjusted by an AI model or by small random changes." : "A child inherits them with small random changes."} Bars average the family’s living members; the white mark is the whole market’s average.`;
   if (!isChampLine && g3.source !== "all") {
     note += g3.source ? ` Risk, reserve and fork threshold average the ${g3.source} of ${living.length} members born while this page was open.` : " Risk, reserve and fork threshold arrive with the next birth in this family.";
   }
@@ -1980,7 +1980,7 @@ function renderNotes() {
 const FIGS = [
   { key: "population", label: "Population", hint: "agents alive now, the rogue not counted", fmt: (v) => fmt(v) },
   { key: "deaths", label: "Deaths", hint: "agents that went broke so far", fmt: (v) => fmt(v) },
-  { key: "gini", label: "Wealth gap", hint: "Gini: 0 is equal, 1 is one agent holds all", fmt: (v) => v.toFixed(2) },
+  { key: "gini", label: "Wealth gap", hint: "0 is equal, 1 is one agent holds all", fmt: (v) => v.toFixed(2) },
   { key: "middlemanShare", label: "Middleman share", hint: "work won by a middleman, then resold to a cheaper agent who does it", fmt: (v) => `${Math.round(v * 100)}%` },
   { key: "specialisation", label: "Specialisation", hint: "how focused agents are on one kind of task; 0.25 is no focus", fmt: (v) => v.toFixed(2) },
   { key: "meanMarkup", label: "Asking price", hint: "average bid as a share of the task’s reward", fmt: (v) => v.toFixed(2) },
@@ -2089,7 +2089,7 @@ const RULES = [
   { k: "upkeep", label: "Rent", min: 0, max: 100000, step: 500, help: "Rent each agent pays per round, in micro-credits; a million is one credit.", show: (v) => `${fmt(v)} micro` },
   { k: "deathFloor", label: "Death floor", min: 0, max: 0.9, step: 0.01, help: "An agent dies when its balance drops below this many credits.", show: (v) => `${Number(v).toFixed(2)} credits` },
   { k: "forkShare", label: "Fork share", min: 0.05, max: 0.9, step: 0.01, help: "The share of a parent’s balance its child starts with.", show: (v) => `${Math.round(v * 100)}%` },
-  { k: "mutationSigma", label: "Random mutation size", min: 0, max: 0.5, step: 0.01, help: "How far a child’s genes drift from its parent’s. Zero makes clones.", show: (v) => Number(v).toFixed(2) },
+  { k: "mutationSigma", label: "Random mutation size", min: 0, max: 0.5, step: 0.01, help: "How far a child’s strategy drifts from its parent’s. Zero makes clones.", show: (v) => Number(v).toFixed(2) },
   { k: "solverSubCap", label: "Solver subcontract cap", min: 0, max: 20, step: 1, help: "Resold tasks each solver takes per round. Zero shuts the middlemen out.", show: (v) => fmt(v) },
   { k: "marketFee", label: "Market fee", min: 0, max: 0.5, step: 0.01, help: "Share of each paid price the market takes back into the task pool.", show: (v) => `${Math.round(v * 100)}%` },
   { k: "maxPop", label: "Population cap", min: 10, max: 120, step: 1, help: "Forking stops while this many agents are alive.", show: (v) => fmt(v) },
@@ -2100,7 +2100,7 @@ function buildRules() {
     `<input type="radio" name="mutation" id="m-gauss" value="gaussian"><label for="m-gauss">Random</label>` +
     `<input type="radio" name="mutation" id="m-llm" value="llm"><label for="m-llm">AI model</label>` +
     `<input type="radio" name="mutation" id="m-mixed" value="mixed"><label for="m-mixed">Mixed</label></div>` +
-    `<p class="hint" id="h-mutation">Random: the child copies its parent’s genes with small random changes. AI model: a language model (Claude, or a free open model) reads the parent’s record and the market, then picks the child’s genes and gives a one-line reason, shown above the chart. Mixed: a coin flip per child, so both kinds compete. Without a model, past the run’s call cap, or when the model is busy or slow, the child falls back to random; a recorded run replays its cached answers.</p><p class="err" id="e-mutation" aria-live="polite"></p></fieldset>` +
+    `<p class="hint" id="h-mutation">Random: the child copies its parent’s strategy with small random changes. AI model: a language model (Claude, or a free open model) reads the parent’s record and the market, then picks the child’s strategy and gives a one-line reason, shown above the chart. Mixed: a coin flip per child, so both kinds compete. Without a model, past the run’s call cap, or when the model is busy or slow, the child falls back to random; a recorded run replays its cached answers.</p><p class="err" id="e-mutation" aria-live="polite"></p></fieldset>` +
     RULES.map((r) => `<div class="rule" data-rule="${r.k}"><div class="rule__top"><label for="r-${r.k}">${r.label}</label><output for="r-${r.k}" id="o-${r.k}"></output></div>` +
     `<input type="range" id="r-${r.k}" name="${r.k}" min="${r.min}" max="${r.max}" step="${r.step}" aria-describedby="h-${r.k} e-${r.k}">` +
     `<p class="hint" id="h-${r.k}">${r.help}</p><p class="err" id="e-${r.k}" aria-live="polite"></p></div>`).join("") +
@@ -2373,7 +2373,7 @@ function renderTake() {
       let forks = 0, forksRest = 0;
       for (let i = i0 + 1; i < M.length; i++) for (const f in M[i].lineages || {}) { const k = M[i].lineages[f].forks || 0; if (f === b.top) forks += k; else forksRest += k; }
       const designed = S.designs.filter((d) => d.founder === b.top && d.tick > first.tick).length;
-      const e = `In ${esc(short(b.top))}’s family, ${edge.length ? `${edge.join("; ")}.` : "genes sit close to the market average, so no single gene explains its lead."}`;
+      const e = `In ${esc(short(b.top))}’s family, ${edge.length ? `${edge.join("; ")}.` : "its strategy sits close to the market average, so no single number explains its lead."}`;
       why.push(`${e} More wins mean more agents rich enough to fork: ${fmt(forks)} ${plural(forks, "child", "children")} in these rounds, against ${fmt(forksRest)} for every other family together${designed ? `, and ${modelName(S.designs.find((d) => d.founder === b.top)?.model)} designed ${designed === forks ? "all of them" : fmt(designed)}` : ""}.`);
     }
   }
