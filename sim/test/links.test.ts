@@ -30,3 +30,11 @@ test("repo links with an #anchor point at a heading that exists", () => {
   assert.ok(checked > 5, "found the links");
   assert.deepEqual(bad, []);
 });
+
+test("every sheet in the dashboard has a button that opens it", () => {
+  const html = read("dashboard/index.html");
+  const sheets = [...html.matchAll(/<aside class="sheet" id="sheet-([\w-]+)"/g)].map((m) => m[1]);
+  assert.ok(sheets.includes("shocks"), "the shocks sheet exists");
+  const missing = sheets.filter((s) => !html.includes(`data-sheet="${s}"`));
+  assert.deepEqual(missing, [], "sheets nobody can open");
+});
