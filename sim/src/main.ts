@@ -8,6 +8,8 @@ import { DatabaseSync } from "node:sqlite";
 import { Economy, TUNABLE, type Shock, type SimEvent } from "./economy.ts";
 import { Mutator, providerFromEnv } from "./mutator.ts";
 import { chainProof } from "./chainproof.ts";
+import { Settler, nearSender } from "./settler.ts";
+import { EpochWatch, type Takeover } from "./epoch.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -76,7 +78,26 @@ const WINDTUNNEL = (() => {
 })(); // ms per tick: slow, normal, fast, fastest
 
 // Real testnet transactions of the v2 market, re-read from public RPC (read-only, cached).
-const proof = chainProof(path.resolve(here, "../../results/onchain-v2.json"));
+const V2_LOG = path.resolve(here, "../../results/onchain-v2.json");
+const proof = chainProof(V2_LOG);
+// Live settler (off unless DARWIN_SETTLER_ACCOUNT + DARWIN_SETTLER_KEY are set): mirrors this run's guard blocks on
+// the v2 market, one tx per DARWIN_SETTLER_INTERVAL_SEC at most. See settler.ts.
+const MARKET_ID = (() => {
+  try {
+    return String(JSON.parse(fs.readFileSync(V2_LOG, "utf8")).marketId ?? "");
+  } catch {
+    return "";
+  }
+})();
+const settler = new Settler(await nearSender(process.env, MARKET_ID).catch(() => null), {
+  minIntervalMs: Number(process.env.DARWIN_SETTLER_INTERVAL_SEC ?? 45) * 1000,
+  maxPerDay: Number(process.env.DARWIN_SETTLER_MAX_PER_DAY ?? 400),
+  onSettled: (s) => broadcast("chain", s),
+});
+const liveChain = () => ({ enabled: settler.enabled, intervalSec: settler.opts.minIntervalMs / 1000, recent: settler.recent, ...(settler.lastError ? { error: "the last send failed; retrying on the next guard block" } : {}) });
+// New epoch: once one family holds DARWIN_EPOCH_SHARE of the agents for DARWIN_EPOCH_HOLD rounds, the run is decided,
+// so a new one starts (public runs only by default; 0 turns it off).
+const epoch = new EpochWatch(Number(process.env.DARWIN_EPOCH_SHARE ?? 0.9), Number(process.env.DARWIN_EPOCH_HOLD ?? (PUBLIC_MODE ? 100 : 0)));
 
 const notable = new Set(["born", "fork", "kill", "guard_block", "guard_allow_rogue", "subcontract", "shock", "rules"]);
 const clients = new Set<http.ServerResponse>();
@@ -99,6 +120,8 @@ class Run {
   paused = false;
   speed = 1;
   seed = Number(process.env.SEED ?? (PUBLIC_MODE ? 3 : 42));
+  /** The last run that ended because one family took over, shown as a note on the next run. */
+  takeover: (Takeover & { seed: number; at: number }) | null = null;
   private sub = 0;
   private insEv!: ReturnType<DatabaseSync["prepare"]>;
   private insM!: ReturnType<DatabaseSync["prepare"]>;
@@ -118,6 +141,7 @@ class Run {
     this.metrics = [];
     this.recent = [];
     this.seed = seed;
+    epoch.reset();
     if (!PUBLIC_MODE) this.eco?.mutator.save({ seed: this.seed });
     this.eco = new Economy({ seed }, (e) => this.onEvent(e));
     if (MUTATION !== "gaussian" && rules.mutation === undefined) rules = { ...rules, mutation: MUTATION };
@@ -130,6 +154,7 @@ class Run {
 
   private onEvent(e: SimEvent & { tick: number }) {
     this.insEv.run(e.tick, e.event, JSON.stringify(e));
+    if (e.event === "guard_block") settler.offer({ tick: e.tick, seed: this.seed, agent: e.agent, to: e.to, amount: e.amount, attack: e.attack });
     if (!notable.has(e.event)) return;
     if (e.event === "subcontract" && this.sub++ % 5 !== 0) return;
     this.recent.push(e);
@@ -153,6 +178,8 @@ class Run {
       autoRestart: AUTO_RESTART_MS > 0,
       shockCooldownSec: PUBLIC_MODE ? SHOCK_COOLDOWN_MS / 1000 : 0,
       shockWaitSec: shockWait(),
+      takeover: this.takeover,
+      epochRule: epoch.enabled ? { share: epoch.share, hold: epoch.hold } : null,
     };
   }
 
@@ -210,7 +237,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/api/windtunnel") return WINDTUNNEL ? send(res, 200, WINDTUNNEL) : send(res, 404, { error: "no wind tunnel results: run make windtunnel" });
     if (req.method === "GET" && p === "/api/chain") {
       const pr = await proof();
-      return pr ? send(res, 200, pr, { "cache-control": "public, max-age=300" }) : send(res, 404, { error: "no testnet record" });
+      return pr ? send(res, 200, { ...pr, live: liveChain() }, { "cache-control": "no-cache" }) : send(res, 404, { error: "no testnet record" });
     }
     if (req.method === "GET" && p === "/snapshot") return send(res, 200, run.eco.snapshot());
     if (req.method === "GET" && p === "/stream") {
@@ -314,6 +341,12 @@ async function loop() {
         run.paused = true;
         broadcast("error", { message: (e as Error).message });
         broadcast("state", run.state());
+      }
+      const took = epoch.observe(run.eco.tick, run.eco.lastMetrics.lineages);
+      if (took) {
+        console.log(`t=${took.tick} ${took.founder}'s family held ${Math.round(epoch.share * 100)}% from round ${took.since}: new run`);
+        run.takeover = { ...took, seed: run.seed, at: Date.now() };
+        run.reset(nextSeed(run.seed));
       }
       if (run.eco.tick === MAX_TICKS) {
         broadcast("state", run.state());
