@@ -282,7 +282,7 @@ sim/        TypeScript runtime with the same rules in-process (53 tests in 9 fil
   windtunnel.ts  market rule sets x seeds, paired bootstrap CI and exact sign-flip test vs baseline (make windtunnel)
   main.ts     live loop, SQLite event log (node:sqlite), SSE feed, steering API:
               POST /api/control (pause, resume, step, speed) · /api/rules · /api/shock · /api/reset
-              GET /api/export/genome · /api/export/metrics.csv · /api/windtunnel · /history · /stream · /healthz
+              GET /api/state · /api/chain · /api/export/genome · /api/export/metrics.csv · /api/windtunnel · /history · /stream · /healthz
   chain2.ts   testnet v2: deploy (key saved), the autonomous lifecycle, upgrade + migrate
   chain.ts    testnet v1 (history): deploy, checkpoints, agent-signed txs, the wind tunnel's rules
 dashboard/  the live UI: Muller plot of dynasties, specimen, field notes, selection pressures,
