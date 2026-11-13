@@ -349,3 +349,18 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 - The contract tests use near-sdk's unit-testing mocks, not a sandbox node; the on-chain behaviour is shown by the testnet txs instead.
 - Verifying the guard's signature on every payment makes the sim about 2.5 times slower than before v2 (ed25519 sign and verify, ~120 µs a payment); results are unchanged.
 - The live site runs on Render's free plan: it sleeps after about 15 idle minutes and the run restarts on wake. Everything above runs locally without it.
+
+## Provenance and credits
+
+Written from 2026-11-04 to 2026-11-13; no code predates 2026-11-04. `vendor/siege` is the author's own SIEGE guard library, vendored unchanged from [SIEGE](https://github.com/StarAtNyte/siege) (commit recorded in `vendor/siege/SOURCE_COMMIT`, refreshed with `scripts/sync-siege.sh`). Nothing else was copied from another project. No template or scaffold was used.
+
+Libraries:
+
+- near-api-js: NEAR RPC, accounts and transactions
+- near-sdk (Rust): the market contract
+- @anthropic-ai/sdk: Claude as the mutation operator
+- siege (vendored): the Mandate guard
+- tsx, typescript: build and run tooling
+- node:sqlite: simulation storage (Node built-in)
+
+Other project by the same author: [SIEGE](https://github.com/StarAtNyte/siege)
