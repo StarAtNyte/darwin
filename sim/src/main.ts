@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { Economy, TUNABLE, type Shock, type SimEvent } from "./economy.ts";
 import { Mutator, providerFromEnv } from "./mutator.ts";
+import { chainProof } from "./chainproof.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -61,15 +62,21 @@ const nextSeed = (seed: number) => {
   return RECORDED_SEEDS.find((s) => s > seed) ?? RECORDED_SEEDS[0];
 };
 const SPEEDS = [1000, 300, 120, 40];
-// The wind tunnel's committed results (make windtunnel), served read-only to the dashboard. Per-seed runs are left out.
+// The wind tunnel's committed results (make windtunnel), served read-only to the dashboard, with a trimmed per-seed table.
 const WINDTUNNEL = (() => {
   try {
-    const { runs: _runs, ...w } = JSON.parse(fs.readFileSync(path.resolve(here, "../../results/windtunnel.json"), "utf8"));
-    return w;
+    const { runs, ...w } = JSON.parse(fs.readFileSync(path.resolve(here, "../../results/windtunnel.json"), "utf8"));
+    // Per-seed outcomes, trimmed to the columns the dashboard shows, so a visitor can compare rule sets seed by seed.
+    const keep = ["seed", "topFamilyShare", "middlemanShare", "priceRatio", "taskSuccess", "population", "extinctions"];
+    const perSeed = Object.fromEntries(Object.entries(runs as Record<string, Record<string, number>[]>).map(([id, rs]) => [id, rs.map((r) => Object.fromEntries(keep.map((k) => [k, r[k]])))]));
+    return { ...w, perSeed };
   } catch {
     return null;
   }
 })(); // ms per tick: slow, normal, fast, fastest
+
+// Real testnet transactions of the v2 market, re-read from public RPC (read-only, cached).
+const proof = chainProof(path.resolve(here, "../../results/onchain-v2.json"));
 
 const notable = new Set(["born", "fork", "kill", "guard_block", "guard_allow_rogue", "subcontract", "shock", "rules"]);
 const clients = new Set<http.ServerResponse>();
@@ -201,6 +208,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/api/state") return send(res, 200, run.state());
     if (req.method === "GET" && p === "/history") return send(res, 200, { state: run.state(), metrics: run.metrics, events: run.recent });
     if (req.method === "GET" && p === "/api/windtunnel") return WINDTUNNEL ? send(res, 200, WINDTUNNEL) : send(res, 404, { error: "no wind tunnel results: run make windtunnel" });
+    if (req.method === "GET" && p === "/api/chain") {
+      const pr = await proof();
+      return pr ? send(res, 200, pr, { "cache-control": "public, max-age=300" }) : send(res, 404, { error: "no testnet record" });
+    }
     if (req.method === "GET" && p === "/snapshot") return send(res, 200, run.eco.snapshot());
     if (req.method === "GET" && p === "/stream") {
       // no-transform and x-accel-buffering keep proxies (Render, Cloudflare) from buffering or compressing the stream.

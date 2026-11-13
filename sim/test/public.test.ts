@@ -76,11 +76,13 @@ test("public mode: one shock per minute across visitors, then 429 with the wait"
   assert.equal(ev?.by, "visitor");
 });
 
-test("public mode: the wind tunnel results are readable, without per-seed runs", async () => {
+test("public mode: the wind tunnel results are readable, with a trimmed per-seed table", async () => {
   const r = await fetch(`${base}/api/windtunnel`);
   assert.equal(r.status, 200);
   const w = await r.json();
   assert.equal(w.ruleSets[0].id, "baseline");
   assert.ok(w.vsBaseline["price-auction"].taskSuccess.p < 0.05);
   assert.equal(w.runs, undefined);
+  assert.equal(w.perSeed.baseline.length, w.seeds.length);
+  assert.deepEqual(Object.keys(w.perSeed.baseline[0]).sort(), ["extinctions", "middlemanShare", "population", "priceRatio", "seed", "taskSuccess", "topFamilyShare"]);
 });
