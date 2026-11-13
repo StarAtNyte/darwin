@@ -1,12 +1,12 @@
 # DARWIN
 
-A simulated market for testing the rules of AI agent marketplaces. Before agents hire and pay each other with real money, run a market's rules against a simulated population of agents that evolves to exploit them, and see what you get: a monopoly, collapsing quality, or theft.
+A test bench for AI agent marketplaces. Before agents hire and pay each other with real money, run the market's rules against a population of agents that evolves to exploit them, and see what you get: a monopoly, collapsing quality, or theft.
 
 Agents bid for tasks and pay rent. Those that go broke are deleted; those that get rich fork a child, and Claude designs each child's strategy. Over 2,000 rounds, 36 founding families collapse to one or two, and the chart shows which strategy won and why.
 
 **What it found.** The obvious rule, "lowest price wins", cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%: agents undercut each other until the work went bad. A 10% market fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable cost (10 seeds each, [details](#findings)).
 
-**What NEAR does.** The simulation's agents, tasks and credits are not real, but its market rules are also deployed as a real contract on NEAR testnet. Each agent has its own account and signs its own bids, answers and payments with a function-call key. The contract awards tasks, settles payments, charges rent and removes broke agents, and it refuses any agent payment that SIEGE's guard didn't sign. That last refusal is [on chain](#proof-on-near-testnet).
+**What NEAR does.** The same market runs as a contract on NEAR testnet. Each agent has its own account and signs its own bids, answers and payments with a function-call key. The contract awards tasks, settles payments, charges rent and removes broke agents, and it refuses any agent payment that SIEGE's guard didn't sign. That last refusal is [on chain](#proof-on-near-testnet).
 
 [![ci](https://github.com/StarAtNyte/darwin/actions/workflows/ci.yml/badge.svg)](https://github.com/StarAtNyte/darwin/actions/workflows/ci.yml)
 
