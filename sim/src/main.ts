@@ -21,6 +21,10 @@ const MAX_TICKS = Number(process.env.TICKS ?? 2000);
 const AUTO_RESTART_MS = Number(process.env.AUTO_RESTART_SEC ?? 0) * 1000;
 // When the finished run was first seen (0 while running); the next run starts AUTO_RESTART_MS later.
 let pausedAt = 0, finishedAt = 0;
+// Names the run a client is watching: a new server process or a reset gets a new id, so a page whose stream lands on
+// a different run (a restart, or two instances overlapping during a deploy) reloads instead of mixing two runs.
+const BOOT_ID = Math.random().toString(36).slice(2, 8);
+let runSeq = 0;
 const AUTO_RESUME_MS = Number(process.env.AUTO_RESUME_SEC ?? 0) * 1000;
 // PUBLIC_MODE=1: one shared run for every visitor. Nobody can pause, step, change speed or rules, or reset it;
 // shocks stay open but only one may fire per SHOCK_COOLDOWN_SEC across all visitors.
@@ -157,6 +161,7 @@ class Run {
   }
 
   private async resetNow(seed: number, rules: Record<string, unknown>) {
+    runSeq++;
     this.db?.close();
     for (const ext of ["", "-wal", "-shm"]) fs.rmSync(DB_PATH + ext, { force: true });
     this.db = new DatabaseSync(DB_PATH);
@@ -218,6 +223,7 @@ class Run {
 
   state() {
     return {
+      run: `${BOOT_ID}-${runSeq}`,
       tick: this.eco.tick,
       maxTicks: MAX_TICKS,
       finished: this.eco.tick >= MAX_TICKS,

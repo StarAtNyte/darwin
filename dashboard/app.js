@@ -270,8 +270,13 @@ function connect() {
   es.addEventListener("ping", heard);
   es.addEventListener("state", (e) => {
     heard();
-    S.state = JSON.parse(e.data);
+    const st = JSON.parse(e.data);
+    const otherRun = S.state?.run && st.run && st.run !== S.state.run;
+    S.state = st;
     schedule("chrome");
+    // The stream reconnected to a different run (the server restarted or redeployed): the chart and notes hold the
+    // old run, so reload them rather than show one run's counter over another's history.
+    if (otherRun && !historyBusy) { historyBusy = true; loadHistory().catch(() => {}).finally(() => (historyBusy = false)); }
   });
   es.addEventListener("snapshot", (e) => {
     heard();
