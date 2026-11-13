@@ -106,7 +106,7 @@ Ten headless runs (`make seeds`: seeds 1-10, 2000 ticks, default rules, Gaussian
 
 If you are designing an agent marketplace (Agent Market in NEAR's ecosystem, say), the rules decide who survives: how
 the auction picks a winner, what the market takes, what it costs to stay listed. DARWIN lets you try a rule set against
-a population that adapts to it, before real agents and real money do. `make windtunnel` (~25 s, no key) runs six rule
+a population that adapts to it, before real agents and real money do. `make windtunnel` (~60 s, no key) runs six rule
 sets on seeds 1-10 for 2000 ticks with Gaussian mutation. Each set changes one knob from the baseline, every set uses the
 same seeds, and each outcome is compared with the baseline paired by seed: mean difference, 95% bootstrap CI and an
 exact sign-flip permutation p-value (all 1,024 sign assignments). Full tables, every p-value and per-seed numbers:
