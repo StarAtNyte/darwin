@@ -31,3 +31,9 @@ services:
         sync: false
       - key: DARWIN_SETTLER_KEY
         sync: false
+      # Optional live Claude (sim/src/liveai.ts): with both set, every 10th fork asks claude-haiku-5-5 live, at most
+      # one call a minute and $0.30 a day. Unset (the default), every child replays the recording.
+      - key: DARWIN_LIVE_AI
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
