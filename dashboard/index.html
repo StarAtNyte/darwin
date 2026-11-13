@@ -23,6 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&display=swap">
 <link rel="stylesheet" href="./app.css">
+<script src="./summary.js" defer></script>
 <script src="./app.js" defer></script>
 </head>
 <body>
@@ -32,7 +33,7 @@
       <div class="brand__row"><h1 class="wordmark">DARWIN</h1><button class="whatis" type="button" id="tour-open" aria-haspopup="dialog">What is this?</button></div>
       <p class="tagline" id="tagline">Agents bid for tasks, earn, have children that inherit their strategy, or go broke and die.</p>
     </div>
-    <p class="chain" aria-label="On NEAR testnet"><span class="chain__dot" aria-hidden="true"></span><a id="chain-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" title="market2.darwin-siege-mw23cmc8.testnet" rel="noopener"><span class="chain__k">Contract</span> <span id="chain-name">market2.darwin-siege-…testnet</span></a><a id="chain-proof" href="#proof"><span class="chain__k" id="chain-proof-k">Proof</span> <span id="chain-proof-text">a forged payment, rejected on chain</span></a></p>
+    <p class="chain" aria-label="On NEAR testnet"><span class="chain__dot" aria-hidden="true"></span><a id="chain-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" title="market2.darwin-siege-mw23cmc8.testnet" aria-label="Contract market2.darwin-siege-mw23cmc8.testnet on NEAR testnet, opens nearblocks" rel="noopener"><span class="chain__k">Contract</span> <span id="chain-name">on NEAR testnet ↗</span></a><a id="chain-proof" href="#proof"><span class="chain__k" id="chain-proof-k">Proof</span> <span id="chain-proof-text">a forged payment, rejected on chain</span></a></p>
     <div class="transport" role="group" aria-label="Run controls">
       <button class="btn btn--quiet" type="button" id="toggle" aria-keyshortcuts="Space" disabled>Pause</button>
       <button class="btn btn--quiet" type="button" id="step" hidden>Step one round</button>
@@ -54,7 +55,7 @@
     <nav class="actions" aria-label="Steer the run">
       <button class="btn btn--quiet" type="button" data-sheet="rules" aria-expanded="false" aria-controls="sheet-rules">Rules</button>
       <button class="btn btn--quiet" type="button" data-sheet="export" aria-expanded="false" aria-controls="sheet-export" id="export-open">Export</button>
-      <a class="finding" href="#tunnel"><span class="finding__k">Wind tunnel</span> Lowest-price-wins cut task success 81% → 57%</a>
+      <a class="finding" href="#tunnel"><span class="finding__k">What we learned:</span> lowest-price-wins cut task success 81% → 57%</a>
     </nav>
   </div>
 </header>
@@ -81,6 +82,7 @@
       </div>
     </div>
     <p class="headline" id="headline"></p>
+    <p class="statusline" id="statusline"></p>
     <p class="visually-hidden" id="headline-live" aria-live="polite" aria-atomic="true"></p>
     <div class="ai" id="ai" hidden>
       <p class="ai__tag"><span class="ai__mark" aria-hidden="true"></span><span id="ai-tag">AI decided</span></p>
@@ -91,7 +93,7 @@
     </div>
 
     <div class="read">
-      <div class="read__text"><h2 class="read__h" id="record-h">Families over time.</h2> <p id="read-sentence">Each colour is a family of agents. Thicker = more of them alive.</p></div>
+      <div class="read__text"><h2 class="read__h" id="record-h">Families over time.</h2> <p id="read-sentence">Each colour is a family of agents. Thicker = more of them alive. Heights are compressed; hover or tap a band for its true share.</p></div>
       <fieldset class="seg seg--small" id="mode">
         <legend class="visually-hidden">Band thickness</legend>
         <input type="radio" name="mode" id="m-n" value="n" checked><label for="m-n"><span class="long">Agents alive</span><span class="short">Agents</span></label>
@@ -116,7 +118,7 @@
       <div class="axis" id="axis" aria-hidden="true"></div>
       <p class="axis__note" id="axis-note" hidden></p>
     </div>
-    <p class="key" id="key"><span data-key="ai" hidden><i class="k-ai"></i>Purple marks: an AI model designed a child’s strategy</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks: the guard blocked a theft</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass die-off</span><span data-key="other" hidden><i class="k-other"></i>Speckled: many small families, pooled</span><span data-key="shock" hidden><i class="k-shock"></i>Strip on top: shocks</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span><span class="key__hint">Band heights are compressed so small families stay visible. Hover or tap a band for its true share.</span></p>
+    <p class="key" id="key"><span data-key="ai" hidden><i class="k-ai"></i>Purple marks: an AI model designed a child’s strategy</span><span data-key="guard" hidden><i class="k-guard"></i>Green marks: the guard blocked a theft</span><span data-key="scar" hidden><i class="k-scar"></i>White line: a mass die-off</span><span data-key="other" hidden><i class="k-other"></i>Grey hatch: small families pooled into one thin band</span><span data-key="shock" hidden><i class="k-shock"></i>Strip on top: shocks</span><span data-key="gens" hidden><i class="k-gens" id="key-gens-swatch"></i><span id="key-gens-text"></span></span></p>
     <noscript><p class="plot__empty">This view streams the run from the DARWIN server and needs JavaScript.</p></noscript>
     </div>
     <aside class="take" id="take" aria-labelledby="take-h">
@@ -258,7 +260,6 @@
   <p class="hint">What you get. The champion is the richest agent of the leading family. The JSON: its genes, the numbers it bids by, plus its family’s average genes and the seed and rules it won under. The CSV: one row per round with population, deaths, wealth gap, middleman share and guard counts.</p>
 </aside>
 <section class="tour" id="tour" role="dialog" aria-labelledby="tour-h" aria-describedby="tour-body" hidden>
-  <span class="tour__arrow" aria-hidden="true"></span>
   <div class="tour__top"><p class="tour__of"><span id="tour-n">1</span> of 3</p><button class="tour__x" type="button" data-tour-close aria-label="Close the guide">×</button></div>
   <h2 class="tour__h" id="tour-h" tabindex="-1"></h2>
   <div class="tour__body" id="tour-body"></div>

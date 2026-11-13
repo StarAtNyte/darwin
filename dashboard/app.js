@@ -61,16 +61,16 @@ const idHtml = (id) => `<span class="id">${esc(short(id))}</span>`;
 const reasonText = (r) => String(r).replace(/<\/?[a-z]+\s*\/?>?/gi, "").replace(/[\s}]+$/, "").trim();
 const list = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
 
-// Small dynasties share one muted band on the plot (see layout): at most TOP_BANDS are named while the founders
-// are still a flat field; after that the grey band may never hold more than OTHER_CAP of any sample.
+// Small dynasties share one thin, labelled band on the plot (see layout): the TOP_BANDS largest families now, plus up
+// to EXTRA_BANDS that were larger earlier, get colours of their own.
 const OTHER = "__other";
-const TOP_BANDS = 10;
+const TOP_BANDS = 6;
 // The opening, while the founders are still a near-equal field, is squeezed into at most this share of the width.
 const OPENING_SHARE = 0.14;
-const OTHER_CAP = 0.2;
+const EXTRA_BANDS = 2;
 // While many founders are still near-equal the pooled band can hold most agents. It is drawn no taller than
 // OTHER_DRAW of the plot (see layout's compressed scale), and the band's label and tooltip give its real share.
-const OTHER_DRAW = 0.2;
+const OTHER_DRAW = 0.11;
 const BAND_POW = 0.65;
 const LEAD_SHARE_EARLY = 0.25;
 
@@ -97,16 +97,18 @@ function assignHues(named) {
 
 // The leading dynasty at the latest tick, once it holds at least this share, is drawn in its deep pigment.
 const LEAD_SHARE = 0.4;
-function leader() {
+// Every count and the leader's name on the page come from DarwinSummary.summarize (summary.js) of the latest round.
+const { summarize, statusLine, leadSentence } = window.DarwinSummary;
+let viewCache = null;
+function view() {
   const m = S.metrics[S.metrics.length - 1];
   if (!m) return null;
-  const lin = m.lineages || {};
-  let total = 0, top = null, topN = 0;
-  for (const f in lin) {
-    total += lin[f].n;
-    if (lin[f].n > topN) { topN = lin[f].n; top = f; }
-  }
-  return top && total ? { f: top, share: topN / total, n: topN, total } : null;
+  if (viewCache?.m !== m) viewCache = { m, v: summarize(m) };
+  return viewCache.v;
+}
+function leader() {
+  const v = view();
+  return v && v.leader && v.population ? { f: v.leader, share: v.leaderShare, n: v.leaderN, total: v.population, tied: v.tied } : null;
 }
 
 // ---------- ingest ----------
@@ -155,7 +157,7 @@ function ingestEvent(e) {
     S.genomes.set(e.agent, e.genome);
     if (e.parent && e.role === "parametric" && e.mutation && e.mutation !== "cache" && S.state?.mutation?.recording && (S.offRecord === null || e.tick < S.offRecord)) S.offRecord = e.tick;
     if (e.rationale && e.parent) {
-      S.designs.push({ tick: e.tick, parent: e.parent, child: e.agent, founder: e.founder, rationale: e.rationale, model: e.model, recorded: e.mutation === "cache" });
+      S.designs.push({ tick: e.tick, parent: e.parent, child: e.agent, founder: e.founder, rationale: e.rationale, model: e.model, recorded: e.mutation === "cache", live: e.mutation === "llm" });
       if (S.designs.length > 300) S.designs.shift();
     }
     if (e.tick > 0 && !e.parent) {
@@ -471,7 +473,7 @@ function renderChrome() {
       ? `The run finished at round ${fmt(st.tick)}.${st.autoRestart ? ` ${st.mutation?.recording ? "The next recorded run" : "A new run"} starts on its own shortly.` : ""}`
       : `The run finished at round ${fmt(st.tick)}. Export the champion, or start a new run with the same rules.`;
     noticeAction.hidden = shared;
-  } else if (st.takeover && st.tick < 150) {
+  } else if (st.takeover && st.tick < (st.startRound || 0) + 150) {
     // The last run was decided (one family held the line), so the server started a new one: say so.
     const t = st.takeover;
     notice.hidden = false;
@@ -516,13 +518,7 @@ function layout(w) {
   const samples = [];
   for (let i = 0; i < n; i += step) samples.push(i);
   if (samples[samples.length - 1] !== n - 1) samples.push(n - 1);
-  // Which dynasties get a band of their own, and from which sample. While the founders are still a flat field
-  // (no dynasty holds LEAD_SHARE_EARLY and most founding dynasties are alive), only the TOP_BANDS largest are
-  // named and the rest share the grey band. After that, each sample names its TOP_BANDS largest, then the largest
-  // still-grey dynasties until the grey band holds no more than OTHER_CAP. A dynasty once named stays named.
-  const namedFrom = new Map();
-  // Each family's peak share over the run so far: the opening names the families that went on to matter,
-  // so the bands that take over are in colour from round 0 instead of emerging from the grey.
+  // Each family's peak share over the run so far, so families that mattered earlier can keep a colour.
   const earlyPeak = new Map();
   for (const mi of samples) {
     const lin = M[mi].lineages || {};
@@ -532,36 +528,27 @@ function layout(w) {
   }
   const totals = new Float64Array(samples.length);
   const founders = S.founders.size;
-  let early = true, divergeSi = -1;
+  // Where the founders stop being a flat field (one family at LEAD_SHARE_EARLY, or a quarter of them gone): the
+  // x-axis squeezes the rounds before it.
+  let divergeSi = -1;
   samples.forEach((mi, si) => {
     const lin = M[mi].lineages || {};
-    const live = Object.keys(lin);
-    let total = 0;
-    for (const f of live) total += valueOf(lin[f], S.mode);
+    let total = 0, top = 0;
+    for (const f in lin) { const v = valueOf(lin[f], S.mode); total += v; top = Math.max(top, v); }
     totals[si] = total;
-    if (!total) return;
-    const share = (f) => valueOf(lin[f], S.mode) / total;
-    live.sort((a, b) => share(b) - share(a) || (S.founders.get(a)?.idx ?? 0) - (S.founders.get(b)?.idx ?? 0));
-    if (early && (share(live[0]) >= LEAD_SHARE_EARLY || live.length < founders * 0.75)) {
-      early = false;
-      divergeSi = si;
-      [...earlyPeak].sort((a, b) => b[1] - a[1] || (S.founders.get(a[0])?.idx ?? 0) - (S.founders.get(b[0])?.idx ?? 0))
-        .slice(0, TOP_BANDS).forEach(([f]) => namedFrom.set(f, 0));
-    }
-    if (early) return;
-    for (const f of live.slice(0, TOP_BANDS)) if (!namedFrom.has(f)) namedFrom.set(f, si);
-    let grey = 0;
-    for (const f of live) if (!namedFrom.has(f)) grey += share(f);
-    for (const f of live) {
-      if (grey <= OTHER_CAP) break;
-      if (!namedFrom.has(f)) { namedFrom.set(f, si); grey -= share(f); }
-    }
+    if (divergeSi < 0 && total && (top / total >= LEAD_SHARE_EARLY || Object.keys(lin).length < founders * 0.75)) divergeSi = si;
   });
-  // A run still in its flat phase names its early leaders from the start.
-  if (early) [...earlyPeak].sort((a, b) => b[1] - a[1] || (S.founders.get(a[0])?.idx ?? 0) - (S.founders.get(b[0])?.idx ?? 0))
-    .slice(0, TOP_BANDS).forEach(([f]) => namedFrom.set(f, 0));
-  // A family named at any point is drawn in colour from its first round, so no band pops out of the grey.
-  for (const f of namedFrom.keys()) namedFrom.set(f, 0);
+  // Which families get a band of their own: the TOP_BANDS largest now, plus up to EXTRA_BANDS that were larger
+  // earlier (by peak share). Everyone else shares the thin pooled band. A named family is in colour for the whole run.
+  const byIdx = (a, b) => (S.founders.get(a)?.idx ?? 0) - (S.founders.get(b)?.idx ?? 0);
+  const lastLin = M[samples[samples.length - 1]].lineages || {};
+  const nowTop = Object.keys(lastLin).sort((a, b) => valueOf(lastLin[b], S.mode) - valueOf(lastLin[a], S.mode) || byIdx(a, b)).slice(0, TOP_BANDS);
+  const named = new Set(nowTop);
+  for (const [f] of [...earlyPeak].sort((a, b) => b[1] - a[1] || byIdx(a[0], b[0]))) {
+    if (named.size >= TOP_BANDS + EXTRA_BANDS) break;
+    named.add(f);
+  }
+  const namedFrom = new Map([...named].map((f) => [f, 0]));
   const pooledAt = (f, si) => !(namedFrom.get(f) <= si);
   // Founders that never get a band of their own.
   const minor = new Set([...S.founders.keys()].filter((f) => !namedFrom.has(f)));
@@ -611,7 +598,12 @@ function layout(w) {
   // ahead, takes at most OPENING_SHARE of the width; from the round the families diverge the scale is linear.
   const t0 = M[0]?.tick ?? 0;
   const t1 = Math.max(M[n - 1]?.tick ?? 1, t0 + 1);
-  const tD = divergeSi > 0 ? M[samples[divergeSi]].tick : null;
+  // A shared run opens at state.startRound: the rounds before it played in fast-forward on the server. They are
+  // squeezed the same way, keeping at least the last 60 rounds on the linear scale while the run is young.
+  let tD = divergeSi > 0 ? M[samples[divergeSi]].tick : null;
+  const sr = S.state?.startRound || 0;
+  const ffEnd = sr > t0 ? Math.min(sr, t1 - 60) : null;
+  if (ffEnd !== null && ffEnd > t0 + 10 && (tD === null || tD < ffEnd)) tD = ffEnd;
   const natural = tD === null ? 1 : (tD - t0) / (t1 - t0);
   const squeezed = tD !== null && tD < t1 && natural > OPENING_SHARE;
   const fD = squeezed ? OPENING_SHARE : natural;
@@ -793,70 +785,55 @@ function drawGenerations(c, mono, b, x, h) {
   return { f: mono.f, tick: mono.from, width, deep, lite };
 }
 
-// The pooled band of small families: a mid grey with a fine hatch, so it reads as real agents taken together,
-// not as missing data, and a label inside it saying how many families it holds.
-// The pooled band: a stipple of every family colour on a dark ground, read as "many small families".
+// The pooled band of small families: a thin grey band with a fine diagonal hatch, so it reads as real agents taken
+// together, not as missing data, with one line of label saying how many families and what share it holds.
 let hatch = null;
 function otherPattern(c) {
-  const key = T.other + T.pigments.join();
+  const key = T.other + T.otherHatch;
   if (hatch?.key === key) return hatch.p;
   const t = document.createElement("canvas");
-  t.width = t.height = 12;
+  t.width = t.height = 8;
   const g = t.getContext("2d");
   g.fillStyle = T.other;
-  g.fillRect(0, 0, 12, 12);
-  const dots = [[2, 2], [8, 5], [4, 9], [10, 11]];
-  dots.forEach(([dx, dy], k) => {
-    g.fillStyle = T.pigments[k % T.pigments.length] || T.muted;
-    g.globalAlpha = 0.75;
-    g.beginPath();
-    g.arc(dx, dy, 1.3, 0, Math.PI * 2);
-    g.fill();
-  });
+  g.fillRect(0, 0, 8, 8);
+  g.strokeStyle = T.otherHatch;
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(0, 8);
+  g.lineTo(8, 0);
+  g.stroke();
   hatch = { key, p: c.createPattern(t, "repeat") };
   return hatch.p;
 }
 function labelOther(c, b, h) {
   const { samples, x, otherCount, otherShare } = geo;
-  let best = -1, bh = 0;
-  for (let si = 0; si < samples.length; si++) { const hh = (b.y1[si] - b.y0[si]) * h; if (hh > bh) { bh = hh; best = si; } }
-  if (best < 0 || bh < 30) return;
-  // The run of samples around the widest point that stays tall enough to hold the label.
-  let a = best, z = best;
-  const tall = Math.max(40, bh * 0.6);
-  while (a > 0 && (b.y1[a - 1] - b.y0[a - 1]) * h >= tall) a--;
-  while (z < samples.length - 1 && (b.y1[z + 1] - b.y0[z + 1]) * h >= tall) z++;
-  const mid = Math.round((a + z) / 2);
-  const n = otherCount[mid];
-  if (!n) return;
-  const l1 = `${fmt(n)} small ${plural(n, "family", "families")}, ${Math.round(otherShare[mid] * 100)}% of ${S.mode === "wealth" ? "the money" : "agents"}`;
-  const l2 = "pooled, and drawn smaller than their share";
+  // Label from the left edge (the newest rounds, on the right, carry the narration pin), at the latest sample
+  // where the band is tall enough for one line of text.
+  let si = samples.length - 1;
+  const tall = (k) => (b.y1[k] - b.y0[k]) * h >= 15;
+  while (si > 0 && (!otherCount[si] || !tall(si))) si--;
+  const left = 6;
+  if (!otherCount[si] || !tall(si)) return;
+  const n = otherCount[si];
+  const full = `Pooled: ${fmt(n)} small ${plural(n, "family", "families")}, ${Math.round(otherShare[si] * 100)}% of ${S.mode === "wealth" ? "the money" : "agents"} (band not to scale)`;
+  const brief = `${fmt(n)} small ${plural(n, "family", "families")}, ${Math.round(otherShare[si] * 100)}%`;
   c.save();
-  c.font = `600 13px ${T.body}`;
-  const w1 = c.measureText(l1).width;
-  c.font = `500 11px ${T.body}`;
-  const w2 = c.measureText(l2).width;
-  const tw = Math.max(w1, w2) + 20;
-  if (x(z) - x(a) < tw) { c.restore(); return; }
-  let cx = (x(a) + x(z)) / 2;
-  cx = Math.max(x(a) + tw / 2, Math.min(x(z) - tw / 2, cx));
-  const ylo = Math.max(...Array.from({ length: z - a + 1 }, (_, k) => b.y0[a + k])) * h;
-  const yhi = Math.min(...Array.from({ length: z - a + 1 }, (_, k) => b.y1[a + k])) * h;
-  const cy = ylo < yhi - 40 ? (ylo + yhi) / 2 : ((b.y0[best] + b.y1[best]) / 2) * h;
+  c.font = `600 12px ${T.body}`;
+  const room = geo.w - 2 * left;
+  const text = c.measureText(full).width + 12 <= room ? full : brief;
+  const tw = c.measureText(text).width + 12;
+  if (tw > room + 8) { c.restore(); return; }
+  const cy = ((b.y0[si] + b.y1[si]) / 2) * h;
+  const rx = left;
   c.fillStyle = T.paper;
-  c.globalAlpha = 0.72;
+  c.globalAlpha = 0.8;
   c.beginPath();
-  c.roundRect(cx - tw / 2, cy - 19, tw, 38, 3);
+  c.roundRect(rx, cy - 9, tw, 18, 2);
   c.fill();
   c.globalAlpha = 1;
-  c.textAlign = "center";
   c.textBaseline = "middle";
   c.fillStyle = T.ink;
-  c.font = `600 13px ${T.body}`;
-  c.fillText(l1, cx, cy - 7);
-  c.fillStyle = T["ink-2"];
-  c.font = `500 11px ${T.body}`;
-  c.fillText(l2, cx, cy + 9);
+  c.fillText(text, rx + 6, cy + 0.5);
   c.restore();
 }
 
@@ -919,13 +896,18 @@ function renderAI() {
     const who = modelName(cur.model);
     const d = S.designs.find((x) => x.child === cur.id);
     const recorded = !!rec && (d ? d.recorded : S.offRecord === null || cur.born < S.offRecord);
-    $("#ai-tag").textContent = recorded ? `${who} decided · recorded run` : `${who} decided`;
+    const live = !!d?.live;
+    $("#ai-tag").textContent = live ? `${who} decided · live` : recorded ? `${who} decided · recorded run` : `${who} decided`;
+    box.dataset.live = String(live);
     set("#ai-what", `Round ${fmt(cur.born)}: ${idHtml(cur.parent)} got rich and forked ${idHtml(cur.id)}. ${esc(who)} chose the child’s strategy:`);
     set("#ai-why", `“${esc(reasonText(cur.rationale))}”`);
     // One line of provenance; the full breakdown is in the title.
     const born = [...S.agents.values()].filter((a) => a.parent && a.role === "parametric").length;
-    const meta = rec && S.offRecord === null
-      ? `Replayed from a recorded ${esc(modelName(rec.model))} run (${fmt(rec.children)} children).`
+    const L = st.mutation?.live;
+    const meta = live
+      ? `Asked live during this run: ${esc(modelName(cur.model))} answered at round ${fmt(cur.born)}.${L ? ` Every ${nth(L.every)} fork asks live, at most one a minute; the rest replay a recorded run.` : ""}`
+      : rec && S.offRecord === null
+      ? `Replayed from a recorded ${esc(modelName(rec.model))} run (${fmt(rec.children)} children).${L ? ` Every ${nth(L.every)} fork asks ${esc(modelName(rec.model))} live, at most one a minute.` : ""}`
       : rec
         ? `Replayed from a recorded ${esc(modelName(rec.model))} run until a shock at round ${fmt(S.offRecord)}; later children ${st.mutation?.liveModel ? `ask ${esc(modelName(st.mutation.liveModel))} live` : "are random"}.`
         : `Designed by an AI model so far: ${fmt(kids)} of ${fmt(born)} children.`;
@@ -962,6 +944,8 @@ function drawPlot() {
   renderAxis(null);
   const hl = headline();
   $("#headline").textContent = hl;
+  const line = statusLine(view());
+  if ($("#statusline").textContent !== line) $("#statusline").textContent = line;
   announce(hl);
   renderCaption();
   if (!n) { geo = null; narrate(); return; }
@@ -1013,6 +997,35 @@ function drawPlot() {
       c.stroke();
       c.restore();
     }
+  }
+
+  // Direct labels: each named family's name and true share now, at the right edge of its band when it fits.
+  {
+    const lastLin = S.metrics[n - 1].lineages || {};
+    let tot = 0;
+    for (const f in lastLin) tot += valueOf(lastLin[f], S.mode);
+    c.save();
+    c.font = `600 12px ${T.body}`;
+    c.textBaseline = "middle";
+    c.textAlign = "right";
+    for (const f of order) {
+      if (f === OTHER || !lastLin[f] || !tot) continue;
+      const b = bands.get(f);
+      const hh = (b.y1[lastSi] - b.y0[lastSi]) * h;
+      if (hh < 15) continue;
+      const text = `${short(f)} ${Math.round((valueOf(lastLin[f], S.mode) / tot) * 100)}%`;
+      const tw = c.measureText(text).width + 10;
+      const cy = ((b.y0[lastSi] + b.y1[lastSi]) / 2) * h;
+      c.fillStyle = T.paper;
+      c.globalAlpha = 0.72;
+      c.beginPath();
+      c.roundRect(w - tw - 22, cy - 9, tw, 18, 2);
+      c.fill();
+      c.globalAlpha = 1;
+      c.fillStyle = T.ink;
+      c.fillText(text, w - 27, cy + 0.5);
+    }
+    c.restore();
   }
 
   // The squeezed opening: a hairline where the scale turns linear, at the round the families diverged.
@@ -1155,9 +1168,11 @@ function renderKey(sc, D) {
   };
   const note = $("#axis-note");
   note.hidden = geo?.tD == null;
-  if (geo?.tD != null) note.textContent = `Left of the dashed line: rounds ${geo.t0} to ${geo.tD}, compressed.`;
+  const sr = S.state?.startRound || 0;
+  if (geo?.tD != null) note.textContent = `Left of the dashed line: rounds ${geo.t0} to ${geo.tD}, compressed.${sr ? ` This run opened at round ${fmt(sr)}; the quieter rounds before it played in fast-forward and are all shown.` : ""}`;
   void last;
-  $("#read-sentence").textContent = S.mode === "wealth" ? "Each colour is a family of agents. Thicker = more of the money." : "Each colour is a family of agents. Thicker = more of them alive.";
+  const thick = S.mode === "wealth" ? "more money" : "more agents alive";
+  $("#read-sentence").textContent = innerWidth < 640 ? `Each colour is a family. Thicker = ${thick}; tap a band for its true share.` : `Each colour is a family. Thicker = ${thick}; heights are compressed, so hover a band for its true share.`;
   if (geo?.gens) {
     const gg = geo.gens;
     $("#key-gens-text").textContent = `Shades inside ${short(gg.f)}’s colour: generations, oldest lightest`;
@@ -1323,9 +1338,7 @@ function headline() {
   if (lead && lead.share < 0.25) {
     if (m.middlemanShare >= 0.3) return `Middlemen, agents who resell work they win, handled ${pct(m.middlemanShare)} of it in the last ${Math.min(50, m.tick)} rounds`;
     // A lead only counts when it is a lead: more than one agent and no dynasty level with it.
-    const tied = Object.values(m.lineages || {}).filter((l) => l.n === lead.n).length > 1;
-    if (lead.n > 1 && !tied) return `${short(lead.f)} leads with ${fmt(lead.n)} of ${fmt(lead.total)} agents`;
-    return openField(lead);
+    return leadSentence(view());
   }
   // 4. One dynasty holding most of the population.
   const holds = (f, x) => { const st = strategyOf(f); return st ? `${short(f)}’s family of ${st.split(",")[0]} has ${x} of the agents alive now` : `One family, ${short(f)}’s, has ${x} of the agents alive now`; };
@@ -1335,12 +1348,12 @@ function headline() {
   if (lead && lead.share >= 0.5) return holds(lead.f, pct(lead.share));
   if (m.middlemanShare >= 0.15) return `Middlemen, agents who resell work they win, handled ${pct(m.middlemanShare)} of it in the last ${Math.min(50, m.tick)} rounds`;
   // 6. Otherwise, how open the field still is.
-  return openField(lead);
+  return openField();
 }
 
-function openField(lead) {
-  const m = S.metrics[S.metrics.length - 1];
-  return `${word(m.dynasties)} of ${fmt(S.founders.size)} families still alive; the largest has ${lead ? `${Math.round(lead.share * 100)}%` : "0%"} of the agents alive now`;
+// The status line under the headline already gives the counts; the headline names the leader from the same reading.
+function openField() {
+  return leadSentence(view());
 }
 
 // The opening frame: while the run is young, say what the even stripes are, from the founding tick's own data.
@@ -1349,7 +1362,8 @@ function renderCaption() {
   const cap = $("#plot-caption");
   const M = S.metrics;
   const last = M[M.length - 1];
-  const early = last && last.tick < OPENING;
+  // One overlay at a time: the opening caption stays hidden while the guide is open.
+  const early = last && last.tick < OPENING && !tour.open;
   if (early) {
     const t0 = M[0].tick;
     const founding = [...S.founders.values()].filter((r) => r.first === t0).length;
@@ -1372,10 +1386,8 @@ function narrReset() {
 narrReset();
 const nth = (n) => { const v = n % 100, s = ["th", "st", "nd", "rd"]; return `${fmt(n)}${s[(v - 20) % 10] || s[v] || s[0]}`; };
 function sharesOf(m) {
-  const lin = m.lineages || {};
-  let total = 0, top = null, topN = 0;
-  for (const f in lin) { total += lin[f].n; if (lin[f].n > topN) { topN = lin[f].n; top = f; } }
-  return { lin, total, top, share: (f) => (total ? (lin[f]?.n || 0) / total : 0) };
+  const v = m === S.metrics[S.metrics.length - 1] ? view() : summarize(m);
+  return { lin: m.lineages || {}, total: v.population, top: v.leader, share: v.share };
 }
 const pctOf = (x) => `${Math.round(x * 100)}%`;
 
@@ -1476,7 +1488,8 @@ function narrate() {
     N.cur = best;
     N.at = t;
     N.pending = [];
-    $("#narr-text").textContent = `${best.text}.`;
+    // The round it happened in, so an event about one family never reads as a ranking beside "Who is ahead".
+    $("#narr-text").textContent = `Round ${fmt(best.tick)}: ${best.text}.`;
     el.hidden = false;
     // restart the entrance so a new sentence reads as new
     el.classList.remove("is-new");
@@ -1983,7 +1996,9 @@ function spark(cv, key) {
 function renderFigs() {
   const last = S.metrics[S.metrics.length - 1];
   for (const f of FIGS) {
-    $(`#fv-${f.key}`).textContent = last ? f.fmt(last[f.key]) : "no data";
+    const v = view();
+    const val = !last ? null : f.key === "population" ? v.population : f.key === "deaths" ? v.deaths : last[f.key];
+    $(`#fv-${f.key}`).textContent = last ? f.fmt(val) : "no data";
     spark($(`#fc-${f.key}`), f.key);
   }
   const g = $("#guard-text");
@@ -2353,13 +2368,14 @@ async function loadProof() {
     $("#proof-contract").textContent = p.contract;
     $("#chain-contract").href = p.contractUrl;
     $("#chain-contract").title = p.contract;
-    $("#chain-name").textContent = p.contract.replace(/^([^.]+\.[^-.]+-[^-.]+)-.*(\.testnet)$/, "$1-…$2");
+    $("#chain-contract").setAttribute("aria-label", `Contract ${p.contract} on NEAR testnet, opens nearblocks`);
     S.live = p.live ?? null;
     renderLive();
     $("#proof-when").textContent = p.source === "rpc" ? "re-read from testnet RPC" : "as recorded";
     $("#proof-list").innerHTML = p.txs.map((t) =>
       `<li><a href="${esc(t.url)}" rel="noopener"><span class="proof__ev${t.reason ? " is-refused" : ""}">${esc(EVENT_WORDS[t.event] ?? t.event)}${t.reason ? ` · ${esc(t.reason)}` : ""}</span>` +
-      `<span class="proof__what">${esc(t.label)}</span><span class="proof__tx">${esc(t.hash.slice(0, 8))}… ↗</span></a></li>`).join("");
+      `<span class="proof__what">${esc(t.label)}</span>` +
+      `<span class="proof__meta">${t.at ? `<time datetime="${esc(t.at)}">${ago(t.at)}</time> · ` : ""}<span class="proof__hash" title="${esc(t.hash)}">${esc(hashText(t.hash))}</span> · <span class="proof__view">view on nearblocks ↗</span></span></a></li>`).join("");
     $("#proof").hidden = false;
   } catch {}
 }
@@ -2367,8 +2383,14 @@ async function loadProof() {
 // This run's own testnet txs: the server mirrors guard blocks on the market (when a settler key is configured).
 function ago(iso) {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
-  return s < 60 ? `${s} s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(iso).toISOString().slice(11, 16) + " UTC";
+  if (s < 60) return `${s} s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  const d = Math.round(s / 86400);
+  return `${d} ${plural(d, "day")} ago`;
 }
+// A hash a person can read and compare: its first six and last four characters.
+const hashText = (h) => (h.length > 12 ? `${h.slice(0, 6)}…${h.slice(-4)}` : h);
 function renderLive() {
   const L = S.live, box = $("#proof-live");
   const last = L?.recent?.[0];
@@ -2380,13 +2402,16 @@ function renderLive() {
   }
   const same = S.state && last.seed === S.state.seed;
   box.innerHTML = `<p class="proof__live-h">This run, live</p>` + L.recent.slice(0, 3).map((t, i) =>
-    `<a class="proof__live-tx${i ? " is-old" : ""}" href="${esc(t.url)}" rel="noopener"><span class="proof__live-what">${t.seed === S.state?.seed ? "" : "Previous run, "}round ${fmt(t.tick)}: the guard blocked ${esc(short(t.agent))}; sent unsigned, the contract refused it${t.reason ? ` (${esc(t.reason)})` : ""}</span><span class="proof__live-meta">tx ${esc(t.hash.slice(0, 8))}… ↗ · <time datetime="${esc(t.at)}">${ago(t.at)}</time></span></a>`).join("");
+    `<a class="proof__live-tx${i ? " is-old" : ""}" href="${esc(t.url)}" rel="noopener"><span class="proof__live-what">${t.seed === S.state?.seed ? "" : "Previous run, "}round ${fmt(t.tick)}: the guard blocked ${esc(short(t.agent))}; sent unsigned, the contract refused it${t.reason ? ` (${esc(t.reason)})` : ""}</span><span class="proof__live-meta"><time datetime="${esc(t.at)}">${ago(t.at)}</time> · <span class="proof__hash" title="${esc(t.hash)}">${esc(hashText(t.hash))}</span> · <span class="proof__view">view on nearblocks ↗</span></span></a>`).join("");
   $("#chain-proof").href = last.url;
   $("#chain-proof").rel = "noopener";
   $("#chain-proof-k").textContent = "Live";
   $("#chain-proof-text").textContent = `${same ? "this run" : "last run"}, round ${fmt(last.tick)}: guard block refused on chain`;
 }
-setInterval(() => S.live?.recent?.length && renderLive(), 15_000);
+setInterval(() => {
+  if (S.live?.recent?.length) renderLive();
+  $$("#proof-list time").forEach((el) => (el.textContent = ago(el.getAttribute("datetime"))));
+}, 15_000);
 
 // ---------- the field guide: three steps for a first visit, reopened by "What is this?" ----------
 const TOUR_KEY = "darwin-tour-seen";
@@ -2413,33 +2438,18 @@ const TOUR = [
 ];
 
 function tourTargets() { return $$(".tour-target"); }
-// The tooltip always sits inside the chart's well, never over text: the chart step in its top right corner, the
-// other steps under their target with an arrow pointing up at it. Only the plot is ever covered. It scrolls with the page.
+// The guide is never an overlay: it sits in the page flow, at the top of the column beside the chart on wide
+// screens and right under the chart's key on narrow ones, so it can never cover the chart or another overlay.
+// The step's target gets an outline instead of an arrow.
 function placeTour() {
   if (!tour.open) return;
-  const card = $("#tour"), step = TOUR[tour.i];
-  const el = $(step.target) && !$(step.target).hidden ? $(step.target) : $("#headline");
-  const r = el.getBoundingClientRect();
-  const well = $(".plot__well").getBoundingClientRect();
-  const w = card.offsetWidth, h = card.offsetHeight, pad = 12;
-  let x, y, side;
-  if (step.target === ".plot__well") {
-    side = "inside";
-    x = well.right - w - pad;
-    y = well.top + pad;
-  } else {
-    side = "below";
-    // Under the target, pulled into the chart's span so it never reaches the column beside it.
-    x = Math.max(well.left + pad, Math.min(r.left, well.right - w - pad));
-    y = Math.max(r.bottom + pad, well.top + pad);
-  }
-  x = Math.max(pad, Math.min(x, innerWidth - w - pad));
-  card.dataset.side = side;
-  // The arrow points at the target; when the card is too far below it, no arrow.
-  card.dataset.far = String(side === "below" && y - r.bottom > 60);
-  card.style.setProperty("--arrow-x", `${Math.round(Math.max(12, Math.min(w - 24, r.left + Math.min(40, r.width / 2) - x)))}px`);
-  card.style.transform = `translate(${Math.round(x + scrollX)}px, ${Math.round(y + scrollY)}px)`;
-  return { top: y + scrollY, bottom: y + h + scrollY };
+  const card = $("#tour"), take = $("#take"), key = $("#key");
+  const side = take.getBoundingClientRect().left >= $(".plot__well").getBoundingClientRect().right - 1;
+  if (side) { if (take.firstElementChild !== card) take.prepend(card); }
+  else if (key.nextElementSibling !== card) key.after(card);
+  card.dataset.side = side ? "aside" : "below";
+  const r = card.getBoundingClientRect();
+  return { top: r.top + scrollY, bottom: r.bottom + scrollY };
 }
 function renderTour(scroll) {
   const step = TOUR[tour.i];
@@ -2459,6 +2469,7 @@ function openTour(e) {
   if (openSheet) closeSheet(true);
   tour.open = true;
   tour.i = 0;
+  schedule("plot");
   const asked = !!e;
   tour.back = asked ? $("#tour-open") : null;
   $("#tour").hidden = false;
@@ -2471,6 +2482,7 @@ function closeTour() {
   tour.open = false;
   try { localStorage.setItem(TOUR_KEY, "1"); } catch {}
   $("#tour").hidden = true;
+  schedule("plot");
   tourTargets().forEach((el) => el.classList.remove("tour-target"));
   $("#tour-open").setAttribute("aria-expanded", "false");
   if (tour.back && $("#tour").contains(document.activeElement)) tour.back.focus();
