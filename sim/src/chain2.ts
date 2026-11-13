@@ -57,7 +57,10 @@ function owner() {
 }
 
 interface Keys { marketId: string; marketKey: string; guardKey: string; keeper?: { id: string; key: string }; agents: Record<string, string> }
-const loadKeys = (): Keys => JSON.parse(fs.readFileSync(KEYS, "utf8"));
+function loadKeys(): Keys {
+  if (!fs.existsSync(KEYS)) throw new Error(`no ${path.relative(root, KEYS)}: run \`make deploy-v2\` first (it saves the market, guard and agent keys there)`);
+  return JSON.parse(fs.readFileSync(KEYS, "utf8"));
+}
 const saveKeys = (k: Keys) => fs.writeFileSync(KEYS, JSON.stringify(k, null, 2), { mode: 0o600 });
 
 export const RULES: Rules = {
