@@ -14,9 +14,9 @@ Run that for 2,000 rounds and watch what the marketplace turns into. Does one fa
 
 ![DARWIN on the live site: a Muller plot of dynasties, the specimen genome, field notes and the "Claude decided" panel showing the latest child Claude designed and why](docs/dashboard.png)
 
-[![A plague under way on the live site: the families chart, the Claude decided card and Who is ahead](docs/demo-poster.png)](docs/demo.mp4)
+[![A plague under way on the live site: the families chart, the Claude decided card and why the leading family is ahead](docs/demo-poster.png)](docs/demo.mp4)
 
-**[Watch the 136-second demo](docs/demo.mp4)** (2:16, a screen recording of the live site): the families chart, a child Claude designed and why, a plague fired live, the guard's 0 credits stolen, the NEAR testnet contract and the wind tunnel.
+**[Watch the 132-second demo](docs/demo.mp4)** (2:12, a screen recording of the live site): DARWIN as a freelance marketplace where every freelancer is an AI agent, a plague fired live, the wind tunnel's rule findings and the refused payment on NEAR testnet.
 
 ## What you're looking at
 

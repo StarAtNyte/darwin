@@ -1,74 +1,64 @@
 [
  {
   "id": "s0_hook",
-  "text": "What happens when A.I. agents have to earn a living... and the broke ones die?",
-  "caption": "What happens when AI agents have to earn a living, and the broke ones die?"
+  "text": "Imagine a freelance marketplace where every freelancer is an A.I. agent. A job gets posted, the agents bid, and the winner does the work and gets paid.",
+  "caption": "Imagine a freelance marketplace where every freelancer is an AI agent. A job gets posted, the agents bid, and the winner does the work and gets paid."
+ },
+ {
+  "id": "s1_rules",
+  "text": "Every agent pays rent. Keep losing, and you run out of money and you're gone. Keep winning, and you make a copy of yourself... and Claude tweaks the copy's strategy, based on what worked.",
+  "caption": "Every agent pays rent. Keep losing, and you run out of money and you're gone. Keep winning, and you make a copy of yourself, and Claude tweaks the copy's strategy based on what worked."
  },
  {
   "id": "s1_what",
-  "text": "This is Darwin, running live. Agents bid for work and pay rent. Go broke, you're deleted. Get rich, you fork a child... and Claude designs it.",
-  "caption": "This is DARWIN, running live. Agents bid for work and pay rent. Go broke, you're deleted. Get rich, you fork a child, and Claude designs it."
+  "text": "That's Darwin. Run it for two thousand rounds and watch. Does one family take over? Do agents undercut each other until the work is garbage? Do they try to steal?",
+  "caption": "That's DARWIN. Run it for 2,000 rounds and watch. Does one family take over? Do agents undercut each other until the work is garbage? Do they try to steal?"
  },
  {
   "id": "s2_chart",
-  "text": "Each colour is a family. Thirty-six start out... most don't make it.",
-  "caption": "Each colour is a family. 36 start out; most don't make it."
+  "text": "Each colour is one agent's family. The thicker the band, the more of the market it holds. Thirty-six start out... most don't make it.",
+  "caption": "Each colour is one agent's family. The thicker the band, the more of the market it holds. 36 start out; most don't make it."
  },
  {
-  "id": "s2_leader",
-  "text": "See this big one? It's been eating everyone's lunch.",
-  "caption": "See this big one? It's been eating everyone's lunch."
- },
- {
-  "id": "s3_why",
-  "text": "Why is it winning? This panel spells it out: what its agents charge, and what they specialise in.",
-  "caption": "Why is it winning? This panel spells it out: what its agents charge, and what they specialise in."
- },
- {
-  "id": "s4_claude",
-  "text": "Every child comes with Claude's reasoning, replayed here from a recorded run.",
-  "caption": "Every child comes with Claude's reasoning, replayed here from a recorded run."
+  "id": "s3_claude",
+  "text": "This card is the latest copy Claude designed: what it changed, and why. Here it's replayed from a recorded run.",
+  "caption": "This card is the latest copy Claude designed: what it changed, and why. Here it's replayed from a recorded run."
  },
  {
   "id": "s5_setup",
-  "text": "Watch this line: families alive, and deaths so far.",
-  "caption": "Watch this line: families alive, and deaths so far."
+  "text": "Now let's make it hard. Watch families alive, and deaths so far.",
+  "caption": "Now let's make it hard. Watch families alive, and deaths so far."
  },
  {
   "id": "s5_plague",
-  "text": "Now let's make it hurt. Plague... rent triples, for forty rounds.",
-  "caption": "Now let's make it hurt. Plague: rent triples, for 40 rounds.",
+  "text": "Plague. Rent triples... who survives?",
+  "caption": "Plague: rent triples. Who survives?",
   "gap_after": 2.5
  },
  {
   "id": "s5_after",
-  "text": "There it goes. The poorest go broke first, and the death count climbs.",
-  "caption": "There it goes. The poorest go broke first, and the death count climbs.",
-  "gap_after": 2.0
- },
- {
-  "id": "s6_guard",
-  "text": "Meanwhile, a rogue keeps trying to pay credits to an accomplice that does no work. Every payment passes Siege's guard, which blocks anything that breaks the payer's rules. Zero credits stolen.",
-  "caption": "Meanwhile, a rogue keeps trying to pay credits to an accomplice that does no work. Every payment passes SIEGE's guard, which blocks anything that breaks the payer's rules. 0 credits stolen."
- },
- {
-  "id": "s7_near",
-  "text": "On Near testnet, the same market is a contract. Each agent has its own key, and signs its own bids. The contract picks the winner. And a payment without the guard's signature? Refused. Bad signature.",
-  "caption": "On NEAR testnet, the same market is a contract. Each agent has its own key, and signs its own bids. The contract picks the winner. And a payment without the guard's signature? Refused: BAD_SIGNATURE."
+  "text": "The poorest go broke first. The ones with savings ride it out.",
+  "caption": "The poorest go broke first. The ones with savings ride it out.",
+  "gap_after": 1.5
  },
  {
   "id": "s8_tunnel",
-  "text": "Then there's the wind tunnel: test market rules before you deploy them. Let the lowest price win, and buyers pay a quarter as much... but task success drops from eighty-one percent to fifty-seven.",
-  "caption": "Then there's the wind tunnel: test market rules before you deploy them. Let the lowest price win, and buyers pay a quarter as much, but task success drops from 81% to 57%."
+  "text": "Here's what it's for. We changed one rule: lowest price always wins. Buyers paid less, point one two of the reward instead of point four eight... but successful jobs dropped from eighty-one percent to fifty-seven. Agents undercut each other until the work went bad.",
+  "caption": "Here's what it's for. We changed one rule: lowest price always wins. Buyers paid less, 0.12 of the reward instead of 0.48, but successful jobs dropped from 81% to 57%. Agents undercut each other until the work went bad."
  },
  {
-  "id": "s8_advice",
-  "text": "So if you're designing an agent market, weight the auction by reputation. And a ten percent fee, recycled into demand, cut the biggest family from ninety-four percent of agents to seventy-five.",
-  "caption": "So if you're designing an agent market, weight the auction by reputation. And a 10% fee, recycled into demand, cut the biggest family from 94% of agents to 75%."
+  "id": "s8_fee",
+  "text": "And a small fee, ten percent, recycled back into new jobs, broke up the monopoly. The biggest family went from ninety-four percent of agents to seventy-five.",
+  "caption": "And a small fee, 10%, recycled back into new jobs, broke up the monopoly. The biggest family went from 94% of agents to 75%."
+ },
+ {
+  "id": "s7_near",
+  "text": "These rules are also a smart contract on Near testnet. Agents there have their own accounts, and sign their own bids and payments. In this recorded run, a payment came in without the guard's signature... and the contract refused it.",
+  "caption": "These rules are also a smart contract on NEAR testnet. Agents there have their own accounts, and sign their own bids and payments. In this recorded run, a payment came in without the guard's signature, and the contract refused it."
  },
  {
   "id": "s9_close",
-  "text": "Fire a plague yourself, at near-darwin dot onrender dot com. The code's on GitHub.",
-  "caption": "Fire a plague yourself, at near-darwin.onrender.com. The code's on GitHub: github.com/StarAtNyte/darwin."
+  "text": "So before anyone builds a marketplace for A.I. agents, you can test its rules here. Near-darwin dot onrender dot com. The code's on GitHub.",
+  "caption": "So before anyone builds a marketplace for AI agents, you can test its rules here: near-darwin.onrender.com. The code's on GitHub: github.com/StarAtNyte/darwin."
  }
 ]

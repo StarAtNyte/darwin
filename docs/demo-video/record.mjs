@@ -1,8 +1,8 @@
 // Records the live DARWIN app with a scripted cursor, a zooming camera and a spotlight, paced to the narration.
 // Usage: node record.mjs <narration.json> <durations.json> <outdir>    (REHEARSE=1: do not fire the shock)
-// durations.json: {id: seconds} for every line in narration.json. One more line, s4_quote, reads the Claude reason
-// shown at record time; its slot is sized from its word count (WPS) and it is synthesised after the take
-// (scenes.json info.s4_quote holds its text and caption). A line's "gap_after" adds silence after it.
+// durations.json: {id: seconds} for every line in narration.json. A line's "gap_after" adds silence after it.
+// The shared run plays about 3 rounds a second and restarts after round 2,000, so the take waits for a run between
+// rounds MIN_TICK and MAX_TICK; scenes.json records the round at each scene start, so a reset shows up there.
 // Writes <outdir>/frames/*.jpg, frames.json, scenes.json.
 //
 // Camera: the page is never scrolled. A CSS transform on <body> (origin 0 0) zooms and pans to the focus, with
@@ -15,8 +15,7 @@ const puppeteer = require(process.env.PUPPETEER_CORE || 'puppeteer-core');
 
 const URL = 'https://near-darwin.onrender.com/';
 const PAD = 0.35;            // breath after each line
-const WPS = +(process.env.WPS || 2.4); // words a second of the voice; re-measure from the TTS durations
-const MAX_QUOTE_WORDS = 19;  // a decision holds 8 s on screen; the quote must be read inside that
+const MIN_TICK = +(process.env.MIN_TICK || 250), MAX_TICK = +(process.env.MAX_TICK || 900);
 const lines = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const dur = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
 const out = process.argv[4];
@@ -126,7 +125,15 @@ await sleep(2500);
   const tk = () => page.evaluate(() => +document.getElementById('tick').textContent.replace(/,/g, ''));
   const a = await tk(); await sleep(4000); const b = await tk();
   console.log('ticks', a, b);
-  if (b <= a || b > 1500) { console.error('run not moving or too late:', a, b); await browser.close(); process.exit(2); }
+  if (b <= a) { console.error('run not moving:', a, b); await browser.close(); process.exit(2); }
+  // Too late in the run: wait for the restart, then for the chart to fill in a little.
+  const t0 = Date.now();
+  let t;
+  while (!((t = await tk()) >= MIN_TICK && t <= MAX_TICK)) {
+    if (Date.now() - t0 > 15 * 60000) { console.error('no usable run window, tick', t); await browser.close(); process.exit(2); }
+    await sleep(5000);
+  }
+  console.log('starting at tick', t);
 }
 
 // ---- camera, cursor ----
@@ -189,9 +196,9 @@ await page.evaluate(() => {
   document.documentElement.appendChild(t);
   let k = 0; setInterval(() => { t.style.background = (k ^= 1) ? '#fff' : '#fefefe'; }, 33);
 });
-// Open on the chart, already zoomed in.
-await page.evaluate(() => window.__cam.focus([['#plot']], { maxScale: 1.3, spot: false, ms: 1 }));
-{ const a = await rect('#axis'); mx = a.x + 40; my = a.cy; }
+// Open on the header, already zoomed in: its first line is the example the narration opens with.
+await page.evaluate(() => window.__cam.focus([['.brand']], { maxScale: 1.6, spot: false, ms: 1 }));
+{ const a = await rect('.purpose'); mx = a.x + 30; my = a.y + a.h + 30; }
 await page.mouse.move(mx, my);
 await sleep(500);
 const T0 = Date.now() / 1000;
@@ -199,41 +206,42 @@ const scenes = [];
 const info = {};
 async function scene(id, fn) {
   const start = Date.now() / 1000;
-  scenes.push({ id, start: start - T0 });
-  console.log('scene', id, (start - T0).toFixed(2));
+  const tick = await page.evaluate(() => +document.getElementById('tick').textContent.replace(/,/g, ''));
+  if (scenes.length && tick < scenes[scenes.length - 1].tick) console.error('RESET before', id);
+  scenes.push({ id, start: start - T0, tick });
+  console.log('scene', id, (start - T0).toFixed(2), 'tick', tick);
   await fn();
   const left = start + dur[id] + PAD + gap[id] - Date.now() / 1000;
   if (left > 0) await sleep(left * 1000);
 }
-const words = (q) => q.split(/\s+/).length;
-const spoken = (q) => q.replace(/(\d+)\.(\d+)/g, (_, a, b) => `${a} point ${b.split('').join(' ')}`).replace(/(\d+)%/g, '$1 percent').replace(/\//g, ' or ');
 
 try {
 await sleep(400);
 await scene('s0_hook', async () => {
-  // Ride along the round axis, under the bands, so no tooltip covers the opening shot.
-  const a = await rect('#axis');
-  await moveTo(a.x + a.w * 0.3, a.cy, 1000);
-  await moveTo(a.x + a.w - 40, a.cy, 4000);
+  await point('.purpose', null, 900, 40);
+  await sleep(1200);
+  const r = await rect('.purpose');
+  await moveTo(r.x + r.w * 0.55, r.y + r.h * 0.3, 2600);
 });
 
-await scene('s1_what', async () => {
-  await focus([['.brand'], ['#plot']], { maxScale: 1.05, spot: false, ms: 1100 });
-  await point('.wordmark', null, 800);
-  await sleep(900);
-  await point('#tagline', null, 900, 260);
-  await sleep(1500);
+await scene('s1_rules', async () => {
+  await point('#tagline', 'Agents bid', 800, 120);
+  await sleep(2400);
+  await point('#tagline', 'go broke', 900);
+  await sleep(2200);
   await point('#tagline', 'Claude', 900);
 });
 
-await scene('s2_chart', async () => {
-  await focus([['#plot']], { maxScale: 1 });
-  const m = await rect('#muller');
-  await moveTo(m.x + 60, m.y + m.h * 0.3, 900);
-  await moveTo(m.x + m.w * 0.6, m.y + m.h * 0.6, 2200);
+await scene('s1_what', async () => {
+  // Pull back to the chart: the questions the run answers.
+  await focus([['#plot']], { maxScale: 1.15, spot: false, ms: 1300 });
+  const a = await rect('#axis');
+  await moveTo(a.x + 40, a.cy, 700);
+  await moveTo(a.x + a.w - 40, a.cy, 6000);
 });
 
-await scene('s2_leader', async () => {
+await scene('s2_chart', async () => {
+  await focus([['#plot']], { maxScale: 1, spot: false });
   const leader = (await txt('#headline')).match(/^a\d+/)?.[0];
   info.headline = await txt('#headline');
   const m = await rect('#muller');
@@ -251,45 +259,23 @@ await scene('s2_leader', async () => {
     return ys.length ? { x, y: ys[Math.floor(ys.length / 2)], n: ys.length } : { x, y: m.y + m.h * 0.5, n: 0 };
   }, m, leader);
   info.hit = hit;
-  await moveTo(hit.x - 300, hit.y, 900);
+  await moveTo(m.x + 60, m.y + m.h * 0.3, 700);
+  await moveTo(hit.x - 300, hit.y, 1800);
   await moveTo(hit.x, hit.y, 1000);
   info.tip = await txt('#tip');
-  await sleep(1200);
+  await sleep(1500);
   await moveTo(hit.x - 120, hit.y + 6, 1500);
 });
 
-await scene('s3_why', async () => {
-  await focus([['#take-h'], ['#take-body']], { maxScale: 1.5 });
-  await point('#take-h', null, 700);
-  await sleep(700);
-  const b = await rect('#take-body');
-  await moveTo(b.x + 30, b.y + b.h * 0.55, 700);
-  await moveTo(b.x + b.w - 30, b.y + b.h * 0.75, 1800);
-  info.take = await txt('#take-body');
-});
-
-await scene('s4_claude', async () => {
+await scene('s3_claude', async () => {
   await focus([['#ai']], { maxScale: 1.45 });
   await point('#ai-tag', null, 700);
-  await sleep(700);
-  await point('#ai-tag', 'recorded', 700, 140);
-});
-// Read the quote on a freshly shown decision (each holds 8 s), and only one short enough to read in that time.
-for (let tries = 0; tries < 4; tries++) {
-  const n0 = await page.evaluate(() => window.__aiLog.length);
-  const t0 = Date.now();
-  while (Date.now() - t0 < 25000 && (await page.evaluate(() => window.__aiLog.length)) === n0) await sleep(50);
-  info.quote = (await txt('#ai-why')).trim().replace(/^[“"]|[”"]$/g, '');
-  if (words(info.quote) <= MAX_QUOTE_WORDS) break;
-}
-info.aiWhat = await txt('#ai-what');
-info.s4_quote = { id: 's4_quote', text: `This one says: ${spoken(info.quote)}`, caption: `This one says: “${info.quote}”` };
-dur.s4_quote = words(info.s4_quote.text) / WPS + 0.2;
-gap.s4_quote = 0;
-await scene('s4_quote', async () => {
+  await sleep(900);
   const r = await rect('#ai-why');
-  await moveTo(r.x + 20, r.y + 14, 500);
-  await moveTo(r.x + Math.min(r.w, 900), r.y + (r.h > 40 ? r.h - 14 : 14), Math.max(1500, (dur.s4_quote - 1) * 1000));
+  await moveTo(r.x + 20, r.y + 14, 600);
+  await moveTo(r.x + Math.min(r.w, 900), r.y + (r.h > 40 ? r.h - 14 : 14), 2200);
+  await point('#ai-tag', 'recorded', 700, 140);
+  info.ai = await txt('#ai');
 });
 // Shocks are one a minute across all visitors: wait out any cooldown first (the camera rests on the shock buttons).
 await focus([['#try']], { maxScale: 1.6 });
@@ -307,10 +293,10 @@ await scene('s5_setup', async () => {
 await focus([['#try']], { maxScale: 1.6 });
 await scene('s5_plague', async () => {
   await point('#try', 'Hit the market', 700);
-  await sleep(500);
+  await sleep(300);
   if (process.env.REHEARSE) await point('#try [data-shock=plague]', null, 700);
   else await click('#try [data-shock=plague]');
-  await sleep(900);
+  await sleep(700);
   info.shockMsg = await txt('#try-msg');
   await focus([['#statusline'], ['#plot']], { maxScale: 1.1, ms: 1000 });
   const m = await rect('#muller');
@@ -319,64 +305,58 @@ await scene('s5_plague', async () => {
 await scene('s5_after', async () => {
   await sleep(300);
   await point('#statusline', 'died', 900, 420);
-  await sleep(1800);
+  await sleep(1500);
   const m = await rect('#muller');
   await moveTo(m.x + m.w - 80, m.y + m.h * 0.5, 1000);
-  await sleep(1500);
+  await sleep(1200);
   await point('#statusline', 'died', 800, 420);
   info.after = await txt('#statusline');
-});
-
-await scene('s6_guard', async () => {
-  await focus([['#guard']], { maxScale: 1.5 });
-  await point('#guard h3', null, 700);
-  await sleep(500);
-  await point('#guard .guard__what', 'accomplice', 800, 300);
-  await sleep(1500);
-  await point('#guard .guard__what', 'SIEGE', 800);
-  await sleep(900);
-  await point('#guard-text', 'credits stolen', 800);
-  info.guard = await txt('#guard-text');
-});
-
-await scene('s7_near', async () => {
-  await focus([['#proof-h'], ['#proof-contract'], ['#proof-list', 'BAD_SIGNATURE']], { maxScale: 1.4 });
-  await point('#proof-contract', null, 800);
-  await sleep(1500);
-  await point('#proof-list', 'own key', 800);
-  await sleep(2200);
-  await point('#proof-list', 'BAD_SIGNATURE', 800);
-  await sleep(1000);
-  await point('#proof-list', 'no guard signature', 800);
 });
 
 await scene('s8_tunnel', async () => {
   await focus([['#tunnel-h'], ['#wt-q'], ['#wt-grid']], { maxScale: 1.25 });
   await point('#tunnel-h', null, 800);
   await sleep(1200);
+  await point('#wt-q', 'lowest bid wins', 800);
+  await sleep(1000);
   await point('#wt-grid', '0.48', 800);
-  await sleep(500);
+  await sleep(1400);
   await point('#wt-grid', '0.12', 600);
-  await sleep(1500);
+  await sleep(1800);
   await point('#wt-grid', '81%', 800);
   await sleep(700);
   await point('#wt-grid', '57%', 600);
   info.wt = await txt('#wt-grid');
 });
 
-await scene('s8_advice', async () => {
+await scene('s8_fee', async () => {
   await focus([['.tunnel__advice h3'], ['.tunnel__advice ol', 'A fee recycled']], { maxScale: 1.45 });
-  await point('.tunnel__advice ol', 'Weight the auction', 800);
-  await sleep(2600);
   await point('.tunnel__advice ol', 'A fee recycled', 800);
-  await sleep(1500);
+  await sleep(2500);
   await point('.tunnel__advice ol', '94%', 800);
+  await sleep(600);
+  await point('.tunnel__advice ol', '75%', 600);
+});
+
+await scene('s7_near', async () => {
+  // Frame from the panel heading to the refused payment; the heading must stay in shot.
+  await focus([['#proof-h'], ['#proof-list', 'BAD_SIGNATURE'], ['#proof-list', 'forged payment']], { maxScale: 1.35, pad: 30 });
+  await point('#proof-h', null, 800);
+  await sleep(900);
+  await point('#proof-contract', null, 800);
+  await sleep(1300);
+  await point('#proof-list', 'own key', 800);
+  await sleep(2200);
+  await point('#proof-list', 'BAD_SIGNATURE', 900);
+  await sleep(1500);
+  await point('#proof-list', 'forged payment', 800);
+  info.proof = await txt('#proof');
 });
 
 await scene('s9_close', async () => {
-  await focus([['#try'], ['.brand']], { maxScale: 1.3, spot: false, ms: 1300 });
-  await point('#try [data-shock=plague]', null, 900);
-  await sleep(2200);
+  await focus([['.brand']], { maxScale: 1.6, spot: false, ms: 1300 });
+  await point('.purpose', null, 900, 200);
+  await sleep(2600);
   await focus([['#shared'], ['.foot', 'Code on GitHub']], { maxScale: 1.6, ms: 1500 });
   await point('.foot', 'Code on GitHub', 900);
 });

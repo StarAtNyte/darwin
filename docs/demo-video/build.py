@@ -5,7 +5,7 @@ Usage: build.py <take_dir> <audio_dir> <narration.json> <out.mp4> [crf]
 take_dir holds frames/, frames.json and scenes.json from record.mjs; audio_dir holds <scene id>.mp3 and durations.json.
 Optional take_dir/cuts.json: {"cuts": [[a, b], ...], "end": t} removes idle stretches (take seconds, outside any
 line) and ends the video at take time t. "holds": [[a, b], ...] shows the last frame before a until b (used when
-the Claude card changed while its quote was still being read).
+a card changed while it was still being read).
 """
 import json, os, re, subprocess, sys
 
@@ -15,9 +15,6 @@ LEAD = 0.25  # the voice starts this long after a scene starts
 
 lines = json.load(open(narr))
 meta = json.load(open(os.path.join(take, "scenes.json")))
-# The quote line is written at record time (record.mjs puts it in scenes.json); its clip sits in audio_dir too.
-if meta.get("info", {}).get("s4_quote"):
-    lines.append(meta["info"]["s4_quote"])
 frames = json.load(open(os.path.join(take, "frames.json")))
 t0, end = meta["t0"], meta["end"]
 cutf = os.path.join(take, "cuts.json")
