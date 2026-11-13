@@ -2470,11 +2470,13 @@ function tourTargets() { return $$(".tour-target"); }
 // The step's target gets an outline instead of an arrow.
 function placeTour() {
   if (!tour.open) return;
-  const card = $("#tour"), take = $("#take"), key = $("#key");
-  const side = take.getBoundingClientRect().left >= $(".plot__well").getBoundingClientRect().right - 1;
-  if (side) { if (take.firstElementChild !== card) take.prepend(card); }
+  // Wide screens: the card is pinned to the chart's top-left corner, over the squeezed early rounds, so the
+  // "Just now" line and the "Why … is ahead" panel beside the chart stay in view. Narrow screens: under the chart.
+  const card = $("#tour"), take = $("#take"), key = $("#key"), well = $(".plot__well");
+  const side = take.getBoundingClientRect().left >= well.getBoundingClientRect().right - 1;
+  if (side) { if (card.parentElement !== well) well.append(card); }
   else if (key.nextElementSibling !== card) key.after(card);
-  card.dataset.side = side ? "aside" : "below";
+  card.dataset.side = side ? "chart" : "below";
   const r = card.getBoundingClientRect();
   return { top: r.top + scrollY, bottom: r.bottom + scrollY };
 }
