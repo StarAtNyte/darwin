@@ -6,7 +6,7 @@ account. "testnet read" means a public RPC call or explorer page, no account.
 
 | claim | command | output file | expected | needs |
 |---|---|---|---|---|
-| Sim tests pass | `make test` | stdout | `tests 54`, `pass 54`, `fail 0` (54 tests in 9 files in `sim/test`) | nothing |
+| Sim tests pass | `make test` | stdout | `tests 55`, `pass 55`, `fail 0` (55 tests in 9 files in `sim/test`) | nothing |
 | Typecheck is clean | `make test` (runs `npx tsc --noEmit`) | stdout | no errors | nothing |
 | Contract tests pass: every v2 path (replay, expiry, wrong signer, tampered fields, caps, wrong answer, settle before the deadline, double settle, upkeep twice in an epoch, kill above the floor, migrate) and a 400-op conservation property with random callers and forged, replayed and missing signatures | `make test` | stdout, `contract/src/tests.rs` | `25 passed` (one test module) | Rust |
 | The TypeScript guard signer, approval message and answer hash match the contract byte for byte | `make test` | `contract/vectors/`, `golden_vectors_match_typescript` (Rust) and `golden vectors` (`sim/test/v2.test.ts`) | pass on both sides | Rust |

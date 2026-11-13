@@ -128,3 +128,28 @@ test("server: a takeover starts a new run and the state carries the note", { ski
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("server: a finished run refuses shocks (409) instead of spending the shared shock on nothing", { skip: !canListen && "sandbox forbids listening on TCP ports" }, async () => {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "darwin-done-"));
+  const PORT = 20000 + Math.floor(Math.random() * 1000);
+  const srv = spawn(process.execPath, ["--import", "tsx", path.join(here, "../src/main.ts")], {
+    cwd: path.join(here, ".."),
+    env: { ...process.env, MUTATION_BASE_URL: "", ANTHROPIC_API_KEY: "", DARWIN_SETTLER_ACCOUNT: "", DARWIN_SETTLER_KEY: "", PUBLIC_MODE: "", AUTO_RESTART_SEC: "", PORT: String(PORT), HOST: "127.0.0.1", DARWIN_DB: path.join(dir, "t.sqlite"), TICKS: "3" },
+    stdio: "ignore",
+  });
+  try {
+    let st: any = null;
+    for (let i = 0; i < 300 && !st?.finished; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      try { st = await (await fetch(`http://127.0.0.1:${PORT}/api/state`)).json(); } catch {}
+    }
+    assert.ok(st?.finished, "the run finished");
+    const r = await fetch(`http://127.0.0.1:${PORT}/api/shock`, { method: "POST", body: JSON.stringify({ kind: "drought" }) });
+    assert.equal(r.status, 409);
+    assert.match((await r.json()).error, /finished at round 3/);
+  } finally {
+    srv.kill("SIGTERM");
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

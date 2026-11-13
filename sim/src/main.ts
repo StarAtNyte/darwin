@@ -339,6 +339,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && p === "/api/shock") {
       const kind = (await body(req)).kind as Shock;
       if (!["drought", "plague", "rogue", "immigration"].includes(kind)) return send(res, 400, { error: "kind must be drought, plague, rogue or immigration" });
+      if (run.eco.tick >= MAX_TICKS) return send(res, 409, { error: `The run finished at round ${MAX_TICKS}; a shock needs a running economy.` });
       const wait = shockWait();
       if (wait > 0) return send(res, 429, { error: `The shared run takes one shock at a time. Next shock in ${wait} s.`, retryAfter: wait }, { "retry-after": String(wait) });
       run.eco.shock(kind, PUBLIC_MODE ? "visitor" : undefined);

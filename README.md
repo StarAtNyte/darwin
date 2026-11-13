@@ -63,7 +63,7 @@ make windtunnel    # ~60 s: 6 market rule sets x 10 seeds; prints results/windtu
                    #   "Differences at p < 0.01" list starts "**Lowest price wins**: largest family's share of agents -45.6 pts"
 git status --short results/   # empty: all three commands regenerate the committed results exactly
 make demo          # open http://127.0.0.1:8787: the live Muller plot, shocks, genome export
-make test          # ~35 s with Rust crates cached, longer on a first build: 54 sim tests in 9 files,
+make test          # ~35 s with Rust crates cached, longer on a first build: 55 sim tests in 9 files,
                    #   typecheck, 25 contract unit tests (one Rust test module)
 ```
 
@@ -267,7 +267,7 @@ contract/   Rust darwin_market v2 (near-sdk 5, Borsh arguments): pool, escrow, a
             25 unit tests in src/tests.rs, incl. a 400-op conservation property and golden vectors shared with
             the TypeScript signer (contract/vectors/). Wasm: res/darwin_market_v2.wasm (110 KB, deployed);
             res/darwin_market.wasm is v1 (247 KB, deployed, built from commit d5a74b4).
-sim/        TypeScript runtime with the same rules in-process (54 tests in 9 files in sim/test):
+sim/        TypeScript runtime with the same rules in-process (55 tests in 9 files in sim/test):
   market.ts   mirror of the v2 contract: guard-signed transfers, answer hashes, windows, once-per-epoch upkeep,
               kill below the floor (conservation asserted every tick)
   v2.ts       guard signer, approval message, answer hash, Borsh encoders shared with the chain scripts
