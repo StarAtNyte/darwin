@@ -287,6 +287,45 @@ async function run() {
   console.log(`guard: ${JSON.stringify(log.run.guard)}; total_supply ${supply}`);
 }
 
+/**
+ * The live settler's account and key (scripts/make-settler-key.sh). Creates settler-v2.<you> holding ONE key, a
+ * function-call access key limited to receiver market2 and the method transfer_internal, with a gas allowance;
+ * the account has no full-access key at all. The owner registers it as an agent so its calls reach the guard check.
+ * The key goes only to the gitignored darwin/.env as DARWIN_SETTLER_ACCOUNT / DARWIN_SETTLER_KEY; it is never printed.
+ */
+const SETTLER_METHODS = ["transfer_internal"];
+async function settlerKey() {
+  const me = owner();
+  const { marketId } = loadKeys();
+  const id = `settler-v2.${me.accountId}`;
+  const envFile = path.join(root, ".env");
+  const envText = fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : "";
+  if (/^DARWIN_SETTLER_KEY=\S/m.test(envText)) throw new Error("DARWIN_SETTLER_KEY is already set in .env; remove it first to make a new key");
+  const ownerBal = BigInt((await me.getState()).balance.total);
+  const fund = 1_000n * MILLI, allowance = 750n * MILLI;
+  if (ownerBal < fund + 400n * MILLI) throw new Error(`owner balance ${Number(ownerBal / MILLI) / 1000} NEAR is too low`);
+  const kp = KeyPair.fromRandom("ed25519");
+  // Save before anything is created, so the key is never lost. Mode 0600 like the other key files.
+  const lines = envText.split("\n").filter((l) => !/^DARWIN_SETTLER_(ACCOUNT|KEY)=/.test(l));
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  lines.push(`DARWIN_SETTLER_ACCOUNT=${id}`, `DARWIN_SETTLER_KEY=${kp.toString()}`, "");
+  fs.writeFileSync(envFile, lines.join("\n"), { mode: 0o600 });
+  fs.chmodSync(envFile, 0o600);
+  const r1 = await me.signAndSendTransaction({ receiverId: id, actions: [actions.createAccount(), actions.transfer(fund), actions.addFunctionCallAccessKey(kp.getPublicKey(), marketId, SETTLER_METHODS, allowance)] });
+  console.log(`create ${id}: one function-call key (${marketId}: ${SETTLER_METHODS.join(", ")}, ${Number(allowance / MILLI) / 1000} NEAR gas allowance)\n  ${NB(txHash(r1))}`);
+  if (!dec.agent(await view(marketId, "get_agent", enc.account(id)))) {
+    const r2 = await me.signAndSendTransaction({ receiverId: marketId, actions: [actions.functionCall("register_agent", enc.register(id, null, scale(200_000)), 10n * TGAS, 0n)] });
+    console.log(`register ${id} as an agent on ${marketId}\n  ${NB(txHash(r2))}`);
+  }
+  const keys: any = await provider.viewAccessKeyList({ accountId: id } as any);
+  for (const k of keys.keys) {
+    const p = k.access_key.permission;
+    if (p === "FullAccess" || !p.FunctionCall) throw new Error(`${id} has a full-access key: delete it`);
+    console.log(`key check: function-call only, receiver ${p.FunctionCall.receiver_id}, methods ${p.FunctionCall.method_names.join(", ")}`);
+  }
+  console.log("saved to .env as DARWIN_SETTLER_ACCOUNT / DARWIN_SETTLER_KEY (not printed)");
+}
+
 async function nextTaskId(marketId: string) {
   // get_meta = (u32 version, AccountId owner, PublicKey guard, String network, u64 next_task_id, u32 agents)
   const b = Buffer.from(await view(marketId, "get_meta"));
@@ -301,4 +340,5 @@ const [cmd] = process.argv.slice(2);
 if (cmd === "deploy") await deploy();
 else if (cmd === "run") await run();
 else if (cmd === "upgrade") await upgrade();
-else console.log("usage: chain2.ts deploy | run | upgrade");
+else if (cmd === "settler") await settlerKey();
+else console.log("usage: chain2.ts deploy | run | upgrade | settler");

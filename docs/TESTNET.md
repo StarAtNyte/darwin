@@ -21,6 +21,7 @@ Amounts below are in sim credits: the contract stores them in yoctoNEAR at 1 cre
 | [`market2.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet) | the v2 contract (`contract/res/darwin_market_v2.wasm`) | one full-access key, saved in gitignored `sim/.chain-v2.json` (mode 0600) for upgrades |
 | [`keeper-v2.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/keeper-v2.darwin-siege-mw23cmc8.testnet) | v2: a third party (not the owner, not an agent) that closes auctions, settles, charges upkeep and kills | full access, its own |
 | `a261-v2`, `a23-v2`, `a9-v2`, `a6-v2` `.darwin-siege-mw23cmc8.testnet` | v2 agents (seed 42, tick 200: the three richest and the poorest) | one function-call key each: receiver `market2…`, methods `bid`, `submit`, `transfer_internal`, `burn`, 0.015 NEAR allowance |
+| [`settler-v2.darwin-siege-mw23cmc8.testnet`](https://testnet.nearblocks.io/address/settler-v2.darwin-siege-mw23cmc8.testnet) | the live settler (section 6): mirrors the running dashboard's guard blocks on `market2…` | **one function-call key only, no full-access key**: receiver `market2…`, method `transfer_internal`, 0.75 NEAR gas allowance; private key only in the gitignored `.env` (and the host's secret env) |
 
 Agents registered in the 2026-11-04 checkpoint (`solver-1`, `a2`, ... under `market.darwin-siege-mw23cmc8.testnet`) are internal accounts of
 the contract, not NEAR accounts; the owner relayed their bids and submit.
@@ -203,6 +204,34 @@ reputation 925, 1 win and 1 loss; a261 0.254; a9 0.194; a6 dead with 0. `total_s
 Not shown on chain, but covered by unit tests: a second upkeep in the same epoch, a kill above the floor, a settle
 before the deadline, a double settle, an expired approval and a wrong guard key are all refused
 (`contract/src/tests.rs`).
+
+## 6. Live settler: the running dashboard writes to testnet (`make settler-key`, 2026-11-13)
+
+Proves: the live run is not only replayed next to a fixed list. While it plays, its guard blocks reach the v2 market.
+When the sim's guard blocks a rogue's payment, the server sends that same payment to `market2…` `transfer_internal`
+without the guard's signature, signed by `settler-v2.darwin-siege-mw23cmc8.testnet`. The contract refuses it
+(`transfer_refused`, reason `BAD_SIGNATURE`) and logs the memo `round <N> seed <S> guard blocked <agent>`, so every tx
+carries the round of the run that produced it. Nothing is stored or paid. The dashboard's "On NEAR testnet" panel shows
+the latest one as "This run: round N", with its time and tx link.
+
+The key is a **function-call access key, never full access**. `scripts/make-settler-key.sh` (`make settler-key`) uses the
+owner credentials of the other chain targets (`NEAR_ACCOUNT` / `NEAR_PRIVATE_KEY` in `.env`) to create the account with
+that one key (receiver `market2.darwin-siege-mw23cmc8.testnet`, method `transfer_internal`, 0.75 NEAR gas allowance)
+and registers it as an agent, so its calls reach the signature check. It checks with `view_access_key_list` that no
+full-access key exists, and writes the key only to the gitignored `.env`; it never prints it. With that key, the worst
+anyone can do is spend its gas allowance on refused calls.
+
+Off unless both variables are set; without them the panel shows the recorded lifecycle above. Rate limit: one tx per
+`DARWIN_SETTLER_INTERVAL_SEC` (default 45), one in flight, at most `DARWIN_SETTLER_MAX_PER_DAY` (default 400) a UTC day.
+A refused call burns about 2 TGas of the 3 attached.
+
+| time (UTC) | signer | action | tx | result |
+|---|---|---|---|---|
+| 2026-11-13 01:29 | owner | CREATE_ACCOUNT+TRANSFER+ADD_KEY (function call) | [`2usMBHLt…`](https://testnet.nearblocks.io/txns/2usMBHLtu5FE8xowSV9MD1AdiM7QuHVPaG9U6poXL2KA) | ok |
+| 2026-11-13 01:29 | owner | register_agent | [`BHGBBB7S…`](https://testnet.nearblocks.io/txns/BHGBBB7SyKDchr91r2u6R9hcuZH2P4GoGTCrGUyZ2ymp) | ok |
+| 2026-11-13 01:29 | settler | transfer_internal (unsigned, round 1 seed 3) | [`AExVTq6P…`](https://testnet.nearblocks.io/txns/AExVTq6PEgysxmprPHrDJ5gZ1ErXH8xR3vcTXqVi6fpw) | refused, `BAD_SIGNATURE` |
+
+To run it on a host, set `DARWIN_SETTLER_ACCOUNT` and `DARWIN_SETTLER_KEY` there as secrets (the values from `.env`).
 
 ## Check it yourself
 

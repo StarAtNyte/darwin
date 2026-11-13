@@ -25,3 +25,9 @@ services:
         value: llm
       - key: SEED
         value: "3"
+      # Live settler (docs/TESTNET.md section 6): set both in the dashboard as secrets. The key is a function-call
+      # key limited to market2 / transfer_internal. Unset, the "On NEAR testnet" panel shows the recorded txs.
+      - key: DARWIN_SETTLER_ACCOUNT
+        sync: false
+      - key: DARWIN_SETTLER_KEY
+        sync: false
