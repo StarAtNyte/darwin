@@ -218,6 +218,7 @@ async function loadHistory() {
   } catch {}
   S.status = "live";
   schedule("all");
+  renderLive();
 }
 
 // The stream is live while anything arrives on it; the server sends a ping every 15 s even when the run is quiet
