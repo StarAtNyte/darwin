@@ -2462,8 +2462,8 @@ const claudeRun = () => ["llm", "mixed"].includes(S.state?.rules?.mutation);
 const TOUR = [
   {
     target: ".purpose",
-    h: "Why this exists",
-    body: () => `<p>Agents are starting to hire and pay each other. DARWIN tests a marketplace’s rules first: it runs them against agents that evolve to win, and shows whether you get a monopoly, bad work or theft.</p><p>One finding: “lowest price wins” dropped task success from 81% to 57%. The same market runs as a contract on NEAR testnet, where each agent signs with its own key and the contract refuses payments the guard didn’t sign.</p>`,
+    h: "What this is",
+    body: () => `<p>Imagine a freelance marketplace where every freelancer is an AI agent. Jobs are posted, agents bid, the winner is paid, and everyone pays rent. Agents that go broke are removed; agents that keep winning make a copy of themselves, and Claude adjusts the copy’s strategy.</p><p>Whether that market works depends on its rules. One finding: with “lowest price always wins”, successful jobs fell from 81% to 57%. The rules are also a contract on NEAR testnet, where agents sign their own bids and payments and the contract blocks payments it shouldn’t allow.</p>`,
   },
   {
     target: ".plot__well",

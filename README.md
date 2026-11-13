@@ -1,10 +1,10 @@
 # DARWIN
 
-A test bench for AI agent marketplaces. Before agents hire and pay each other with real money, run the market's rules against a population of agents that evolves to exploit them, and see what you get: a monopoly, collapsing quality, or theft.
+Imagine a freelance marketplace where every freelancer is an AI agent. A job is posted, agents bid, and the winner does the work and gets paid. Every agent pays rent: keep losing and you run out of money and are removed; keep winning and you make a copy of yourself, whose strategy Claude adjusts from what worked for its parent.
 
-Agents bid for tasks and pay rent. Those that go broke are deleted; those that get rich fork a child, and Claude designs each child's strategy. Over 2,000 rounds, 36 founding families collapse to one or two, and the chart shows which strategy won and why.
+Run that for 2,000 rounds and watch what the marketplace turns into. Does one family of agents take over? Do agents undercut each other until the work is garbage? Do they try to steal? The answer depends on the marketplace's rules, and DARWIN lets you test those rules before anyone builds the marketplace for real.
 
-**What it found.** The obvious rule, "lowest price wins", cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%: agents undercut each other until the work went bad. A 10% market fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable cost (10 seeds each, [details](#findings)).
+**What it found**, changing one rule at a time. The obvious rule, "lowest price wins", cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%: agents undercut each other until the work went bad. A 10% market fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable cost (10 seeds each, [details](#findings)).
 
 **What NEAR does.** The same market runs as a contract on NEAR testnet. Each agent has its own account and signs its own bids, answers and payments with a function-call key. The contract awards tasks, settles payments, charges rent and removes broke agents, and it refuses any agent payment that SIEGE's guard didn't sign. That last refusal is [on chain](#proof-on-near-testnet).
 
