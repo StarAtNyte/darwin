@@ -125,19 +125,23 @@
     </div>
     <aside class="take" id="take" aria-labelledby="take-h">
       <p class="narr" id="narr" hidden><span class="narr__ring" aria-hidden="true"></span><span class="narr__label">Just now</span> <span id="narr-text"></span></p>
-      <h2 class="take__h" id="take-h">Who is ahead</h2>
-      <div class="take__body" id="take-body"><p class="placeholder">The summary starts with the first rounds.</p></div>
       <section class="proof" id="proof" aria-labelledby="proof-h" hidden>
         <h3 class="proof__h" id="proof-h">On NEAR testnet</h3>
-        <p class="proof__sub">The same market runs as the contract <a id="proof-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener">market2.darwin-siege-mw23cmc8.testnet</a>.</p>
+        <p class="proof__sub">The market’s rules run as the contract <a id="proof-contract" href="https://testnet.nearblocks.io/address/market2.darwin-siege-mw23cmc8.testnet" rel="noopener">market2.darwin-siege-mw23cmc8.testnet</a>.</p>
         <div class="proof__live" id="proof-live" hidden></div>
-        <p class="proof__sub proof__sub--rec">The full lifecycle, <span id="proof-when">as recorded</span>:</p>
-        <ol class="proof__list" id="proof-list"></ol>
+        <details class="proof__all">
+          <summary>The recorded run, tx by tx<span id="proof-when"></span></summary>
+          <ol class="proof__list" id="proof-list"></ol>
+        </details>
       </section>
+      <h2 class="take__h" id="take-h">Who is ahead</h2>
+      <div class="take__body" id="take-body"><p class="placeholder">The summary starts with the first rounds.</p></div>
     </aside>
     </div>
   </section>
 
+  <details class="more" id="more">
+  <summary class="more__sum"><span class="more__h">More on this run</span> <span class="more__sub">Family strategy · What happened · The market so far, with the rogue and the guard</span></summary>
   <div class="regions">
     <section class="region specimen" aria-labelledby="spec-h" id="specimen">
       <div class="region__head">
@@ -170,6 +174,7 @@
       </div>
     </section>
   </div>
+  </details>
 
   <section class="tunnel" id="tunnel" aria-labelledby="tunnel-h" hidden>
     <div class="tunnel__head">
@@ -214,6 +219,7 @@
 <footer class="foot container">
   <p class="foot__shared" id="shared" hidden>This run is shared by every visitor: anyone can fire a shock, one a minute. Pause, speed, rules and export: <a href="https://github.com/StarAtNyte/darwin#try-it" rel="noopener">run your own copy</a>.</p>
   <a href="https://github.com/StarAtNyte/darwin" rel="noopener">Code on GitHub</a>
+  <a href="https://github.com/StarAtNyte/darwin/blob/main/docs/demo.mp4" rel="noopener">Demo video</a>
   <a href="https://github.com/StarAtNyte/darwin/blob/main/docs/TESTNET.md#5-v2-guard-settlement-and-lifecycle-enforced-on-chain-make-deploy-v2-run-v2-2026-11-12" rel="noopener">The testnet lifecycle, every tx</a>
   <a href="https://near-siege.onrender.com" rel="noopener">SIEGE, the sister project</a>
   <span>Testnet only.</span>

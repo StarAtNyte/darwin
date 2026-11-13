@@ -12,7 +12,7 @@ Run that for 2,000 rounds and watch what the marketplace turns into. Does one fa
 
 **Live: [near-darwin.onrender.com](https://near-darwin.onrender.com)** (a shared public run: steering locked, shocks open). Testnet only, no real funds spent. Every number here maps to a command and a committed file in [CLAIMS.md](CLAIMS.md).
 
-![DARWIN on the live site: a Muller plot of dynasties, the specimen genome, field notes and the "Claude decided" panel showing the latest child Claude designed and why](docs/dashboard.png)
+![DARWIN on the live site: the round counter, the "Claude decided" card with the latest child Claude designed and why, the chart of families over time, and the market contract on NEAR testnet](docs/dashboard.png)
 
 [![A plague under way on the live site: the families chart, the Claude decided card and why the leading family is ahead](docs/demo-poster.png)](docs/demo.mp4)
 
@@ -78,13 +78,13 @@ make test          # ~35 s with Rust crates cached, longer on a first build: 55 
 
 Code: [github.com/StarAtNyte/darwin](https://github.com/StarAtNyte/darwin). Sister project: [SIEGE](https://github.com/StarAtNyte/siege).
 
-To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DARWIN_MUTATION=llm make demo`. Each model-designed child shows its reason in the field notes and the "Claude decided" panel. With Docker and nothing else: `docker build -t darwin . && docker run -p 8787:8787 darwin` (~10 s build).
+To watch Claude's recorded decisions in the dashboard without a key: `SEED=3 DARWIN_MUTATION=llm make demo`. Each model-designed child shows its reason in "What happened" and the "Claude decided" card. With Docker and nothing else: `docker build -t darwin . && docker run -p 8787:8787 darwin` (~10 s build).
 
 DARWIN is an economy of agents (36 founders, at most 50 alive) that bid for tasks. Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. Nobody patches the strategies; they evolve.
 
 **You steer it.** Change the market's rules while it runs (task emission, upkeep, death floor, fork share, mutation rate, solver capacity, population cap, market fee, or the auction rule itself). Hit it with shocks: a drought, a plague, a rogue, a wave of immigrants. Then **export the winning genome**, the strategy that survived, as JSON for your own agents, along with the full metrics as CSV.
 
-**What you see** is a Muller plot, the chart evolutionary biologists use for lineage frequencies. Each founding dynasty is a band whose thickness is its share of the living population (or of the wealth). Bands pinch out at extinction, and mass extinctions show as hard vertical boundaries. Below it are the dynasty you select as a specimen (its genome, gene by gene), field notes written as plain sentences, and the selection pressures over time.
+**What you see** is a Muller plot, the chart evolutionary biologists use for lineage frequencies. Each founding dynasty is a band whose thickness is its share of the living population (or of the wealth). Bands pinch out at extinction, and mass extinctions show as hard vertical boundaries. Beside it, the market contract on NEAR testnet and the takeaway. Folded under "More on this run": the strategy of the family you select (its genome, gene by gene), "What happened" in plain sentences, and "The market so far" with the rogue and the guard.
 
 Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/siege)'s Mandate guard. A rogue agent turns up at tick 120 and keeps trying to move funds to an accomplice called `so1ver-1`. In most monospace fonts that is hard to tell apart from the real `solver-1`.
 
@@ -168,7 +168,7 @@ Before v2, `make windtunnel-onchain` ran the same rules on the v1 contract throu
 
 ## An AI model as the mutation operator
 
-With the rule `mutation: llm`, every fork is a language-model decision. The model gets the parent's genome, its balance, age, reputation and record per task kind (won, correct, earned), and the market: price-to-reward ratio, success rate and resale share per task kind over the last 100 ticks, the middleman share, and the leading dynasties' shares and mean genes. It returns the child's genome and one sentence of reasoning. The genome is validated, clamped to the gene ranges and limited to a bounded step from the parent (markup 0.25, spec weights 0.3, fork threshold 1.2, and so on), so it is still a mutation. Malformed output, no key, the per-run call cap or the budget all fall back to the Gaussian child, which is drawn first on every fork so a fallback is exactly the Gaussian run's child. The reason appears in the field notes and the specimen panel, for example (seed 3, from `results/mutations/seed-3-llm.json`):
+With the rule `mutation: llm`, every fork is a language-model decision. The model gets the parent's genome, its balance, age, reputation and record per task kind (won, correct, earned), and the market: price-to-reward ratio, success rate and resale share per task kind over the last 100 ticks, the middleman share, and the leading dynasties' shares and mean genes. It returns the child's genome and one sentence of reasoning. The genome is validated, clamped to the gene ranges and limited to a bounded step from the parent (markup 0.25, spec weights 0.3, fork threshold 1.2, and so on), so it is still a mutation. Malformed output, no key, the per-run call cap or the budget all fall back to the Gaussian child, which is drawn first on every fork so a fallback is exactly the Gaussian run's child. The reason appears in "What happened" and the family strategy panel, for example (seed 3, from `results/mutations/seed-3-llm.json`):
 
 > a1029 forked: "Parent dominates with 80% share; reason success is weakest at 0.70, so I shift a little spec weight toward reason and classify."
 >

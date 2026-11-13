@@ -287,8 +287,9 @@ function connect() {
   es.addEventListener("chain", (e) => {
     heard();
     const t = JSON.parse(e.data);
-    S.live = { ...(S.live ?? { enabled: true, intervalSec: 45 }), recent: [t, ...(S.live?.recent ?? [])].slice(0, 5) };
+    S.live = { ...(S.live ?? { enabled: true, intervalSec: 45 }), recent: [t, ...(S.live?.recent ?? [])].slice(0, 5), fresh: t.hash };
     renderLive();
+    S.live.fresh = null;
   });
   es.addEventListener("ev", (e) => {
     heard();
@@ -1412,7 +1413,7 @@ function renderCaption() {
 // ---------- narration: one plain sentence on what just happened, with a pin where it is on the chart ----------
 // Read from the run's own events and metrics. A sentence holds for at least NARR_HOLD ms so it can be read;
 // candidates that pile up meanwhile compete, and the most telling (latest on a tie) is said next.
-const NARR_HOLD = 6500, NARR_URGENT = 2500;
+const NARR_HOLD = 6500, NARR_URGENT = 2500, NARR_FRESH = 10, NARR_RETIRE = 30;
 const N = {};
 function narrReset() {
   Object.assign(N, { cur: null, at: 0, pending: [], scanned: -1, rising: new Set(), mid: false, killing: 0 });
@@ -1515,9 +1516,12 @@ function narrate() {
   for (; i < M.length; i++) if (M[i].tick > N.scanned) N.pending.push(...narrCandidates(i));
   N.scanned = lastTick;
   if (N.pending.length > 120) N.pending = N.pending.sort((a, b) => b.pri - a.pri || b.tick - a.tick).slice(0, 40);
+  // Only events from the last NARR_FRESH rounds compete: an older one, however telling, is no longer "just now".
+  N.pending = N.pending.filter((c) => c.tick >= lastTick - NARR_FRESH);
   const t = Date.now();
   const best = N.pending.reduce((a, c) => (!a || c.pri > a.pri || (c.pri === a.pri && c.tick >= a.tick) ? c : a), null);
-  const due = !N.cur || t - N.at >= NARR_HOLD || (best && best.pri >= 8 && N.cur.pri < 5 && t - N.at >= NARR_URGENT);
+  const stale = N.cur && lastTick - N.cur.tick > NARR_FRESH;
+  const due = !N.cur || t - N.at >= NARR_HOLD || (best && (stale || (best.pri >= 8 && N.cur.pri < 5)) && t - N.at >= NARR_URGENT);
   if (best && due) {
     N.cur = best;
     N.at = t;
@@ -1530,7 +1534,10 @@ function narrate() {
     void el.offsetWidth;
     el.classList.add("is-new");
   }
-  const lbl = S.state?.finished ? "At the end" : "Just now";
+  // The card says how old its sentence is, and retires once nothing newer has replaced it for a while.
+  const age = N.cur ? lastTick - N.cur.tick : 0;
+  if (N.cur && age > NARR_RETIRE && !S.state?.finished) { el.hidden = true; $("#narr-pin").hidden = true; return; }
+  const lbl = S.state?.finished ? "At the end" : age <= 3 ? "Just now" : `${fmt(age)} rounds ago`;
   if ($(".narr__label").textContent !== lbl) $(".narr__label").textContent = lbl;
   placeNarrPin();
 }
@@ -2395,7 +2402,8 @@ function renderTake() {
       why.push(`${e} More wins mean more agents rich enough to fork: ${fmt(forks)} ${plural(forks, "child", "children")} in these rounds, against ${fmt(forksRest)} for every other family together${designed ? `, and ${modelName(S.designs.find((d) => d.founder === b.top)?.model)} designed ${designed === forks ? "all of them" : fmt(designed)}` : ""}.`);
     }
   }
-  if (why.length) out.push(`<p>${why.join(" ")}</p>`);
+  // The reasons sit behind a disclosure, so the first screen keeps one takeaway; a reader who opened it keeps it open.
+  if (why.length) out.push(`<details class="take__why"${body.querySelector(".take__why")?.open ? " open" : ""}><summary>Why</summary><p>${why.join(" ")}</p></details>`);
   setHtml(body, out.join(""));
 }
 
@@ -2413,8 +2421,9 @@ async function loadProof() {
     $("#chain-contract").title = p.contract;
     $("#chain-contract").setAttribute("aria-label", `Contract ${p.contract} on NEAR testnet, opens nearblocks`);
     S.live = p.live ?? null;
+    S.proofTxs = p.txs;
     renderLive();
-    $("#proof-when").textContent = p.source === "rpc" ? "re-read from testnet RPC" : "as recorded";
+    $("#proof-when").textContent = p.source === "rpc" ? ", re-read from testnet RPC" : "";
     $("#proof-list").innerHTML = p.txs.map((t) =>
       `<li><a href="${esc(t.url)}" rel="noopener"><span class="proof__ev${t.reason ? " is-refused" : ""}">${esc(EVENT_WORDS[t.event] ?? t.event)}${t.reason ? ` · ${esc(t.reason)}` : ""}</span>` +
       `<span class="proof__what">${esc(t.label)}</span>` +
@@ -2426,6 +2435,7 @@ async function loadProof() {
 // This run's own testnet txs: the server mirrors guard blocks on the market (when a settler key is configured).
 function ago(iso) {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  if (s < 5) return "just now";
   if (s < 60) return `${s} s ago`;
   if (s < 3600) return `${Math.round(s / 60)} min ago`;
   if (s < 86400) return `${Math.round(s / 3600)} h ago`;
@@ -2440,16 +2450,21 @@ function renderLive() {
   box.hidden = false;
   box.dataset.off = String(!L?.enabled);
   if (!L?.enabled) {
-    box.innerHTML = `<p class="proof__live-wait">Live settlement is off on this server; these are the recorded lifecycle txs.</p>`;
+    // No settler key here: lead with the recorded run's sharpest moment, the contract refusing a forged payment.
+    const txs = S.proofTxs ?? [], at = txs.find((t) => t.at)?.at;
+    const forged = txs.find((t) => t.reason && /SIGNATURE/i.test(t.reason)) ?? txs.find((t) => t.reason);
+    box.innerHTML = `<p class="proof__live-h">Recorded testnet run${at ? ` · <time class="proof__live-ago" datetime="${esc(at)}">${ago(at)}</time>` : ""}</p>` +
+      (forged ? `<a class="proof__live-tx" href="${esc(forged.url)}" rel="noopener"><span class="proof__live-what">The contract refused a forged payment${forged.reason ? ` (${esc(forged.reason)})` : ""}</span><span class="proof__live-meta"><span class="proof__hash" title="${esc(forged.hash)}">${esc(hashText(forged.hash))}</span> · <span class="proof__view">view on nearblocks ↗</span></span></a>` : "") +
+      `<p class="proof__live-wait">One task from bid to kill, sent to the contract by this market. This server’s own run stays off chain.</p>`;
     return;
   }
   if (!last) {
-    box.innerHTML = `<p class="proof__live-h">This run, live</p><p class="proof__live-wait">The next guard block goes to the contract (at most one every ${L.intervalSec} s).</p>`;
+    box.innerHTML = `<p class="proof__live-h">This run, live on testnet</p><p class="proof__live-wait">The next guard block goes to the contract, which refuses it without the guard’s signature (at most one tx every ${L.intervalSec} s).</p>`;
     return;
   }
   const same = S.state && last.seed === S.state.seed;
-  box.innerHTML = `<p class="proof__live-h">This run, live · last on-chain tx <time class="proof__live-ago" datetime="${esc(last.at)}">${ago(last.at)}</time></p>` + L.recent.slice(0, 3).map((t, i) =>
-    `<a class="proof__live-tx${i ? " is-old" : ""}" href="${esc(t.url)}" rel="noopener"><span class="proof__live-what">${t.seed === S.state?.seed ? "" : "Previous run, "}round ${fmt(t.tick)}: the guard blocked ${esc(short(t.agent))}; sent unsigned, the contract refused it${t.reason ? ` (${esc(t.reason)})` : ""}</span><span class="proof__live-meta"><time datetime="${esc(t.at)}">${ago(t.at)}</time> · <span class="proof__hash" title="${esc(t.hash)}">${esc(hashText(t.hash))}</span> · <span class="proof__view">view on nearblocks ↗</span></span></a>`).join("");
+  box.innerHTML = `<p class="proof__live-h">This run, live on testnet · last tx <time class="proof__live-ago" datetime="${esc(last.at)}">${ago(last.at)}</time></p>` + L.recent.slice(0, 3).map((t, i) =>
+    `<a class="proof__live-tx${i ? " is-old" : ""}${!i && t.hash === L.fresh ? " is-fresh" : ""}" href="${esc(t.url)}" rel="noopener"><span class="proof__live-what">${t.seed === S.state?.seed ? "" : "Previous run, "}round ${fmt(t.tick)}: the guard blocked ${esc(short(t.agent))}; sent unsigned, the contract refused it${t.reason ? ` (${esc(t.reason)})` : ""}</span><span class="proof__live-meta"><time datetime="${esc(t.at)}">${ago(t.at)}</time> · <span class="proof__hash" title="${esc(t.hash)}">${esc(hashText(t.hash))}</span> · <span class="proof__view">view on nearblocks ↗</span></span></a>`).join("");
   $("#chain-proof").href = last.url;
   $("#chain-proof").rel = "noopener";
   $("#chain-proof-k").textContent = "Live";
@@ -2457,7 +2472,7 @@ function renderLive() {
 }
 setInterval(() => {
   if (S.live?.recent?.length) renderLive();
-  $$("#proof-list time").forEach((el) => (el.textContent = ago(el.getAttribute("datetime"))));
+  $$("#proof-list time, #proof-live time").forEach((el) => (el.textContent = ago(el.getAttribute("datetime"))));
 }, 15_000);
 
 // ---------- the field guide: three steps for a first visit, reopened by "What is this?" ----------
@@ -2685,6 +2700,8 @@ function boot() {
   if (q.get("dynasty")) S.selected = `${q.get("dynasty")}.darwin.testnet`;
   new ResizeObserver(() => schedule("all")).observe(document.body);
   reduceMotion.addEventListener?.("change", () => schedule("all"));
+  // The panels below the chart start folded; their sparklines size themselves once they are open.
+  $("#more").addEventListener("toggle", () => { if ($("#more").open) schedule("all"); });
   // Headless Chrome screenshots (docs/dashboard.png) never finish while a stream is open: render the history once instead.
   const still = /HeadlessChrome/.test(navigator.userAgent);
   loadTunnel();

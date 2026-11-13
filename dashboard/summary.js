@@ -82,7 +82,7 @@
   /** The one-line live status under the headline. */
   function statusLine(v) {
     if (!v) return "";
-    return `Round ${fmt(v.tick)} · ${fmt(v.families)} ${v.families === 1 ? "family" : "families"} alive · largest ${pct(v.leaderShare)} · ${fmt(v.deaths)} died so far`;
+    return `Round ${fmt(v.tick)} · ${fmt(v.families)} ${v.families === 1 ? "family" : "families"} alive · largest ${pct(v.leaderShare)} · ${fmt(v.deaths)} ${v.deaths === 1 ? "agent" : "agents"} went broke`;
   }
 
   /** Who leads, in words, from the same reading. */

@@ -26,7 +26,7 @@ test("every count and the leader come from one metrics row and agree with each o
     assert.equal(m.lineages[v.leader].n, max);
     assert.ok(Math.abs(v.leaderShare - m.topFamilyShare) < 1e-12, "largest share matches the sim's own");
     const line = statusLine(v);
-    assert.equal(line, `Round ${m.tick} · ${m.dynasties} ${m.dynasties === 1 ? "family" : "families"} alive · largest ${Math.round(m.topFamilyShare * 100)}% · ${m.deaths} died so far`);
+    assert.equal(line, `Round ${m.tick} · ${m.dynasties} ${m.dynasties === 1 ? "family" : "families"} alive · largest ${Math.round(m.topFamilyShare * 100)}% · ${m.deaths} ${m.deaths === 1 ? "agent" : "agents"} went broke`);
     const lead = leadSentence(v);
     if (v.leaderN > 1 && !v.tied) assert.equal(lead, `${v.leader.replace(".darwin.testnet", "")} leads with ${v.leaderN} of ${m.population} agents`);
     else assert.match(lead, new RegExp(`^No family leads yet: .* ${v.leaderN} of ${m.population} agents$`));
@@ -41,7 +41,7 @@ test("a tie never names a leader, and the same row always gives the same leader"
   assert.equal(leadSentence(v), "No family leads yet: the largest are tied at 2 of 5 agents");
   const flipped = { ...m, lineages: Object.fromEntries(Object.entries(m.lineages).reverse()) };
   assert.equal(summarize(flipped).leader, v.leader, "key order does not matter");
-  assert.equal(statusLine(v), "Round 9 · 3 families alive · largest 40% · 0 died so far");
+  assert.equal(statusLine(v), "Round 9 · 3 families alive · largest 40% · 0 agents went broke");
 });
 
 test("a recorded reason cut at 160 characters ends at a whole word with an ellipsis, never mid-word", () => {
