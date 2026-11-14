@@ -1,7 +1,7 @@
 // Hard dollar budget for every Claude call DARWIN makes (solver and mutation operator).
 // Same accounting as SIEGE's `budget` (vendor/siege/src/llm/judge.ts), but the env is read at call time and
 // the defaults are DARWIN's own spend file and a $2.50 cap, so DARWIN never draws from SIEGE's pot by accident.
-//   NEAR_LLM_BUDGET_FILE (default ~/.near-hackathon-llm-spend-darwin.json)
+//   NEAR_LLM_BUDGET_FILE (default ~/.darwin-llm-spend.json)
 //   NEAR_LLM_BUDGET_USD  (default 2.5)
 import fs from "node:fs";
 import os from "node:os";
@@ -13,7 +13,7 @@ const PRICE_OUT = 0.5 / 1e6;
 
 export class BudgetExceeded extends Error {}
 
-const file = () => process.env.NEAR_LLM_BUDGET_FILE ?? path.join(os.homedir(), ".near-hackathon-llm-spend-darwin.json");
+const file = () => process.env.NEAR_LLM_BUDGET_FILE ?? path.join(os.homedir(), ".darwin-llm-spend.json");
 const cap = () => Number(process.env.NEAR_LLM_BUDGET_USD ?? 2.5);
 
 const read = (): { usd?: number; day?: string; dayUsd?: number } => {

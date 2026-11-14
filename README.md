@@ -353,7 +353,7 @@ fly secrets set MUTATION_API_KEY=nvapi-...
 
 Without it the site still runs: cached answers, then Gaussian.
 
-Every Claude call (solver and mutation operator) checks and records spend through `sim/src/budget.ts`: `NEAR_LLM_BUDGET_FILE` (default `~/.near-hackathon-llm-spend-darwin.json`) and `NEAR_LLM_BUDGET_USD` (default 2.5). Past the cap, calls stop and the run falls back to scripted solving and Gaussian mutation.
+Every Claude call (solver and mutation operator) checks and records spend through `sim/src/budget.ts`: `NEAR_LLM_BUDGET_FILE` (default `~/.darwin-llm-spend.json`) and `NEAR_LLM_BUDGET_USD` (default 2.5). Past the cap, calls stop and the run falls back to scripted solving and Gaussian mutation.
 
 ## Honest limits
 
@@ -372,7 +372,7 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 
 ## Provenance and credits
 
-Written from 2026-11-04 to 2026-11-13; no code predates 2026-11-04. `vendor/siege` is the author's own SIEGE guard library, vendored unchanged from [SIEGE](https://github.com/StarAtNyte/siege) (commit recorded in `vendor/siege/SOURCE_COMMIT`, refreshed with `scripts/sync-siege.sh`). Nothing else was copied from another project. No template or scaffold was used.
+Written from 2026-11-04 to 2026-11-13; no code predates 2026-11-04. Most of the code, tests and docs were written with Claude Code (Anthropic) under the author's direction; the author reviewed and ran it. `vendor/siege` is the author's own SIEGE guard library, vendored unchanged from [SIEGE](https://github.com/StarAtNyte/siege) (commit recorded in `vendor/siege/SOURCE_COMMIT`, refreshed with `scripts/sync-siege.sh`). Nothing else was copied from another project. No template or scaffold was used.
 
 Libraries:
 
