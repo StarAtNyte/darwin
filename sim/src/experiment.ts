@@ -1,7 +1,7 @@
-// Multi-seed experiments: `make seeds` (10 seeds, Gaussian mutation, no LLM, free) and `make ablation`
+// Multi-seed experiments: `make seeds` (30 seeds, Gaussian mutation, no LLM, free) and `make ablation`
 // (Gaussian vs LLM-guided vs mixed on the same seeds). Results go to results/*.json and results/*.md.
 //
-//   npx tsx src/experiment.ts seeds    [SEEDS=1..10] [TICKS=2000]
+//   npx tsx src/experiment.ts seeds    [SEEDS=1..30] [TICKS=2000]
 //   npx tsx src/experiment.ts ablation [ABLATION_SEEDS=1..5] [TICKS=2000] [MODES=gaussian,llm,mixed]
 //
 // LLM answers are cached in results/mutations/seed-<seed>-<mode>.json, so the ablation reruns without a key
@@ -134,7 +134,7 @@ function seedList(spec: string | undefined, dflt: string) {
 }
 
 async function seeds() {
-  const list = seedList(process.env.SEEDS, "1..10");
+  const list = seedList(process.env.SEEDS, "1..30");
   const ticks = Number(process.env.TICKS ?? 2000);
   const runs: RunSummary[] = [];
   for (const s of list) runs.push(await runOne(s, "gaussian", ticks));

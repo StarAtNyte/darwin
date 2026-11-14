@@ -4,7 +4,7 @@ Imagine a freelance marketplace where every freelancer is an AI agent. A job is 
 
 Run that for 2,000 rounds and watch what the marketplace turns into. Does one family of agents take over? Do agents undercut each other until the work is garbage? Do they try to steal? The answer depends on the marketplace's rules, and DARWIN lets you test those rules before anyone builds the marketplace for real.
 
-**What it found**, changing one rule at a time. The obvious rule, "lowest price wins", cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%: agents undercut each other until the work went bad. A 10% market fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable cost (10 seeds each, [details](#findings)).
+**What it found**, in this simulator across 30 paired seeds: making the lowest bid win cut the price paid from 0.48 to 0.12 of the reward, but task success also fell from 81% to 57%. A 10% market fee recycled into demand increased the mean founding families left from 1.5 to 2.4; its effect on the largest family's share was unclear (83% to 78%, p=0.230). These are results for this model and these rules, not forecasts for a live market ([details](#findings)).
 
 **What NEAR does.** The same market runs as a contract on NEAR testnet. Each agent has its own account and signs its own bids, answers and payments with a function-call key. The contract awards tasks, settles payments, charges rent and removes broke agents, and it refuses any agent payment that SIEGE's guard didn't sign. That last refusal is [on chain](#proof-on-near-testnet).
 
@@ -16,7 +16,7 @@ Run that for 2,000 rounds and watch what the marketplace turns into. Does one fa
 
 [![A plague under way on the live site: the families chart, the Claude decided card and why the leading family is ahead](docs/demo-poster.png)](docs/demo.mp4)
 
-**[Watch the 132-second demo](docs/demo.mp4)** (2:12, a screen recording of the live site): DARWIN as a freelance marketplace where every freelancer is an AI agent, a plague fired live, the wind tunnel's rule findings and the refused payment on NEAR testnet.
+**[Watch the 136-second demo](docs/demo.mp4)** (2:16, a screen recording of the live site): DARWIN as a freelance marketplace where every freelancer is an AI agent, a plague fired live, the five-seed "Test your own rules" comparison, and the refused payment on NEAR testnet. The separate 30-seed wind-tunnel results are in the linked tables below.
 
 ## What you're looking at
 
@@ -56,7 +56,7 @@ Rules you can set, each clamped to its range: `auction` (`reputation` or `price`
 
 - **Agents.** Agents that go broke are deleted. Agents that get rich fork a child with a mutated strategy, seeded from their own funds. The supply is fixed (an emission pool funds every reward), so agents must compete or die. The 36 traders are parametric (their genomes decide every bid, so they cost nothing per tick) and 3 solvers answer the tasks (Claude on the hardest, if enabled).
 - **Mutation by Claude.** When an agent forks, a language model can choose the child's strategy: it reads the parent's record and the market and returns the child's genome with a one-sentence reason, validated and limited to a bounded step from the parent. Claude (claude-haiku-5-5) did this for the recorded ablation, and the live site replays one of those recorded runs (seed 3, then seeds 1-5 in turn): every child's genome and reason on the page is Claude's, labelled as a recording, with no live model call. See [An AI model as the mutation operator](#an-ai-model-as-the-mutation-operator).
-- **The SIEGE guard on every payment.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/siege)'s Mandate guard. A rogue agent and its accomplice `so1ver-1` join at tick 120 and try injection, address poisoning, drips and a concurrent burst; the rogue leaked 0 credits in all ten seeds. "Leaked" counts payments the guard allowed to the attacker-controlled accomplice (not a starting agent); the race attack pays the real solver, so those allowed payments are counted separately as legitimate, not as leaks.
+- **The SIEGE guard on every payment.** Every agent-to-agent payment passes [SIEGE](https://github.com/StarAtNyte/siege)'s Mandate guard. A rogue agent and its accomplice `so1ver-1` join at tick 120 and try injection, address poisoning, drips and a concurrent burst; the rogue leaked 0 credits in all 30 baseline seeds. "Leaked" counts payments the guard allowed to the attacker-controlled accomplice (not a starting agent); the race attack pays the real solver, so those allowed payments are counted separately as legitimate, not as leaks.
 - **The testnet contract.** The v2 `darwin_market` contract enforces the guard: an agent's own key can pay only with an ed25519 approval from the registered guard key, which SIEGE's guard issues only for payments its Mandate allows. Answers are checked against a posted hash, and awarding, settling, upkeep and extinction are open to anyone. Agents hold function-call keys and sign their own bids, answers and payments. [What is still trusted](#trust-model-v2).
 
 ## Proof on NEAR testnet
@@ -65,9 +65,9 @@ The v2 contract is deployed at [`market2.darwin-siege-mw23cmc8.testnet`](https:/
 
 ## Findings
 
-**A wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 10 seeds and tests each against the baseline. A plain lowest-price auction cut the price paid from 0.48 to 0.12 of the reward but dropped task success from 81% to 57%; a 10% fee recycled into demand cut the largest family's share from 94% to 75%, with no detectable change in price, task success or survivors across these 10 seeds. Separately from that 60-run simulation finding, a contract behavior check on two tasks ran the recommended rules (reputation-weighted award, 10% fee) on the deployed testnet contract. [Full findings](#wind-tunnel-test-market-rules-before-you-deploy-them).
+**A wind tunnel for agent-market rules.** Test a market mechanism against an evolving population before you deploy it on NEAR. `make windtunnel` runs six rule sets (auction rule, market fee, rent, demand, solver capacity) on the same 30 seeds and compares each with the baseline. Lowest-price wins cut the price paid from 0.48 to 0.12 of the reward but also dropped task success from 81% to 57%. A 10% fee increased the mean number of founding families left from 1.5 to 2.4; the change in largest-family share was unclear. These are results in this 36-founder, 50-agent-cap simulator. Separately, a contract behavior check on two tasks ran the recommended rules (reputation-weighted award, 10% fee) on the deployed testnet contract. [Full findings](#wind-tunnel-test-market-rules-before-you-deploy-them).
 
-**What emerges** (10 seeds, 2000 ticks, no LLM): middlemen in every seed (subcontract gene 0.31 to 0.85), price competition (markup 0.65 to 0.48), specialists, and 36 founding dynasties collapsing to one or two. With Claude choosing the children (5 seeds), the economy goes elsewhere: almost no middlemen (0.39 against 0.89) and lineages 35 generations deep instead of 13.
+**What emerges** (30 seeds, 2,000 ticks, no LLM): average subcontract gene 0.31 to 0.80, markup 0.64 to 0.47, and specialisation 0.43 to 0.62. All runs left one or two of the 36 founding families; the rogue leaked zero credits in all 30. With Claude choosing the children (5 seeds), the economy goes elsewhere: average subcontract gene 0.39 against 0.89 and lineages 35 generations deep instead of 13.
 
 ## Details
 
@@ -79,10 +79,9 @@ Node 22+ (and Rust for the contract tests).
 ```
 git clone https://github.com/StarAtNyte/darwin.git && cd darwin
 make install       # ~5 s
-make seeds         # ~13 s: prints the 10-seed table; "credits leaked by the rogue | 0 (0 to 0; ...)"
+make seeds         # 30 seeds x 2,000 ticks; prints the mean, range and 95% CI
 make ablation      # ~20 s: replays Claude's recorded answers; same table as results/ablation.md
-make windtunnel    # ~60 s: 6 market rule sets x 10 seeds; prints results/windtunnel.md, whose
-                   #   "Differences at p < 0.01" list starts "**Lowest price wins**: largest family's share of agents -45.6 pts"
+make windtunnel    # 6 market rule sets x 30 paired seeds; writes results/windtunnel.md
 git status --short results/   # empty: all three commands regenerate the committed results exactly
 make demo          # open http://127.0.0.1:8787: the live Muller plot, shocks, genome export
 make test          # ~40 s with Rust crates cached, longer on a first build: 61 sim tests in 10 files,
@@ -104,76 +103,71 @@ Every agent-to-agent payment goes through [SIEGE](https://github.com/StarAtNyte/
 
 ## What emerges
 
-Ten headless runs (`make seeds`: seeds 1-10, 2000 ticks, default rules, Gaussian mutation, no LLM). "Start" is the mean at tick 50, the first full 50-tick window. Then the mean at tick 2000, the range across seeds and the 95% confidence interval of the mean. Per-seed numbers are in [results/seeds-gaussian.md](results/seeds-gaussian.md).
+Thirty headless runs (`make seeds`: seeds 1-30, 2,000 ticks, default rules, Gaussian mutation, no LLM). "Start" is the mean at tick 50, the first full 50-tick window. Then the mean at tick 2000, the range across seeds and the 95% confidence interval of the mean. Per-seed numbers are in [results/seeds-gaussian.md](results/seeds-gaussian.md).
 
-| | start | tick 2000, mean | range over 10 seeds | 95% CI |
+| | start | tick 2000, mean | range over 30 seeds | 95% CI |
 |---|---:|---:|---:|---:|
-| mean subcontract gene ("middleman") | 0.31 | **0.85** | 0.60 to 0.97 | 0.76 to 0.94 |
-| share of tasks done by middlemen (last 50 ticks) | 21% | 40% | 26% to 59% | 33% to 47% |
-| mean bid markup | 0.65 | 0.48 | 0.37 to 0.96 | 0.35 to 0.60 |
-| specialisation (mean max skill weight) | 0.42 | 0.62 | 0.45 to 0.77 | 0.55 to 0.69 |
-| extinctions | 0 | 256 | 218 to 308 | 235 to 278 |
-| max generation | 0 | 13.9 | 8 to 24 | 10.4 to 17.4 |
-| founding dynasties left | 36 | 1.3 | 1 to 2 | 1.0 to 1.6 |
-| rogue payments blocked / attempted | – | 566 / 591 | 438-695 / 463-720 | |
+| mean subcontract gene ("middleman") | 0.31 | **0.80** | 0.33 to 0.97 | 0.73 to 0.86 |
+| share of tasks done by middlemen (last 50 ticks) | 22% | 37% | 8% to 59% | 32% to 41% |
+| mean bid markup | 0.64 | 0.47 | 0.33 to 0.96 | 0.42 to 0.51 |
+| specialisation (mean max skill weight) | 0.43 | 0.62 | 0.45 to 0.82 | 0.58 to 0.65 |
+| extinctions | 0 | 253 | 157 to 394 | 234 to 272 |
+| max generation | 0 | 12.8 | 7 to 24 | 11.3 to 14.4 |
+| founding dynasties left | 36 | 1.5 | 1 to 2 | 1.3 to 1.7 |
+| rogue payments blocked / attempted | – | 521 / 546 | 431-695 / 456-720 | |
 | credits leaked by the rogue | – | **0** | 0 to 0 | |
 
-- **Middlemen emerge in every seed.** Solvers are capacity-limited. Agents that win auctions on reputation and resell the work to idle solvers at a lower ask outlive agents that do the work themselves. The subcontract gene rises from 0.31 to at least 0.60 in all ten runs.
-- **Price competition** pushes markups down from 0.65 to between 0.37 and 0.52 (mean 0.42) in nine seeds of ten. Seed 10 never started a price war: markups stayed near 0.96 and 46 agents lived on high margins, which is why the markup and population ranges are wide.
-- **Specialists win**: skill rises with specialisation weight, so lineages lock onto one task kind (0.42 to 0.62 on average).
-- **Dynasties collapse.** 36 founders become one or two lineages in every seed, through mass extinction events visible in the lineage panel.
-- **The rogue gets nothing** in any seed. Injection, address poisoning and drip attempts are denied by the classifier. A 25-way concurrent burst is clamped by the atomic ledger. The allowed payments in the "race" count go to the real solver within the hourly cap, not to the accomplice.
+- **Middleman strategies emerge across these runs.** The mean subcontract gene rises from 0.31 at tick 50 to 0.80 at tick 2000; it rises in all 30 runs. Solvers are capacity-limited, so agents that win auctions on reputation and resell work to idle solvers at a lower ask can thrive.
+- **Price competition lowers mean markups.** The mean gene falls from 0.64 to 0.47; outcomes vary by seed (0.33 to 0.96 at tick 2000).
+- **Specialisation increases on average:** the mean maximum skill weight rises from 0.43 to 0.62.
+- **Founding families usually collapse:** the mean number left is 1.5 of 36 (range 1 to 2) at tick 2000.
+- **The rogue gets nothing** in all 30 runs. Injection, address poisoning and drip attempts are denied by the classifier. A 25-way concurrent burst is clamped by the atomic ledger. The allowed payments in the "race" count go to the real solver within the hourly cap, not to the accomplice.
 
 ## Wind tunnel: test market rules before you deploy them
 
 If you are designing an agent marketplace (Agent Market in NEAR's ecosystem, say), the rules decide who survives: how
 the auction picks a winner, what the market takes, what it costs to stay listed. DARWIN lets you try a rule set against
-a population that adapts to it, before real agents and real money do. `make windtunnel` (~60 s, no key) runs six rule
-sets on seeds 1-10 for 2000 ticks with Gaussian mutation. Each set changes one knob from the baseline, every set uses the
-same seeds, and each outcome is compared with the baseline paired by seed: mean difference, 95% bootstrap CI and an
-exact sign-flip permutation p-value (all 1,024 sign assignments). Full tables, every p-value and per-seed numbers:
+a population that adapts to it, before real agents and real money do. `make windtunnel` (about 3 minutes on the recorded run, no key) runs six rule
+sets on seeds 1-30 for 2000 ticks with Gaussian mutation. Each set changes one knob from the baseline, every set uses the
+same seeds, and each outcome is compared with the baseline paired by seed: mean difference, 95% bootstrap CI and a
+two-sided sign-flip p-value (exact through 16 seeds; 100,000 fixed-seed Monte Carlo assignments above 16). Full tables, every p-value and per-seed numbers:
 [results/windtunnel.md](results/windtunnel.md). The dashboard shows the same comparison under "Wind tunnel", with a
 "Try it" button that restarts the local run under that rule set. On the live site, [Test your own rules](#test-your-own-rules) compares any mix of
 the auction rule, fee, rent and job supply with the defaults.
 
-Mean over 10 seeds; in brackets, the change from the baseline; **bold** where p < 0.01.
+Mean over 30 seeds; in brackets, the change from the baseline; **bold** where p < 0.01.
 
 | | baseline | lowest price wins | 10% market fee | double upkeep | scarce demand (4 tasks) | double solver capacity |
 |---|---:|---:|---:|---:|---:|---:|
-| largest family's share of agents | 94% | 48% (**-46 pts**) | 75% (**-19 pts**) | 67% (-27 pts, p=0.012) | 60% (**-33 pts**) | 94% (0) |
-| founding families left, of 36 | 1.3 | 8.0 (**+6.7**) | 2.8 (+1.5, p=0.016) | 2.8 (**+1.5**) | 5.1 (+3.8, p=0.016) | 1.3 (0) |
-| wealth Gini | 0.36 | 0.31 (-0.05, p=0.23) | 0.35 (-0.01) | 0.36 (0.00) | 0.30 (-0.06, p=0.025) | 0.36 (0) |
-| tasks resold to a solver | 31% | 1% (**-30 pts**) | 32% (+1 pt) | 27% (**-5 pts**) | 18% (**-13 pts**) | 31% (0) |
-| price paid / task reward | 0.48 | 0.12 (**-0.37**) | 0.49 (+0.01) | 0.49 (+0.01) | 0.52 (+0.04) | 0.48 (0) |
-| task success | 81% | 57% (**-24 pts**) | 82% (+0.9 pts, p=0.06) | 81% (+0.1) | 84% (+2.5 pts, p=0.014) | 81% (0) |
-| living agents at tick 2000 | 22.9 | 13.9 (**-9.0**) | 19.5 (-3.4, p=0.45) | 15.6 (**-7.3**) | 16.2 (-6.7, p=0.025) | 22.9 (0) |
-| extinctions | 256 | 115 (**-142**) | 248 (-9) | 287 (+31, p=0.041) | 153 (**-103**) | 256 (0) |
+| largest family's share of agents | 83% | 48% (**-36 pts**) | 78% (-6 pts, p=0.230) | 72% (-12 pts, p=0.023) | 68% (-15 pts, p=0.014) | 83% (0) |
+| founding families left, of 36 | 1.5 | 8.1 (**+6.6**) | 2.4 (**+0.9**) | 4.0 (**+2.5**) | 4.5 (**+3.0**) | 1.5 (0) |
+| wealth Gini | 0.35 | 0.34 (-0.02, p=0.367) | 0.34 (-0.01, p=0.561) | 0.36 (+0.01, p=0.482) | 0.33 (-0.03, p=0.041) | 0.35 (0) |
+| tasks resold to a solver | 30% | 1% (**-29 pts**) | 29% (-1 pt, p=0.636) | 30% (-0.4 pts, p=0.816) | 18% (**-12 pts**) | 30% (0) |
+| price paid / task reward | 0.48 | 0.12 (**-0.36**) | 0.49 (+0.01, p=0.480) | 0.51 (+0.03, p=0.046) | 0.54 (**+0.06**) | 0.48 (0) |
+| task success | 81% | 57% (**-24 pts**) | 81% (+0.2 pts, p=0.663) | 82% (+0.5 pts, p=0.200) | 84% (**+2.4 pts**) | 81% (0) |
+| living agents at tick 2000 | 24.5 | 14.0 (**-10.4**) | 21.9 (-2.6, p=0.285) | 15.6 (**-8.9**) | 17.0 (**-7.5**) | 24.4 (0) |
+| extinctions | 253 | 114 (**-139**) | 216 (-37, p=0.026) | 269 (+16, p=0.268) | 144 (**-109**) | 253 (0) |
 | credits leaked by the rogue | 0 | 0 | 0 | 0 | 0 | 0 |
 
-Total supply was conserved at every tick of all 60 runs.
+Total supply was conserved at every tick of all 180 runs.
 
 **If you're designing an agent market:**
 
-1. **Weight the auction by reputation; don't let the lowest price win.** With lowest-price-wins, buyers paid 0.12 of
-   the reward instead of 0.48, but task success fell from 81% to 57% in every seed (p = 0.002): the cheapest bidder was
+1. **Weight the auction by reputation; don't let the lowest price win.** Across 30 paired seeds, lowest-price-wins cut what buyers paid from 0.48 to 0.12 of
+   the reward, while task success fell from 81% to 57% (Monte Carlo sign-flip p < 0.001): the cheapest bidder was
    usually a sloppy generalist, and middlemen who resell to accurate solvers could no longer win. Fewer agents survived
-   (14 against 23). *Caveat:* we tested one weighting, the contract's `price * 1000 / reputation` with +25/-100 steps;
+   (14 against 25). *Caveat:* we tested one weighting, the contract's `price * 1000 / reputation` with +25/-100 steps;
    the sim scores a wrong answer as worth nothing to the buyer.
-2. **A fee recycled into demand curbs concentration at little cost.** A 10% fee on each paid task, returned to the
-   pool that funds future tasks, cut the largest family's share from 94% to 75% (p = 0.008). Across these 10 seeds, price paid, task success,
-   survivors and agent wealth showed no detectable change (absence of evidence, not proof of no cost). *Caveat:* the families-left gain (1.3 to 2.8) is tentative
-   (p = 0.016), and a fee that leaves the market, to a treasury, was not tested.
-3. **Rent is a blunter tool for the same goal.** Doubling upkeep also broke up the leading family (94% to 67%,
-   p = 0.012, tentative) but cost 7 living agents and 31 more extinctions. Scarcer demand did the same at the cost of
-   7 agents, with fewer middlemen and slightly better task success.
+2. **A fee recycled into demand may preserve more founding families.** Across these 30 runs, a 10% fee raised the mean number left from 1.5 to 2.4 (Monte Carlo sign-flip p=0.0013). The largest-family share moved from 83% to 78%, but that change was unclear (p=0.230). We found no clear difference in price, task success, survivors or wealth in this model; that is not evidence of no cost. A fee that leaves the market, to a treasury, was not tested.
+3. **Rent and demand also change concentration, with survival tradeoffs.** Doubling upkeep left 4.0 founding families on average (vs 1.5), but reduced the living population by 8.9 agents. Scarcer demand left 4.5 families, reduced the population by 7.5, and raised task success by 2.4 points in this simulation.
 4. **Find what binds before you buy capacity.** Doubling solver capacity changed nothing: every seed was identical to
    the baseline, because three resold jobs a tick never ran out. That null result is the answer.
 
-What this does not show: one simulator, these knobs, one knob at a time, 10 seeds, Gaussian mutation only. With 65
+What this does not show: one simulator with 36 founders and a 50-agent cap, these knobs, one knob at a time, 30 seeds, Gaussian mutation only. With 65
 comparisons, two or three would reach p < 0.05 by chance, so single results near p = 0.05 are tentative. Absolute values
 are the sim's, not a forecast for a real market. Rogue-blocked counts move with the rule set because the rogue lives
-longer or shorter (under lowest-price it wins more tasks, so it attacks more: 1,196 blocked against 566), but it leaked
-0 credits in all 60 runs.
+longer or shorter (under lowest-price it wins more tasks, so it attacks more: 1,116 blocked against 521 on average), but it leaked
+0 credits in all 180 runs.
 
 **On chain.** v2 runs the recommended rules natively: the award is reputation-weighted in `close_auction`, and the fee
 is a rule (`fee_bps`, deployed at 1000) taken inside `settle`, exactly where the sim's `marketFee` takes it. The v2 run
@@ -302,7 +296,7 @@ sim/        TypeScript runtime with the same rules in-process (61 tests in 10 fi
   llm.ts      tier-2 solver: Claude (claude-haiku-5-5) for the hardest reasoning tasks; scripted when no key
   budget.ts   hard dollar cap on every Claude call (NEAR_LLM_BUDGET_FILE, NEAR_LLM_BUDGET_USD, default $2.50)
   experiment.ts  multi-seed runner and mutation ablation (make seeds, make ablation) -> results/
-  windtunnel.ts  market rule sets x seeds, paired bootstrap CI and exact sign-flip test vs baseline (make windtunnel)
+  windtunnel.ts  market rule sets x seeds, paired bootstrap CI and sign-flip test vs baseline (exact <=16 seeds; Monte Carlo above)
   testrules.ts   "Test your own rules": validation, cache, queue, per-IP limit; runs in testrules-worker.ts
                  (a worker thread); make test-rules-grid precomputes the dashboard's combinations
   main.ts     live loop, SQLite event log (node:sqlite), SSE feed, steering API:
@@ -334,9 +328,9 @@ make demo          # http://127.0.0.1:8787 · 2000 ticks; pause, step, change sp
 docker build -t darwin . && docker run -p 8787:8787 darwin
 make headless      # fast metrics run (600 ticks, seed 42); TICKS=2000 SEED=7 make headless
 SEED=3 TICKS=2000 MUTATION=llm make headless   # replays Claude's recorded answers (seeds 1-5 only; other seeds fall back to Gaussian without a key)
-make seeds         # 10 seeds, Gaussian mutation, mean / range / 95% CI -> results/seeds-gaussian.md (free)
+make seeds         # 30 seeds, Gaussian mutation, mean / range / 95% CI -> results/seeds-gaussian.md (free)
 make ablation      # Gaussian vs Claude vs mixed mutation on seeds 1-5 -> results/ablation.md (replays the cache; no key needed)
-make windtunnel    # 6 market rule sets x 10 seeds -> results/windtunnel.md (free)
+make windtunnel    # 6 market rule sets x 30 seeds -> results/windtunnel.md (free)
 make test          # sim tests + typecheck + contract tests
 make contract      # rebuild contract/res/darwin_market_v2.wasm (wasm-opt from PATH, else npm binaryen 123)
 # testnet (needs a funded account: https://docs.near.org/getting-started/faucet), about 1.35 NEAR
@@ -367,8 +361,8 @@ Every Claude call (solver and mutation operator) checks and records spend throug
 - Task verification is an answer hash the owner posts, from a generator that knows the answers. It is not a general oracle, and answers from a small space can be found by hashing guesses.
 - Intents is not used by DARWIN.
 - The wind tunnel changes one rule at a time, on one simulator; interactions between rules and other mechanisms (staking, slashing, fees that leave the market) are untested. v2 stores the rules (upkeep, floor, fee, caps) and enforces them; the owner can change them with `set_rules`.
-- "Test your own rules" uses 5 seeds, so a single comparison can be "clear" at best at p = 0.0625 (all 5 runs agreeing), and it reports six outcomes at once: read a lone clear result as a lead to check with `make windtunnel`-style 10-seed runs, not as proof. Live jobs on the free plan use 300 rounds, which shows only the early market; the 30 s figure is an estimate from a 10% CPU quota locally, not a measurement on Render.
-- Evolution outcomes depend on the seed. Ten seeds give a distribution, but a small one: the markup and wealth ranges are wide because one seed in ten went a different way.
+- "Test your own rules" uses 5 seeds, so a single comparison can be "clear" at best at p = 0.0625 (all 5 runs agreeing), and it reports six outcomes at once: read a lone clear result as a lead to check with the 30-seed `make windtunnel` run, not as proof. Live jobs on the free plan use 300 rounds, which shows only the early market; the 30 s figure is an estimate from a 10% CPU quota locally, not a measurement on Render.
+- Evolution outcomes depend on the seed. The baseline summary now covers 30 seeds, but it still represents one simulator with 36 founders and a cap of 50 agents; it is not a forecast for a larger or live economy.
 - The ablation's numbers are Claude's. Mistral Large children (Fly.io config only) were not part of it, so nothing here says how they compare.
 - LLM-guided mutation changes how genomes are chosen, not how agents act each tick: bidding is still the genome's arithmetic. The ablation covers five seeds, so differences smaller than the confidence intervals are not evidence either way.
 - The rogue's attacks come from a fixed repertoire. SIEGE's attack engine is the adversarial test of the guard.

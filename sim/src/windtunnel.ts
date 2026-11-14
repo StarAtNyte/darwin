@@ -1,8 +1,8 @@
 // The wind tunnel: test a market's rules against an evolving population before deploying them on NEAR.
 // Runs each rule set below over the same seeds (Gaussian mutation, no LLM, no key) and compares every outcome
-// with the baseline rules, paired by seed: mean difference, 95% bootstrap CI, exact sign-flip permutation p.
+// with the baseline rules, paired by seed: mean difference, 95% bootstrap CI, sign-flip p-value (exact or Monte Carlo).
 //
-//   npx tsx src/windtunnel.ts    [SEEDS=1..10] [TICKS=2000]   -> results/windtunnel.{json,md}
+//   npx tsx src/windtunnel.ts    [SEEDS=1..30] [TICKS=2000]   -> results/windtunnel.{json,md}
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,18 +110,31 @@ export const WIND_METRICS: { key: Key; group: string; label: string; fmt: (x: nu
   { key: "supplyDrift", group: "safety", label: "max supply drift (micro-credits)", fmt: f0, diff: s0 },
 ];
 
-/** Exact two-sided sign-flip permutation p-value for paired differences (2^n flips; n <= 16). */
+/** Two-sided sign-flip p-value: exhaustive through 16 pairs, then fixed-seed Monte Carlo. */
 export function signFlipP(d: number[]) {
   const n = d.length;
   const obs = Math.abs(d.reduce((a, b) => a + b, 0));
   if (obs < 1e-12) return 1;
   let hit = 0;
-  for (let mask = 0; mask < 1 << n; mask++) {
+  if (n <= 16) {
+    const total = 1 << n;
+    for (let mask = 0; mask < total; mask++) {
+      let s = 0;
+      for (let i = 0; i < n; i++) s += mask & (1 << i) ? -d[i] : d[i];
+      if (Math.abs(s) >= obs - 1e-9) hit++;
+    }
+    return hit / (1 << n);
+  }
+
+  const samples = 100_000;
+  const r = rng(7 + n);
+  for (let k = 0; k < samples; k++) {
     let s = 0;
-    for (let i = 0; i < n; i++) s += mask & (1 << i) ? -d[i] : d[i];
+    for (const x of d) s += r() < 0.5 ? -x : x;
     if (Math.abs(s) >= obs - 1e-9) hit++;
   }
-  return hit / (1 << n);
+  // The +1 correction avoids reporting p=0 from a finite Monte Carlo sample.
+  return (hit + 1) / (samples + 1);
 }
 
 /** Percentile bootstrap 95% CI of the mean, with a fixed RNG so the file reproduces byte for byte. */
@@ -145,7 +158,7 @@ export function compare(base: WindRun[], other: WindRun[], key: Key) {
 }
 
 function seedList(spec: string | undefined) {
-  const m = (spec ?? "1..10").match(/^(\d+)\.\.(\d+)$/);
+  const m = (spec ?? "1..30").match(/^(\d+)\.\.(\d+)$/);
   if (m) return Array.from({ length: Number(m[2]) - Number(m[1]) + 1 }, (_, i) => Number(m[1]) + i);
   return spec!.split(",").map(Number);
 }
@@ -169,7 +182,7 @@ export async function windtunnel(seeds: number[], ticks: number, sets = RULE_SET
   const vsBaseline = Object.fromEntries(
     sets.slice(1).map((s) => [s.id, Object.fromEntries(WIND_METRICS.map((m) => {
       const c = compare(base, runs[s.id], m.key);
-      return [m.key, { diff: r4(c.diff), ci: c.ci.map(r4), p: r4(c.p) }];
+      return [m.key, { diff: r4(c.diff), ci: c.ci.map(r4), p: +c.p.toFixed(6) }];
     }))]),
   );
   return { ticks, seeds, ruleSets: sets, metrics: WIND_METRICS.map(({ key, group, label }) => ({ key, group, label })), summary, vsBaseline, runs };
@@ -178,6 +191,7 @@ export async function windtunnel(seeds: number[], ticks: number, sets = RULE_SET
 export function report(w: Awaited<ReturnType<typeof windtunnel>>) {
   const sets = w.ruleSets;
   const star = (p: number) => (p < 0.01 ? " **" : p < 0.05 ? " *" : "");
+  const pText = (p: number) => p < 0.001 ? "<0.001" : `=${p.toFixed(3)}`;
   const lines = [
     "# Wind tunnel: market rules against an evolving population",
     "",
@@ -197,11 +211,11 @@ export function report(w: Awaited<ReturnType<typeof windtunnel>>) {
     "",
     "## Difference from the baseline",
     "",
-    "Each cell: mean paired difference (rule set minus baseline, same seed), [95% bootstrap CI], and the exact two-sided sign-flip permutation p-value over all 2^" + w.seeds.length + " sign assignments. * p < 0.05, ** p < 0.01. With " + (sets.length - 1) * WIND_METRICS.length + " comparisons, two or three would reach p < 0.05 by chance alone, so read single-star results as tentative.",
+    `Each cell: mean paired difference (rule set minus baseline, same seed), [95% bootstrap CI], and a two-sided sign-flip p-value. It is exact through 16 paired seeds; above 16 it uses 100,000 fixed-seed Monte Carlo sign assignments with the +1 correction (minimum reportable p=0.00001). * p < 0.05, ** p < 0.01. With ${(sets.length - 1) * WIND_METRICS.length} comparisons, two or three would reach p < 0.05 by chance alone, so read single-star results as tentative.`,
     "",
     `| metric | ${sets.slice(1).map((s) => s.label).join(" | ")} |`,
     `|---|${sets.slice(1).map(() => "---").join("|")}|`,
-    ...WIND_METRICS.map((m) => `| ${m.label} | ${sets.slice(1).map((s) => { const c = w.vsBaseline[s.id][m.key]; return `${m.diff(c.diff)} [${m.diff(c.ci[0])}, ${m.diff(c.ci[1])}] p=${c.p.toFixed(3)}${star(c.p)}`; }).join(" | ")} |`),
+    ...WIND_METRICS.map((m) => `| ${m.label} | ${sets.slice(1).map((s) => { const c = w.vsBaseline[s.id][m.key]; return `${m.diff(c.diff)} [${m.diff(c.ci[0])}, ${m.diff(c.ci[1])}] p${pText(c.p)}${star(c.p)}`; }).join(" | ")} |`),
     "",
     "## Differences at p < 0.01",
     "",

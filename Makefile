@@ -8,11 +8,11 @@ demo:            ## run the economy live and serve the dashboard on http://local
 	cd sim && node --import tsx src/main.ts
 headless:        ## fast run, prints metrics (TICKS=2000 SEED=7 make headless)
 	cd sim && node --import tsx src/headless.ts
-seeds:           ## 10 seeds x Gaussian mutation, no LLM: mean, range, 95% CI -> results/seeds-gaussian.md
+seeds:           ## 30 seeds x Gaussian mutation, no LLM: mean, range, 95% CI -> results/seeds-gaussian.md
 	cd sim && node --import tsx src/experiment.ts seeds
 ablation:        ## Gaussian vs LLM-guided vs mixed mutation on 5 seeds -> results/ablation.md (replays the committed cache; live calls only on misses)
 	cd sim && NEAR_LLM_BUDGET_FILE=$${NEAR_LLM_BUDGET_FILE:-$$HOME/.near-hackathon-llm-spend-darwin.json} NEAR_LLM_BUDGET_USD=$${NEAR_LLM_BUDGET_USD:-2.5} node --import tsx src/experiment.ts ablation
-windtunnel:      ## 6 market rule sets x 10 seeds, no LLM: outcomes and paired tests vs baseline -> results/windtunnel.md
+windtunnel:      ## 6 market rule sets x 30 seeds, no LLM: outcomes and paired tests vs baseline -> results/windtunnel.md
 	cd sim && node --import tsx src/windtunnel.ts
 test-rules-grid: ## "Test your own rules": all 128 dashboard combinations x 5 seeds, no LLM -> results/test-rules.json (~2-3 min on 4 workers)
 	cd sim && node --import tsx src/testrules.ts grid
